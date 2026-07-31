@@ -1,9 +1,11 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signOut } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { getFirebaseAuth } from "@/lib/firebase"
 import { Button } from "@/components/ui/button"
 import {
   LayoutDashboardIcon,
@@ -80,7 +82,7 @@ export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState("dashboard")
 
   async function handleLogout() {
-    await signOut(auth)
+    await signOut(getFirebaseAuth())
     router.push("/login")
   }
 

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { getFirebaseAuth } from "@/lib/firebase"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -22,7 +22,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     setError("")
     setLoading(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      await signInWithEmailAndPassword(getFirebaseAuth(), email, password)
       router.push("/dashboard")
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed")
