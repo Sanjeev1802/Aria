@@ -23,7 +23,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     setLoading(true)
     try {
       await signInWithEmailAndPassword(getFirebaseAuth(), email, password)
-      router.push("/dashboard")
+      router.push("/chat")
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed")
     } finally {
