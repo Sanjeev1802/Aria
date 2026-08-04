@@ -1,14 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signInWithEmailAndPassword } from "firebase/auth"
 import { getFirebaseAuth } from "@/lib/firebase"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { SparklesIcon } from "lucide-react"
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const router = useRouter()
@@ -31,53 +28,88 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     }
   }
 
+  const forgotHref = email.trim()
+    ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
+    : "/forgot-password"
+
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form onSubmit={handleSubmit}>
-        <FieldGroup>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <a href="#" className="flex flex-col items-center gap-2 font-medium">
-              <div className="flex size-8 items-center justify-center rounded-[8px] bg-[var(--bn-acc)]">
-                <SparklesIcon className="size-4 text-white" />
-              </div>
-              <span className="sr-only">BNII ARIA</span>
-            </a>
-            <h1 className="text-xl font-bold">Welcome to BNII ARIA</h1>
+    <div className={cn("flex flex-col", className)} {...props}>
+      <div className="mb-8">
+        <p className="bn-eyebrow mb-2">Sign in</p>
+        <h2 className="bn-title text-[28px]">
+          Welcome to <span className="si text-[var(--bn-acc)]">BNII ARIA</span>
+        </h2>
+        <p className="si mt-2 text-[14px] text-[var(--bn-ink-3)]">
+          Enter your credentials to continue.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <label className="block">
+          <span className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.4px] text-[var(--bn-ink-3)]">
+            Email
+          </span>
+          <input
+            id="email"
+            type="email"
+            placeholder="you@company.com"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-11 w-full rounded-[12px] border-[0.5px] border-[rgba(13,11,7,0.14)] bg-[var(--bn-bg)] px-3.5 text-[13.5px] text-[var(--bn-ink)] outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-[var(--bn-ink-3)] focus:border-[var(--bn-acc)] focus:shadow-[0_0_0_3px_rgba(139,107,61,0.1)]"
+          />
+        </label>
+
+        <label className="block">
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <span className="text-[12px] font-medium uppercase tracking-[0.4px] text-[var(--bn-ink-3)]">
+              Password
+            </span>
+            <Link
+              href={forgotHref}
+              className="si text-[12px] text-[var(--bn-acc)] no-underline transition-colors hover:text-[var(--bn-acc-deep)]"
+            >
+              Forgot password?
+            </Link>
           </div>
-          <Field>
-            <FieldLabel htmlFor="email">Email ID</FieldLabel>
-            <Input
-              id="email"
-              type="email"
-              placeholder="m@example.com"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </Field>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <Field>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
-            </Button>
-          </Field>
-        </FieldGroup>
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-11 w-full rounded-[12px] border-[0.5px] border-[rgba(13,11,7,0.14)] bg-[var(--bn-bg)] px-3.5 text-[13.5px] text-[var(--bn-ink)] outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-[var(--bn-ink-3)] focus:border-[var(--bn-acc)] focus:shadow-[0_0_0_3px_rgba(139,107,61,0.1)]"
+          />
+        </label>
+
+        {error && (
+          <p className="text-[13px] text-[var(--bn-error)]">{error}</p>
+        )}
+
+        <button
+          type="submit"
+          className="ask-submit mt-2 h-12 w-full"
+          disabled={loading}
+        >
+          {loading ? "Signing in…" : "Sign in"}
+        </button>
       </form>
-      <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription>
+
+      <div className="mt-6 space-y-3 text-center">
+        <p className="text-[13px] text-[var(--bn-ink-2)]">
+          Need help accessing your account?{" "}
+          <Link
+            href={forgotHref}
+            className="text-[var(--bn-acc)] no-underline transition-colors hover:text-[var(--bn-acc-deep)]"
+          >
+            Reset password
+          </Link>
+        </p>
+        <p className="si text-[12px] text-[var(--bn-ink-3)]">
+          By continuing, you agree to our Terms of Service and Privacy Policy.
+        </p>
+      </div>
     </div>
   )
 }
