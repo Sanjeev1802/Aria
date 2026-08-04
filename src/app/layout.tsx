@@ -25,8 +25,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ARIA",
-  description: "ARIA — institutional research briefs",
+  title: "BNII ARIA",
+  description: "BNII ARIA — institutional research briefs",
+  applicationName: "BNII ARIA",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

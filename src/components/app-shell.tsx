@@ -70,11 +70,8 @@ export function AppShell({
           </div>
           <div className="leading-none">
             <span className="si bn-title text-[22px] tracking-[-0.4px] text-[var(--bn-ink)]">
-              ARIA
+              BNII ARIA
             </span>
-            <p className="si mt-0.5 text-[11px] text-[var(--bn-ink-3)]">
-              Chat API
-            </p>
           </div>
         </div>
 
@@ -148,7 +145,7 @@ export function AppShell({
           >
             <p className="bn-eyebrow mb-2">Account</p>
             <h2 id="logout-title" className="bn-title mb-2 text-[24px]">
-              Log out of <span className="si text-[var(--bn-acc)]">ARIA</span>?
+              Log out of <span className="si text-[var(--bn-acc)]">BNII ARIA</span>?
             </h2>
             <p id="logout-desc" className="si mb-6 text-[14px] text-[var(--bn-ink-2)]">
               You will need to sign in again to access chat and API keys.

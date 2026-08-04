@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { GalleryVerticalEndIcon } from "lucide-react"
+import { SparklesIcon } from "lucide-react"
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const router = useRouter()
@@ -37,12 +37,12 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <a href="#" className="flex flex-col items-center gap-2 font-medium">
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEndIcon className="size-6" />
+              <div className="flex size-8 items-center justify-center rounded-[8px] bg-[var(--bn-acc)]">
+                <SparklesIcon className="size-4 text-white" />
               </div>
-              <span className="sr-only">ARIA</span>
+              <span className="sr-only">BNII ARIA</span>
             </a>
-            <h1 className="text-xl font-bold">Welcome to ARIA</h1>
+            <h1 className="text-xl font-bold">Welcome to BNII ARIA</h1>
           </div>
           <Field>
             <FieldLabel htmlFor="email">Email ID</FieldLabel>

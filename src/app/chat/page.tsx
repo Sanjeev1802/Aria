@@ -68,7 +68,7 @@ export default function ChatPage() {
               <SparklesIcon className="size-5 text-[var(--bn-acc)]" />
             </div>
             <h1 className="bn-title mb-2 text-center text-[30px]">
-              Ask <span className="si text-[var(--bn-acc)]">ARIA</span>
+              Ask <span className="si text-[var(--bn-acc)]">BNII ARIA</span>
             </h1>
             <p className="si mb-8 max-w-md text-center text-[15px] leading-relaxed text-[var(--bn-ink-2)]">
               Submit a strategy question and receive a cited, board-ready
@@ -109,7 +109,7 @@ export default function ChatPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="si mb-1 text-[12px] text-[var(--bn-acc)]">
-                        ARIA
+                        BNII ARIA
                       </p>
                       <p className="bn-body-editorial text-[16px] text-[var(--bn-ink)]">
                         {message.content}
@@ -133,7 +133,7 @@ export default function ChatPage() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               rows={1}
-              placeholder="Ask ARIA anything…"
+              placeholder="Ask BNII ARIA anything…"
               className="max-h-40 min-h-[44px] flex-1 resize-none border-none bg-transparent py-2.5 font-sans text-[14.5px] leading-relaxed text-[var(--bn-ink)] outline-none placeholder:text-[var(--bn-ink-3)]"
             />
             <button
@@ -146,7 +146,7 @@ export default function ChatPage() {
             </button>
           </div>
           <p className="si mt-2.5 text-center text-[11px] text-[var(--bn-ink-3)]">
-            ARIA cites sources. Always verify before board use.
+            BNII ARIA cites sources. Always verify before board use.
           </p>
         </form>
       </div>
