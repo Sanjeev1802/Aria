@@ -7,6 +7,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Next.js inlines NEXT_PUBLIC_* at build time from .env.production
+# (.env.local is dockerignored and not available in Cloud Run builds)
 RUN npm run build
 
 FROM node:20-alpine AS runner

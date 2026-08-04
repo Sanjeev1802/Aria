@@ -2,5 +2,6 @@
 node_modules
 .env.local
 .env*.local
+# Keep .env.production available to `next build` (NEXT_PUBLIC_* only)
 .git
 README.md
