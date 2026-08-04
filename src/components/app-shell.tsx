@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "firebase/auth"
 import { getFirebaseAuth } from "@/lib/firebase"
+import { useFirebaseUser } from "@/hooks/use-firebase-user"
 import {
   MessageSquareIcon,
   HistoryIcon,
@@ -32,8 +33,11 @@ export function AppShell({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { user } = useFirebaseUser()
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const email = user?.email ?? ""
+  const initials = (email[0] || "U").toUpperCase()
 
   useEffect(() => {
     if (!confirmLogout) return
@@ -95,14 +99,14 @@ export function AppShell({
         <div className="border-t-[0.5px] border-[var(--bn-line)] p-3">
           <div className="mb-2 flex items-center gap-2.5 rounded-[10px] px-3 py-2">
             <div className="flex size-7 items-center justify-center rounded-full bg-[var(--bn-acc)] text-xs font-semibold text-white">
-              U
+              {initials}
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-[13px] font-medium text-[var(--bn-ink)]">
-                User
+                {user?.displayName || email.split("@")[0] || "User"}
               </p>
               <p className="si truncate text-[11px] text-[var(--bn-ink-3)]">
-                user@aria.ai
+                {email || "Not signed in"}
               </p>
             </div>
           </div>
