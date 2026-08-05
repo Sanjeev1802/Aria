@@ -1,0 +1,11 @@
+{
+  "name": "@aria/docs-site",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "echo \"Docs app scaffold — not started yet\"",
+    "build": "echo \"Docs app scaffold — nothing to build\"",
+    "lint": "echo \"ok\"",
+    "clean": "echo \"ok\""
+  }
+}
