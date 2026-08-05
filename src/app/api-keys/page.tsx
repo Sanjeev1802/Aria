@@ -1,15 +1,9 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { AppShell } from "@/components/app-shell"
 import { useFirebaseUser } from "@/hooks/use-firebase-user"
-import {
-  createApiKeyRecord,
-  loadApiKeys,
-  maskApiKey,
-  saveApiKeys,
-  type StoredApiKey,
-} from "@/lib/api-keys"
+import { maskApiKey, type StoredApiKey } from "@/lib/api-keys"
 import { PlusIcon, CopyIcon, CheckIcon, Trash2Icon } from "lucide-react"
 
 function formatDate(iso: string) {
@@ -23,10 +17,18 @@ function formatDate(iso: string) {
   }
 }
 
+async function authHeaders(user: { getIdToken: () => Promise<string> }) {
+  const token = await user.getIdToken()
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  }
+}
+
 export default function ApiKeysPage() {
   const { user, loading } = useFirebaseUser()
-  const uid = user?.uid ?? null
-  const [listVersion, setListVersion] = useState(0)
+  const [keys, setKeys] = useState<StoredApiKey[]>([])
+  const [listLoading, setListLoading] = useState(false)
   const [projectName, setProjectName] = useState("")
   const [error, setError] = useState("")
   const [creating, setCreating] = useState(false)
@@ -37,18 +39,30 @@ export default function ApiKeysPage() {
   } | null>(null)
   const [revokeId, setRevokeId] = useState<string | null>(null)
 
-  const keys = useMemo(() => {
-    if (!uid) return [] as StoredApiKey[]
-    return loadApiKeys(uid)
-    // listVersion forces reload after create/revoke
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, listVersion])
+  const refreshKeys = useCallback(async () => {
+    if (!user) {
+      setKeys([])
+      return
+    }
+    setListLoading(true)
+    setError("")
+    try {
+      const res = await fetch("/api/keys", {
+        headers: await authHeaders(user),
+      })
+      const data = (await res.json()) as { keys?: StoredApiKey[]; error?: string }
+      if (!res.ok) throw new Error(data.error || "Failed to load keys.")
+      setKeys(data.keys || [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load keys.")
+    } finally {
+      setListLoading(false)
+    }
+  }, [user])
 
-  function persist(next: StoredApiKey[]) {
-    if (!uid) return
-    saveApiKeys(uid, next)
-    setListVersion((v) => v + 1)
-  }
+  useEffect(() => {
+    void refreshKeys()
+  }, [refreshKeys])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -59,18 +73,32 @@ export default function ApiKeysPage() {
       setError("Project name is required.")
       return
     }
-    if (!uid) {
+    if (!user) {
       setError("Sign in to create an API key.")
       return
     }
 
     setCreating(true)
     try {
-      const { record, secret } = await createApiKeyRecord(name)
-      persist([record, ...keys])
-      setOneTimeSecret({ projectName: name, secret })
+      const res = await fetch("/api/keys", {
+        method: "POST",
+        headers: await authHeaders(user),
+        body: JSON.stringify({ projectName: name }),
+      })
+      const data = (await res.json()) as {
+        record?: StoredApiKey
+        secret?: string
+        error?: string
+      }
+      if (!res.ok || !data.record || !data.secret) {
+        throw new Error(data.error || "Failed to create API key.")
+      }
+      setOneTimeSecret({ projectName: name, secret: data.secret })
       setProjectName("")
       setCopied(false)
+      await refreshKeys()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to create API key.")
     } finally {
       setCreating(false)
     }
@@ -87,15 +115,47 @@ export default function ApiKeysPage() {
     }
   }
 
-  function confirmRevoke(id: string) {
-    persist(keys.filter((k) => k.id !== id))
-    setRevokeId(null)
+  async function confirmRevoke(id: string) {
+    if (!user) return
+    setError("")
+    try {
+      const res = await fetch(`/api/keys/${id}`, {
+        method: "DELETE",
+        headers: await authHeaders(user),
+      })
+      const data = (await res.json()) as { error?: string }
+      if (!res.ok) throw new Error(data.error || "Failed to revoke key.")
+      setRevokeId(null)
+      await refreshKeys()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to revoke key.")
+    }
   }
+
+  const appOrigin =
+    typeof window !== "undefined" ? window.location.origin : "https://your-aria-host"
 
   return (
     <AppShell title="API Keys" eyebrow="Integration">
       <main className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-4xl space-y-6">
+          <section className="bn-card p-5">
+            <p className="bn-eyebrow mb-2">Embed in another app</p>
+            <h2 className="bn-title mb-2 text-[22px]">
+              Use this key to show{" "}
+              <span className="si text-[var(--bn-acc)]">Aria chat</span>
+            </h2>
+            <p className="si mb-3 text-[13.5px] leading-relaxed text-[var(--bn-ink-2)]">
+              Add these env vars in the host project (for example Atlas), then
+              open an embed session so the same Aria chat page fills that
+              section.
+            </p>
+            <pre className="overflow-x-auto rounded-[12px] border-[0.5px] border-[var(--bn-line)] bg-[var(--bn-bg-2)] p-3 font-mono text-[12px] leading-relaxed text-[var(--bn-ink-2)]">
+{`ARIA_API_URL=${appOrigin}
+ARIA_API_KEY=aria_••••••••`}
+            </pre>
+          </section>
+
           <form onSubmit={handleCreate} className="bn-card p-5">
             <p className="bn-eyebrow mb-2">Create key</p>
             <h2 className="bn-title mb-4 text-[22px]">
@@ -113,7 +173,7 @@ export default function ApiKeysPage() {
               <button
                 type="submit"
                 className="ask-submit h-11 gap-2 px-5"
-                disabled={creating || loading || !uid}
+                disabled={creating || loading || !user}
               >
                 <PlusIcon className="size-4" />
                 {creating ? "Creating…" : "Create key"}
@@ -145,7 +205,7 @@ export default function ApiKeysPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
+                  {loading || listLoading ? (
                     <tr>
                       <td
                         colSpan={4}
@@ -222,9 +282,8 @@ export default function ApiKeysPage() {
               Project: {oneTimeSecret.projectName}
             </p>
             <p className="si mb-4 text-[13px] text-[var(--bn-ink-3)]">
-              This is the only time the full key is shown. After you close this
-              dialog it is stored encrypted (hashed) and cannot be revealed
-              again.
+              This is the only time the full key is shown. Put it in the host
+              app env as <code className="font-mono">ARIA_API_KEY</code>.
             </p>
             <div className="mb-5 flex items-center gap-2 rounded-[12px] border-[0.5px] border-[rgba(139,107,61,0.35)] bg-[rgba(139,107,61,0.06)] px-3 py-2.5">
               <code className="flex-1 overflow-x-auto font-mono text-[12.5px] text-[var(--bn-ink)]">
@@ -284,7 +343,7 @@ export default function ApiKeysPage() {
                 type="button"
                 className="ask-submit h-10 px-5"
                 style={{ background: "var(--bn-error)" }}
-                onClick={() => confirmRevoke(revokeId)}
+                onClick={() => void confirmRevoke(revokeId)}
               >
                 Revoke
               </button>
