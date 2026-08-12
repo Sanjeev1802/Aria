@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@aria/auth": "*",
+    "@aria/config": "*",
+    "@aria/types": "*",
     "@aria/ui": "*",
     "@aria/utils": "*",
     "@base-ui/react": "^1.7.0",

@@ -6,12 +6,11 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev --parallel",
+    "dev": "turbo run dev --filter=@aria/web",
     "dev:web": "turbo run dev --filter=@aria/web",
-    "dev:workspace": "turbo run dev --filter=@aria/workspace",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "clean": "turbo run clean"
+    "build": "turbo run build --filter=@aria/web...",
+    "lint": "turbo run lint --filter=@aria/web",
+    "clean": "turbo run clean --filter=@aria/web"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

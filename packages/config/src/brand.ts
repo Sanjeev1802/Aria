@@ -7,8 +7,9 @@ export const brand = {
   accent: "#D88A68",
 } as const;
 
-export const workspaceUrl =
-  process.env.NEXT_PUBLIC_WORKSPACE_URL ?? "http://localhost:3001";
-
 export const webUrl =
   process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
+
+/** @deprecated Single-app: workspace lives at /dashboard on the same origin */
+export const workspaceUrl =
+  process.env.NEXT_PUBLIC_WORKSPACE_URL ?? webUrl;

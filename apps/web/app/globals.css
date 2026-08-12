@@ -7,6 +7,8 @@
 :root {
   --dark: #141413;
   --brand-accent: #d88a68;
+  --brand-cream: #f0eee6;
+  --brand-dark: #141413;
   --brand-card: #e8e4dc;
   --page-padding: 1.25rem;
   --section-max: 87.5rem;
@@ -49,6 +51,8 @@
   --color-foreground: var(--foreground);
   --color-dark: var(--dark);
   --color-accent: var(--brand-accent);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-dark: var(--brand-dark);
   --color-card: var(--card);
   --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-newsreader);

@@ -4,9 +4,6 @@ import { useEffect, useState } from "react";
 import FeaturesDropdown from "@/components/features/FeaturesDropdown";
 import ResourcesDropdown from "@/components/resources/ResourcesDropdown";
 
-const workspaceUrl =
-  process.env.NEXT_PUBLIC_WORKSPACE_URL ?? "http://localhost:3001";
-
 const navLinks = [{ label: "Pricing", href: "/pricing" }];
 
 function AuthNavLink({
@@ -18,7 +15,7 @@ function AuthNavLink({
 }) {
   return (
     <a
-      href={`${workspaceUrl}/sign-in`}
+      href="/sign-in"
       onClick={onClick}
       className={`whitespace-nowrap text-sm text-foreground/80 transition-colors hover:text-foreground ${className}`}
     >

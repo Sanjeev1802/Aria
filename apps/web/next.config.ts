@@ -3,10 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: [
     "@aria/auth",
+    "@aria/config",
+    "@aria/types",
     "@aria/ui",
     "@aria/utils",
-    "@aria/types",
-    "@aria/config",
   ],
 };
 

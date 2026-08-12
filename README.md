@@ -11,15 +11,15 @@ This repository is the **Aria platform monorepo** — marketing site, authentica
 | Surface | Purpose |
 | --- | --- |
 | **Marketing (`web`)** | Product story, features, pricing, docs, blog, and access requests |
-| **Workspace** | Signed-in ARIA chat experience |
+| **Dashboard (`/dashboard`)** | Signed-in ARIA chat experience (same app, port 3000) |
 | **Admin / Docs** | Internal console and API documentation (scaffolded) |
 | **Backend** | API, AI orchestration, analytics, documents, and workers (scaffolded) |
 
 **Product flow today**
 
 - **TRY ARIA** on marketing → contact / request access  
-- **Sign in** → workspace app (Firebase email/password)  
-- Workspace chat is gated behind authentication  
+- **Sign in** → `/sign-in` → `/dashboard` chat (Firebase email/password)  
+- Dashboard chat is gated behind authentication  
 
 ---
 
@@ -28,8 +28,7 @@ This repository is the **Aria platform monorepo** — marketing site, authentica
 ```
 aria/
 ├── apps/
-│   ├── web/           # Marketing site          → :3000
-│   ├── workspace/     # Authenticated chat      → :3001
+│   ├── web/           # Marketing + sign-in + dashboard/chat → :3000
 │   ├── admin/         # Admin console (scaffold)
 │   └── docs/          # Docs site (scaffold)
 ├── packages/
@@ -70,22 +69,19 @@ npm install
 cp .env.example .env
 # Fill NEXT_PUBLIC_FIREBASE_* and app URLs
 
-# Develop
-npm run dev:web        # http://localhost:3000
-npm run dev:workspace  # http://localhost:3001
-npm run dev            # both (Turbo parallel)
+# Develop (single app on port 3000)
+npm run dev            # http://localhost:3000
 ```
 
 ### Environment
 
 | Variable | Role |
 | --- | --- |
-| `NEXT_PUBLIC_FIREBASE_*` | Client Firebase config (workspace sign-in) |
+| `NEXT_PUBLIC_FIREBASE_*` | Client Firebase config (sign-in) |
 | `FIREBASE_*` | Admin SDK (server-only; when used) |
-| `NEXT_PUBLIC_WEB_URL` | Marketing origin (default `http://localhost:3000`) |
-| `NEXT_PUBLIC_WORKSPACE_URL` | Workspace origin (default `http://localhost:3001`) |
+| `NEXT_PUBLIC_WEB_URL` | App origin (default `http://localhost:3000`) |
 
-Copy `.env.example` at the repo root. Never commit `.env`.
+Copy `.env.example` at the repo root. Never commit `.env`. Place the same Firebase vars in `apps/web/.env.local` for Next.js.
 
 ---
 
@@ -93,18 +89,17 @@ Copy `.env.example` at the repo root. Never commit `.env`.
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Run all app `dev` tasks in parallel |
-| `npm run dev:web` | Marketing only |
-| `npm run dev:workspace` | Workspace only |
-| `npm run build` | Production build across workspaces |
-| `npm run lint` | Lint workspaces |
+| `npm run dev` | Run the web app on port 3000 |
+| `npm run build` | Production build |
+| `npm run lint` | Lint the web app |
 | `npm run clean` | Clean build outputs |
 
 ---
 
 ## Architecture notes
 
-- **Separate apps, shared session boundary:** Marketing and workspace run on different ports/origins. Auth lives on the workspace; marketing “Sign in” links into the workspace app.  
+- **Single origin:** Marketing, sign-in, and dashboard/chat all run on port 3000 (`apps/web`).  
+- **Routes:** `/` marketing · `/sign-in` auth · `/dashboard` authenticated chat.  
 - **Shared packages:** Prefer `@aria/auth`, `@aria/config`, `@aria/ui`, etc. instead of duplicating client setup.  
 - **Backend folders** under `backend/` are intentional scaffolds for upcoming API, AI, document, and worker services.
 
