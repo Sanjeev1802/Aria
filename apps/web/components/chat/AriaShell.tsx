@@ -22,10 +22,7 @@ import {
   ChatComposer,
   type ComposerPayload,
 } from "@/components/chat/ChatComposer";
-import { TokenUsageBar } from "@/components/chat/TokenUsageBar";
-import { ConfirmDialog } from "@/components/chat/ConfirmDialog";
-import Link from "next/link";
-import { MenuIcon, PencilIcon, SparklesIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, MenuIcon, PencilIcon, ShareIcon } from "lucide-react";
 import { useAuth } from "@aria/auth";
 import { ensureWorkspaceUser } from "@/lib/aria/users";
 
@@ -39,7 +36,7 @@ export function AriaShell() {
   const [hydrated, setHydrated] = useState(false);
   const [tokenUsed, setTokenUsed] = useState(0);
   const [tokenLimit, setTokenLimit] = useState(100_000);
-  const [clearOpen, setClearOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -106,16 +103,31 @@ export function AriaShell() {
     });
   }
 
-  function handleClearChat() {
+  async function handleShareChat() {
     if (!activeId) return;
-    setConversations((prev) =>
-      prev.map((item) =>
-        item.id === activeId
-          ? { ...item, messages: [], title: "New chat", updatedAt: Date.now() }
-          : item,
-      ),
-    );
-    setClearOpen(false);
+    const url = new URL(window.location.href);
+    url.searchParams.set("chat", activeId);
+    const shareUrl = url.toString();
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: active?.title || "ARIA chat",
+          url: shareUrl,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1600);
+    } catch {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 1600);
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   async function handleSend({ content, attachments }: ComposerPayload) {
@@ -233,29 +245,19 @@ export function AriaShell() {
           </p>
 
           <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <Link
-              href="/dashboard/plans"
-              className="hidden h-7 items-center gap-1 rounded-full bg-foreground px-2.5 text-[11px] font-medium text-background transition-opacity hover:opacity-90 sm:inline-flex"
-            >
-              <SparklesIcon className="size-3" />
-              Upgrade
-            </Link>
-            <div className="hidden w-[130px] md:block">
-              <TokenUsageBar
-                used={tokenUsed}
-                limit={tokenLimit}
-                compact
-              />
-            </div>
             {!isEmpty ? (
               <button
                 type="button"
-                onClick={() => setClearOpen(true)}
+                onClick={() => void handleShareChat()}
                 className="inline-flex size-8 items-center justify-center rounded-lg text-foreground/50 transition-colors hover:bg-foreground/5 hover:text-foreground"
-                aria-label="Clear chat"
-                title="Clear chat"
+                aria-label={shareCopied ? "Link copied" : "Share chat"}
+                title={shareCopied ? "Link copied" : "Share chat"}
               >
-                <Trash2Icon className="size-3.5" strokeWidth={1.75} />
+                {shareCopied ? (
+                  <CheckIcon className="size-3.5 text-foreground" strokeWidth={1.75} />
+                ) : (
+                  <ShareIcon className="size-3.5" strokeWidth={1.75} />
+                )}
               </button>
             ) : null}
             <button
@@ -300,17 +302,6 @@ export function AriaShell() {
           </>
         )}
       </main>
-
-      <ConfirmDialog
-        open={clearOpen}
-        title="Clear this chat?"
-        description="All messages in the current conversation will be removed. Token usage for your workspace is kept."
-        confirmLabel="Clear chat"
-        cancelLabel="Cancel"
-        destructive
-        onCancel={() => setClearOpen(false)}
-        onConfirm={handleClearChat}
-      />
     </div>
   );
 }

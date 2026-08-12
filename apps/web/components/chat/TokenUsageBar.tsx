@@ -6,12 +6,40 @@ type TokenUsageBarProps = {
   used: number;
   limit: number;
   compact?: boolean;
+  /** Collapsed sidebar: show only a progress rail */
+  rail?: boolean;
 };
 
-export function TokenUsageBar({ used, limit, compact }: TokenUsageBarProps) {
+export function TokenUsageBar({
+  used,
+  limit,
+  compact,
+  rail,
+}: TokenUsageBarProps) {
   const pct = Math.min(100, Math.round((used / Math.max(limit, 1)) * 100));
   const nearLimit = pct >= 85;
   const atLimit = pct >= 100;
+  const fillClass = atLimit
+    ? "bg-red-700"
+    : nearLimit
+      ? "bg-accent"
+      : "bg-foreground/55";
+
+  if (rail) {
+    return (
+      <div
+        className="mx-auto flex w-full max-w-[1.75rem] flex-col items-center gap-1"
+        title={`${used.toLocaleString()} / ${limit.toLocaleString()} tokens`}
+      >
+        <div className="relative h-16 w-1.5 overflow-hidden rounded-full bg-foreground/10">
+          <div
+            className={`absolute bottom-0 left-0 w-full rounded-full transition-[height] duration-300 ${fillClass}`}
+            style={{ height: `${pct}%` }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -55,13 +83,7 @@ export function TokenUsageBar({ used, limit, compact }: TokenUsageBarProps) {
       )}
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
         <div
-          className={`h-full rounded-full transition-[width] duration-300 ${
-            atLimit
-              ? "bg-red-700"
-              : nearLimit
-                ? "bg-accent"
-                : "bg-foreground/55"
-          }`}
+          className={`h-full rounded-full transition-[width] duration-300 ${fillClass}`}
           style={{ width: `${pct}%` }}
         />
       </div>

@@ -9,14 +9,13 @@ import {
   savePlanId,
   type PlanId,
 } from "@/lib/aria/plans";
-import { CheckIcon, SparklesIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { ConfirmDialog } from "@/components/chat/ConfirmDialog";
 
 export function PlansPageClient() {
   const router = useRouter();
   const [current, setCurrent] = useState<PlanId>("free");
   const [pending, setPending] = useState<PlanId | null>(null);
-  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
   useEffect(() => {
     setCurrent(loadPlanId());
@@ -27,97 +26,70 @@ export function PlansPageClient() {
     savePlanId(pending);
     setCurrent(pending);
     setPending(null);
-    router.push("/dashboard/usage");
+    router.push("/dashboard");
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-foreground/60">
-          Current plan:{" "}
-          <span className="font-medium text-foreground">
-            {getPlan(current).name}
-          </span>
-        </p>
-        <div className="inline-flex rounded-full border border-foreground/12 bg-card p-1">
-          <button
-            type="button"
-            onClick={() => setBilling("monthly")}
-            className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors ${
-              billing === "monthly"
-                ? "bg-foreground text-background"
-                : "text-foreground/55 hover:text-foreground"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            type="button"
-            onClick={() => setBilling("yearly")}
-            className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors ${
-              billing === "yearly"
-                ? "bg-foreground text-background"
-                : "text-foreground/55 hover:text-foreground"
-            }`}
-          >
-            Yearly <span className="text-accent">-20%</span>
-          </button>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <p className="text-[14px] text-foreground/55">
+        You’re on{" "}
+        <span className="font-medium text-foreground">
+          {getPlan(current).name}
+        </span>
+        . Choose the plan that fits how you work.
+      </p>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-4">
         {PLANS.map((plan) => {
           const isCurrent = plan.id === current;
-          const yearlyLabel =
-            plan.priceLabel === "Custom" || plan.priceLabel === "$0"
-              ? plan.priceLabel
-              : `$${Math.round(Number(plan.priceLabel.replace("$", "")) * 12 * 0.8)}`;
 
           return (
             <article
               key={plan.id}
-              className={`relative flex flex-col rounded-2xl border p-5 sm:p-6 ${
+              className={`relative flex flex-col rounded-2xl border p-5 ${
                 plan.featured
-                  ? "border-accent/50 bg-card shadow-[0_0_0_1px_rgba(216,138,104,0.15)]"
-                  : "border-foreground/10 bg-card"
+                  ? "border-foreground/25 bg-card shadow-[0_1px_0_rgba(20,20,19,0.04)]"
+                  : "border-foreground/10 bg-card/70"
               }`}
             >
               {plan.featured ? (
-                <span className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-foreground uppercase">
-                  <SparklesIcon className="size-3" />
+                <span className="mb-3 inline-flex w-fit rounded-full bg-foreground px-2 py-0.5 text-[10px] font-semibold tracking-wide text-background uppercase">
                   Popular
                 </span>
-              ) : null}
+              ) : (
+                <span className="mb-3 inline-block h-[18px]" aria-hidden />
+              )}
 
               <h2 className="text-lg font-semibold tracking-tight text-foreground">
                 {plan.name}
               </h2>
-              <p className="mt-1 font-serif text-sm leading-relaxed text-foreground/60">
+              <p className="mt-1.5 min-h-[3.25rem] text-[13px] leading-relaxed text-foreground/55">
                 {plan.description}
               </p>
 
-              <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-3xl font-semibold tracking-tight text-foreground">
-                  {billing === "yearly" && plan.id !== "enterprise" && plan.id !== "free"
-                    ? yearlyLabel
-                    : plan.priceLabel}
+              <div className="mt-5 flex items-baseline gap-1">
+                <span className="text-[2rem] font-semibold tracking-tight text-foreground">
+                  {plan.priceLabel}
                 </span>
-                <span className="text-sm text-foreground/45">
-                  {plan.id === "enterprise"
-                    ? plan.priceDetail
-                    : billing === "yearly" && plan.id !== "free"
-                      ? "/ year"
-                      : plan.priceDetail}
-                </span>
+                {plan.id !== "enterprise" ? (
+                  <span className="text-[13px] text-foreground/45">
+                    {plan.priceDetail}
+                  </span>
+                ) : null}
               </div>
+              {plan.id === "enterprise" ? (
+                <p className="mt-1 text-[13px] text-foreground/45">
+                  {plan.priceDetail}
+                </p>
+              ) : null}
 
-              <ul className="mt-5 flex flex-1 flex-col gap-2">
+              <ul className="mt-5 flex flex-1 flex-col gap-2.5">
                 {plan.features.map((feature) => (
                   <li
                     key={feature}
-                    className="flex items-start gap-2 text-sm text-foreground/75"
+                    className="flex items-start gap-2 text-[13px] text-foreground/70"
                   >
-                    <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-accent" />
+                    <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-foreground/50" />
                     {feature}
                   </li>
                 ))}
@@ -133,12 +105,14 @@ export function PlansPageClient() {
                   }
                   setPending(plan.id);
                 }}
-                className={`mt-6 inline-flex h-10 w-full items-center justify-center rounded-full text-sm font-medium transition-opacity ${
+                className={`mt-6 inline-flex h-10 w-full items-center justify-center rounded-full text-[13px] font-medium transition-opacity ${
                   isCurrent
-                    ? "cursor-default border border-foreground/15 bg-transparent text-foreground/50"
+                    ? "cursor-default border border-foreground/12 bg-transparent text-foreground/45"
                     : plan.featured
                       ? "bg-foreground text-background hover:opacity-90"
-                      : "bg-foreground/[0.08] text-foreground hover:bg-foreground/[0.12]"
+                      : plan.id === "enterprise"
+                        ? "border border-foreground/15 bg-transparent text-foreground hover:bg-foreground/5"
+                        : "bg-foreground/[0.08] text-foreground hover:bg-foreground/[0.12]"
                 }`}
               >
                 {isCurrent ? "Current plan" : plan.cta}
@@ -148,23 +122,30 @@ export function PlansPageClient() {
         })}
       </div>
 
+      <p className="text-[12px] text-foreground/40">
+        Business includes organization seats with Admin and User roles. Enterprise
+        pricing is custom — contact the Aria team.
+      </p>
+
       <ConfirmDialog
         open={Boolean(pending)}
         title={
           pending
             ? pending === "free"
               ? "Switch to Free?"
-              : `Upgrade to ${getPlan(pending).name}?`
+              : `Switch to ${getPlan(pending).name}?`
             : "Change plan?"
         }
         description={
           pending
             ? pending === "free"
-              ? "You’ll keep chat access with the Free token limit. This is a demo change stored on this device."
-              : `You’ll unlock the ${getPlan(pending).name} token limit (${getPlan(pending).tokenLimit.toLocaleString()} tokens / month). Billing is simulated for this demo.`
+              ? "You’ll keep chat access with Free limits. This demo change is stored on this device."
+              : pending === "business"
+                ? "You’ll unlock Team management with Admin and User roles. Billing is simulated for this demo."
+                : `You’ll unlock the ${getPlan(pending).name} limits. Billing is simulated for this demo.`
             : ""
         }
-        confirmLabel={pending === "free" ? "Switch to Free" : "Confirm upgrade"}
+        confirmLabel={pending === "free" ? "Switch to Free" : "Confirm"}
         cancelLabel="Cancel"
         onCancel={() => setPending(null)}
         onConfirm={confirmUpgrade}

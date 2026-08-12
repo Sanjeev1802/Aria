@@ -1,16 +1,5 @@
-import { RequireAuth } from "@/components/chat/RequireAuth";
-import { AccountShell } from "@/components/account/AccountShell";
-import { UsagePageClient } from "@/components/account/UsagePageClient";
+import { redirect } from "next/navigation";
 
 export default function UsagePage() {
-  return (
-    <RequireAuth>
-      <AccountShell
-        title="Usage"
-        description="Track tokens against your monthly plan limit, similar to ChatGPT’s usage dashboard."
-      >
-        <UsagePageClient />
-      </AccountShell>
-    </RequireAuth>
-  );
+  redirect("/dashboard");
 }

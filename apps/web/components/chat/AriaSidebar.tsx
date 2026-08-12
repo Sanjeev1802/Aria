@@ -6,13 +6,11 @@ import { AriaLogo } from "@/components/chat/AriaLogo";
 import { ConfirmDialog } from "@/components/chat/ConfirmDialog";
 import { TokenUsageBar } from "@/components/chat/TokenUsageBar";
 import { AccountMenu } from "@/components/account/AccountMenu";
-import Link from "next/link";
 import {
   MessageSquareIcon,
-  PanelLeftIcon,
+  PanelLeftCloseIcon,
   PencilIcon,
   SearchIcon,
-  SparklesIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
@@ -77,53 +75,75 @@ export function AriaSidebar({
           sm:max-lg:inset-y-2 sm:max-lg:left-2 sm:max-lg:h-[calc(100dvh-1rem)]
           sm:max-lg:rounded-2xl sm:max-lg:border
           lg:relative lg:h-full lg:rounded-2xl
-          ${collapsed ? "lg:w-12" : "lg:w-[240px]"}
+          ${collapsed ? "lg:w-14" : "lg:w-[240px]"}
           ${open ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"}
         `}
       >
-        <div className="flex h-12 items-center justify-between gap-1.5 border-b border-foreground/10 px-2.5">
-          <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-            <AriaLogo className="h-4 w-auto shrink-0 text-foreground" />
-            {!collapsed ? (
-              <span className="truncate text-[11px] font-semibold tracking-[0.16em] text-foreground">
-                ARIA
-              </span>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-0.5">
-            {!collapsed ? (
-              <button
-                type="button"
-                className="hidden size-7 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 hover:text-foreground lg:inline-flex"
-                aria-label="Search chats"
-                onClick={() => setSearchOpen((v) => !v)}
-              >
-                <SearchIcon className="size-3.5" strokeWidth={1.75} />
-              </button>
-            ) : null}
+        <div
+          className={`flex h-12 items-center border-b border-foreground/10 ${
+            collapsed ? "justify-center px-1.5" : "justify-between gap-1.5 px-2.5"
+          }`}
+        >
+          {collapsed ? (
             <button
               type="button"
-              className="hidden size-7 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 hover:text-foreground lg:inline-flex"
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               onClick={onToggleCollapse}
+              className="hidden size-9 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-foreground/5 lg:inline-flex"
+              aria-label="Open sidebar"
+              title="Open sidebar"
             >
-              <PanelLeftIcon className="size-3.5" strokeWidth={1.75} />
+              <AriaLogo className="h-5 w-auto" />
             </button>
-            <button
-              type="button"
-              className="inline-flex size-7 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 hover:text-foreground lg:hidden"
-              onClick={onClose}
-              aria-label="Close menu"
-            >
-              <XIcon className="size-3.5" />
-            </button>
-          </div>
+          ) : (
+            <>
+              <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+                <AriaLogo className="h-4 w-auto shrink-0 text-foreground" />
+                <span className="truncate text-[11px] font-semibold tracking-[0.16em] text-foreground">
+                  ARIA
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-0.5">
+                <button
+                  type="button"
+                  className="hidden size-7 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 hover:text-foreground lg:inline-flex"
+                  aria-label="Search chats"
+                  onClick={() => setSearchOpen((v) => !v)}
+                >
+                  <SearchIcon className="size-3.5" strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  className="hidden size-7 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 hover:text-foreground lg:inline-flex"
+                  aria-label="Collapse sidebar"
+                  title="Collapse sidebar"
+                  onClick={onToggleCollapse}
+                >
+                  <PanelLeftCloseIcon className="size-3.5" strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex size-7 items-center justify-center rounded-lg text-foreground/45 transition-colors hover:bg-foreground/5 hover:text-foreground lg:hidden"
+                  onClick={onClose}
+                  aria-label="Close menu"
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="flex flex-col gap-0.5 px-2 pt-2">
+        <div
+          className={`flex flex-col gap-0.5 pt-2 ${
+            collapsed ? "items-center px-1.5" : "px-2"
+          }`}
+        >
           <button
             type="button"
-            className="flex h-8 items-center gap-2.5 rounded-lg bg-foreground/[0.07] px-2.5 text-[12px] font-medium text-foreground"
+            className={`flex h-8 items-center rounded-lg bg-foreground/[0.07] text-[12px] font-medium text-foreground ${
+              collapsed ? "w-9 justify-center" : "gap-2.5 px-2.5"
+            }`}
+            title="Chat"
           >
             <MessageSquareIcon className="size-3.5 shrink-0" strokeWidth={1.75} />
             {!collapsed ? <span>Chat</span> : null}
@@ -134,31 +154,15 @@ export function AriaSidebar({
               onNewChat();
               onClose();
             }}
-            className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[12px] text-foreground/55 transition-colors hover:bg-foreground/5 hover:text-foreground"
+            className={`flex h-8 items-center rounded-lg text-[12px] text-foreground/55 transition-colors hover:bg-foreground/5 hover:text-foreground ${
+              collapsed ? "w-9 justify-center" : "gap-2.5 px-2.5"
+            }`}
+            title="New chat"
+            aria-label="New chat"
           >
             <PencilIcon className="size-3.5 shrink-0" strokeWidth={1.75} />
             {!collapsed ? <span>New chat</span> : null}
           </button>
-          {!collapsed ? (
-            <Link
-              href="/dashboard/plans"
-              onClick={onClose}
-              className="mt-1 flex h-8 items-center gap-2.5 rounded-lg bg-accent/20 px-2.5 text-[12px] font-medium text-foreground transition-colors hover:bg-accent/30"
-            >
-              <SparklesIcon className="size-3.5 shrink-0 text-accent" />
-              <span>Upgrade</span>
-            </Link>
-          ) : (
-            <Link
-              href="/dashboard/plans"
-              onClick={onClose}
-              className="mt-1 flex h-8 items-center justify-center rounded-lg bg-accent/20 text-foreground transition-colors hover:bg-accent/30"
-              aria-label="Upgrade"
-              title="Upgrade"
-            >
-              <SparklesIcon className="size-3.5 text-accent" />
-            </Link>
-          )}
         </div>
 
         {!collapsed ? (
@@ -228,16 +232,24 @@ export function AriaSidebar({
                 </ul>
               )}
             </div>
-
-            <div className="px-2 pb-2">
-              <TokenUsageBar used={tokenUsed} limit={tokenLimit} />
-            </div>
           </>
         ) : (
           <div className="flex-1" />
         )}
 
-        <div className="mt-auto border-t border-foreground/10 px-2 py-2">
+        <div
+          className={`mt-auto border-t border-foreground/10 ${
+            collapsed ? "px-2 py-2" : "px-2 pb-2 pt-2"
+          }`}
+        >
+          <div className={collapsed ? "mb-2" : "mb-2"}>
+            <TokenUsageBar
+              used={tokenUsed}
+              limit={tokenLimit}
+              compact={collapsed}
+              rail={collapsed}
+            />
+          </div>
           <AccountMenu collapsed={collapsed} onNavigate={onClose} />
         </div>
       </aside>

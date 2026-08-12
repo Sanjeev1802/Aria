@@ -12,21 +12,22 @@ import {
   type WorkspaceRole,
   type WorkspaceUser,
 } from "@/lib/aria/users";
+import { getPlan, loadPlanId } from "@/lib/aria/plans";
 import {
-  PlusIcon,
+  MailPlusIcon,
   SearchIcon,
-  ShieldIcon,
   Trash2Icon,
-  UserIcon,
+  UserPlusIcon,
 } from "lucide-react";
 
 const fieldClass =
-  "box-border h-10 w-full rounded-xl border border-foreground/12 bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/10";
+  "box-border h-10 w-full rounded-xl border border-foreground/12 bg-background px-3 text-[13px] text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/10";
 
 export function UsersPageClient() {
   const { user } = useAuth();
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [query, setQuery] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<WorkspaceRole>("user");
@@ -34,12 +35,14 @@ export function UsersPageClient() {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  const [planName, setPlanName] = useState("Business");
 
   function refresh() {
     if (user?.email) {
       ensureWorkspaceUser(user.email, user.displayName);
     }
     setUsers(loadWorkspaceUsers());
+    setPlanName(getPlan(loadPlanId()).name);
   }
 
   useEffect(() => {
@@ -60,9 +63,10 @@ export function UsersPageClient() {
 
   const deleteTarget = users.find((u) => u.id === deleteId) ?? null;
   const adminCount = users.filter((u) => u.role === "admin").length;
+  const pendingCount = users.filter((u) => u.status === "invited").length;
   const actorEmail = user?.email ?? "";
 
-  function handleAdd(event: FormEvent) {
+  function handleInvite(event: FormEvent) {
     event.preventDefault();
     setFormError(null);
     setFormSuccess(null);
@@ -75,6 +79,7 @@ export function UsersPageClient() {
     setEmail("");
     setRole("user");
     setFormSuccess(`Invited ${result.user!.email} as ${result.user!.role}.`);
+    setInviteOpen(false);
     refresh();
   }
 
@@ -102,192 +107,111 @@ export function UsersPageClient() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-foreground/10 bg-card p-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/40">
-            Total users
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 xs:flex-row sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-medium tracking-[0.12em] text-foreground/40 uppercase">
+            Organization · {planName}
           </p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{users.length}</p>
-        </div>
-        <div className="rounded-2xl border border-foreground/10 bg-card p-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/40">
-            Admins
-          </p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{adminCount}</p>
-        </div>
-        <div className="rounded-2xl border border-foreground/10 bg-card p-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/40">
-            Invited
-          </p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">
-            {users.filter((u) => u.status === "invited").length}
+          <p className="mt-1 text-[13px] leading-relaxed text-foreground/55">
+            Admins can invite, change roles, and remove members.
           </p>
         </div>
-      </section>
+        <button
+          type="button"
+          onClick={() => {
+            setInviteOpen(true);
+            setFormError(null);
+            setFormSuccess(null);
+          }}
+          className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-1.5 rounded-full bg-foreground px-3.5 text-[13px] font-medium text-background transition-opacity hover:opacity-90 sm:w-auto"
+        >
+          <UserPlusIcon className="size-3.5" />
+          Invite
+        </button>
+      </div>
 
-      <section className="rounded-2xl border border-foreground/10 bg-card p-5 sm:p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <PlusIcon className="size-4 text-accent" />
-          <h2 className="text-sm font-semibold text-foreground">Add new user</h2>
-        </div>
-        <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-foreground/70">
-              Full name
-            </span>
-            <input
-              className={fieldClass}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Jordan Lee"
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-foreground/70">
-              Email
-            </span>
-            <input
-              type="email"
-              className={fieldClass}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="jordan@company.com"
-              required
-            />
-          </label>
-          <fieldset className="sm:col-span-2">
-            <legend className="mb-2 text-[12px] font-medium text-foreground/70">
-              Role
-            </legend>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setRole("user")}
-                className={`flex items-start gap-2.5 rounded-xl border px-3 py-3 text-left transition-colors ${
-                  role === "user"
-                    ? "border-foreground/25 bg-foreground/[0.06]"
-                    : "border-foreground/10 hover:bg-foreground/5"
-                }`}
-              >
-                <UserIcon className="mt-0.5 size-4 shrink-0 text-foreground/55" />
-                <span>
-                  <span className="block text-sm font-medium text-foreground">
-                    User
-                  </span>
-                  <span className="mt-0.5 block text-[12px] text-foreground/55">
-                    Can chat and manage their own profile, plans, and usage.
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("admin")}
-                className={`flex items-start gap-2.5 rounded-xl border px-3 py-3 text-left transition-colors ${
-                  role === "admin"
-                    ? "border-foreground/25 bg-foreground/[0.06]"
-                    : "border-foreground/10 hover:bg-foreground/5"
-                }`}
-              >
-                <ShieldIcon className="mt-0.5 size-4 shrink-0 text-accent" />
-                <span>
-                  <span className="block text-sm font-medium text-foreground">
-                    Admin
-                  </span>
-                  <span className="mt-0.5 block text-[12px] text-foreground/55">
-                    Can view all users, invite people, and change roles.
-                  </span>
-                </span>
-              </button>
-            </div>
-          </fieldset>
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+        <MiniStat label="Members" value={users.length} />
+        <MiniStat label="Admins" value={adminCount} />
+        <MiniStat label="Pending" value={pendingCount} />
+      </div>
 
-          {formError ? (
-            <p role="alert" className="text-sm text-red-700 sm:col-span-2">
-              {formError}
-            </p>
-          ) : null}
-          {formSuccess ? (
-            <p className="text-sm text-foreground/65 sm:col-span-2">{formSuccess}</p>
-          ) : null}
+      {formSuccess ? (
+        <p className="rounded-lg border border-foreground/10 bg-card px-3 py-2 text-[12px] text-foreground/70">
+          {formSuccess}
+        </p>
+      ) : null}
 
-          <div className="sm:col-span-2">
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
-            >
-              <PlusIcon className="size-3.5" />
-              Add user
-            </button>
-            <p className="mt-2 text-[11px] text-foreground/40">
-              Demo invite — stored in this workspace roster. Connect Firebase Admin
-              later to create real login accounts.
-            </p>
-          </div>
-        </form>
-      </section>
-
-      <section className="rounded-2xl border border-foreground/10 bg-card p-5 sm:p-6">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-sm font-semibold text-foreground">All users</h2>
-          <div className="flex h-9 max-w-sm items-center gap-2 rounded-xl border border-foreground/12 bg-background px-2.5">
-            <SearchIcon className="size-3.5 text-foreground/35" />
+      <div className="overflow-hidden rounded-xl border border-foreground/10 bg-card">
+        <div className="flex flex-col gap-2 border-b border-foreground/10 px-3 py-2.5 sm:h-11 sm:flex-row sm:items-center sm:gap-3 sm:py-0">
+          <p className="shrink-0 text-[13px] font-semibold text-foreground">
+            People
+          </p>
+          <div className="flex h-8 w-full items-center gap-2 rounded-lg border border-foreground/10 bg-background px-2.5 sm:ml-auto sm:max-w-[14rem]">
+            <SearchIcon className="size-3.5 shrink-0 text-foreground/35" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, email, role…"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-foreground/35"
+              placeholder="Search…"
+              className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-foreground/35"
             />
           </div>
         </div>
 
         {listError ? (
-          <p role="alert" className="mb-3 text-sm text-red-700">
+          <p
+            role="alert"
+            className="border-b border-foreground/10 px-3 py-2 text-[12px] text-red-700"
+          >
             {listError}
           </p>
         ) : null}
 
         {filtered.length === 0 ? (
-          <p className="text-sm text-foreground/50">No users found.</p>
+          <p className="px-3 py-8 text-center text-[13px] text-foreground/45">
+            No members found.
+          </p>
         ) : (
-          <ul className="divide-y divide-foreground/10 overflow-hidden rounded-xl border border-foreground/10">
-            {filtered.map((member) => {
+          <ul>
+            {filtered.map((member, index) => {
               const isYou =
                 member.email === actorEmail.trim().toLowerCase();
               return (
                 <li
                   key={member.id}
-                  className="flex flex-col gap-3 bg-background/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4"
+                  className={`flex flex-col gap-2.5 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:py-2.5 ${
+                    index > 0 ? "border-t border-foreground/8" : ""
+                  }`}
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-[12px] font-medium text-background">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground text-[11px] font-medium text-background">
                       {(member.name[0] || member.email[0] || "U").toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="truncate text-[13px] font-medium leading-tight text-foreground">
                         {member.name}
                         {isYou ? (
-                          <span className="ml-1.5 text-[11px] font-normal text-foreground/40">
+                          <span className="ml-1 text-[11px] font-normal text-foreground/40">
                             (you)
                           </span>
                         ) : null}
                       </p>
-                      <p className="truncate text-[12px] text-foreground/50">
+                      <p className="truncate text-[11px] leading-tight text-foreground/45">
                         {member.email}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                  <div className="flex h-8 flex-wrap items-center gap-1.5 pl-10 sm:pl-0">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                      className={`inline-flex h-6 items-center rounded-full px-2 text-[10px] font-medium tracking-wide uppercase ${
                         member.status === "active"
-                          ? "bg-foreground/10 text-foreground/70"
-                          : "bg-accent/20 text-foreground/80"
+                          ? "bg-foreground/8 text-foreground/55"
+                          : "bg-foreground/12 text-foreground/70"
                       }`}
                     >
-                      {member.status}
+                      {member.status === "invited" ? "Invited" : "Active"}
                     </span>
                     <select
                       value={member.role}
@@ -297,7 +221,7 @@ export function UsersPageClient() {
                           e.target.value as WorkspaceRole,
                         )
                       }
-                      className="h-8 rounded-lg border border-foreground/12 bg-background px-2 text-[12px] text-foreground outline-none"
+                      className="h-7 min-w-0 rounded-md border border-foreground/12 bg-background px-1.5 text-[11px] text-foreground outline-none"
                       aria-label={`Role for ${member.name}`}
                     >
                       <option value="user">User</option>
@@ -307,9 +231,9 @@ export function UsersPageClient() {
                       type="button"
                       disabled={isYou}
                       onClick={() => setDeleteId(member.id)}
-                      className="inline-flex size-8 items-center justify-center rounded-lg text-foreground/40 transition-colors hover:bg-foreground/5 hover:text-red-700 disabled:opacity-30"
+                      className="inline-flex size-7 items-center justify-center rounded-md text-foreground/35 transition-colors hover:bg-foreground/5 hover:text-red-600 disabled:pointer-events-none disabled:opacity-25"
                       aria-label={`Remove ${member.name}`}
-                      title={isYou ? "You can’t remove yourself" : "Remove user"}
+                      title={isYou ? "You can’t remove yourself" : "Remove"}
                     >
                       <Trash2Icon className="size-3.5" />
                     </button>
@@ -319,15 +243,123 @@ export function UsersPageClient() {
             })}
           </ul>
         )}
-      </section>
+      </div>
+
+      {inviteOpen ? (
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-foreground/30 p-0 sm:items-center sm:p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invite-title"
+            className="max-h-[min(100dvh,40rem)] w-full max-w-md overflow-y-auto rounded-t-2xl border border-foreground/10 bg-background shadow-xl sm:rounded-2xl"
+          >
+            <div className="border-b border-foreground/8 px-4 py-4 sm:px-5">
+              <div className="flex items-center gap-2">
+                <MailPlusIcon className="size-4 text-foreground/60" />
+                <h3
+                  id="invite-title"
+                  className="text-[15px] font-semibold text-foreground"
+                >
+                  Invite team member
+                </h3>
+              </div>
+              <p className="mt-1 text-[13px] text-foreground/50">
+                Send an invite with Admin or User access.
+              </p>
+            </div>
+
+            <form onSubmit={handleInvite} className="space-y-3 px-4 py-4 sm:px-5">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[12px] font-medium text-foreground/70">
+                  Full name
+                </span>
+                <input
+                  className={fieldClass}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Jordan Lee"
+                  required
+                  autoFocus
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[12px] font-medium text-foreground/70">
+                  Work email
+                </span>
+                <input
+                  type="email"
+                  className={fieldClass}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="jordan@company.com"
+                  required
+                />
+              </label>
+              <fieldset>
+                <legend className="mb-2 text-[12px] font-medium text-foreground/70">
+                  Role
+                </legend>
+                <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 sm:grid-cols-2">
+                  {(
+                    [
+                      ["user", "User", "Can chat in the workspace"],
+                      ["admin", "Admin", "Invite, remove, manage roles"],
+                    ] as const
+                  ).map(([value, label, hint]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRole(value)}
+                      className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                        role === value
+                          ? "border-foreground/25 bg-foreground/[0.06]"
+                          : "border-foreground/10 hover:bg-foreground/5"
+                      }`}
+                    >
+                      <span className="block text-[13px] font-medium text-foreground">
+                        {label}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-foreground/50">
+                        {hint}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              {formError ? (
+                <p role="alert" className="text-[13px] text-red-700">
+                  {formError}
+                </p>
+              ) : null}
+
+              <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setInviteOpen(false)}
+                  className="inline-flex h-10 items-center justify-center rounded-full px-3.5 text-[13px] font-medium text-foreground/60 transition-colors hover:bg-foreground/5 sm:h-9"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex h-10 items-center justify-center rounded-full bg-foreground px-4 text-[13px] font-medium text-background transition-opacity hover:opacity-90 sm:h-9"
+                >
+                  Send invite
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={Boolean(deleteId)}
-        title="Remove this user?"
+        title="Remove this member?"
         description={
           deleteTarget
-            ? `“${deleteTarget.name}” (${deleteTarget.email}) will be removed from the workspace roster.`
-            : "This user will be removed from the workspace."
+            ? `“${deleteTarget.name}” (${deleteTarget.email}) will lose access to this organization workspace.`
+            : "This member will be removed from the workspace."
         }
         confirmLabel="Remove"
         cancelLabel="Cancel"
@@ -335,6 +367,19 @@ export function UsersPageClient() {
         onCancel={() => setDeleteId(null)}
         onConfirm={confirmDelete}
       />
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex min-h-[3.5rem] flex-col justify-center rounded-xl border border-foreground/10 bg-card px-2 py-2 sm:h-[3.75rem] sm:px-3">
+      <p className="truncate text-[10px] leading-none text-foreground/40 sm:text-[11px]">
+        {label}
+      </p>
+      <p className="mt-1.5 text-base font-semibold leading-none tracking-tight text-foreground sm:text-lg">
+        {value}
+      </p>
     </div>
   );
 }

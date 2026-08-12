@@ -26,12 +26,37 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+const themeInitScript = `
+(function () {
+  try {
+    var theme = "system";
+    var raw = localStorage.getItem("aria.workspace.settings.v1");
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && (parsed.theme === "light" || parsed.theme === "dark" || parsed.theme === "system")) {
+        theme = parsed.theme;
+      }
+    }
+    var dark =
+      theme === "dark" ||
+      (theme === "system" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${newsreader.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <Providers>{children}</Providers>
       </body>
