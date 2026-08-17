@@ -74,8 +74,26 @@ export function ChatMessageRow({ message }: { message: ChatMessage }) {
           <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg border border-foreground/10 bg-background">
             <AriaLogo className="h-3.5 w-auto text-accent" />
           </div>
-          <div className="min-w-0 flex-1 whitespace-pre-wrap pt-0.5 font-serif text-[14px] leading-relaxed text-foreground/80">
-            {message.content}
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="whitespace-pre-wrap font-serif text-[14px] leading-relaxed text-foreground/80">
+              {message.content}
+            </div>
+            {message.sources && message.sources.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {message.sources.map((source) => (
+                  <a
+                    key={source.url}
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex max-w-full items-center truncate rounded-full border border-foreground/10 bg-background px-2.5 py-1 text-[11px] text-foreground/55 transition-colors hover:border-foreground/20 hover:text-foreground"
+                    title={source.title}
+                  >
+                    {source.title}
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       )}

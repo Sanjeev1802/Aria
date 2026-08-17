@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Newsreader } from "next/font/google";
+import Script from "next/script";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -41,8 +42,11 @@ const themeInitScript = `
       theme === "dark" ||
       (theme === "system" &&
         window.matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.classList.toggle("dark", dark);
-    document.documentElement.style.colorScheme = dark ? "dark" : "light";
+    var root = document.documentElement;
+    root.classList.toggle("dark", dark);
+    root.dataset.theme = dark ? "dark" : "light";
+    root.dataset.themePreference = theme;
+    root.style.colorScheme = dark ? "dark" : "light";
   } catch (e) {}
 })();
 `;
@@ -52,12 +56,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${newsreader.variable} h-full antialiased`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
+        <Script
+          id="aria-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

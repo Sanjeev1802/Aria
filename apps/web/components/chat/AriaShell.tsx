@@ -7,7 +7,7 @@ import {
   loadConversations,
   saveConversations,
 } from "@/lib/aria/conversations";
-import { mockAssistantReply } from "@/lib/aria/mock-reply";
+import { requestAssistantReply } from "@/lib/aria/chat-client";
 import {
   buildTokenUsage,
   estimateTokens,
@@ -175,7 +175,15 @@ export function AriaShell() {
     setLimitNotice(null);
     setThinking(true);
     try {
-      const reply = await mockAssistantReply(content);
+      const history = [
+        ...(conversation.messages ?? []),
+        userMessage,
+      ].map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+
+      const reply = await requestAssistantReply({ messages: history });
       let completionTokens = reply.completionTokens;
       setTokenUsed((u) => {
         completionTokens = Math.min(
@@ -199,6 +207,33 @@ export function AriaShell() {
                     content: reply.content,
                     createdAt: Date.now(),
                     tokens: assistantTokens,
+                    sources: reply.sources?.length ? reply.sources : undefined,
+                  },
+                ],
+                updatedAt: Date.now(),
+              }
+            : item,
+        ),
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong generating a reply.";
+      setLimitNotice(message);
+      setConversations((prev) =>
+        prev.map((item) =>
+          item.id === conversation!.id
+            ? {
+                ...item,
+                messages: [
+                  ...item.messages,
+                  {
+                    id: createId("msg"),
+                    role: "assistant" as const,
+                    content: `I couldn’t complete that request. ${message}`,
+                    createdAt: Date.now(),
+                    tokens: buildTokenUsage(0, 0),
                   },
                 ],
                 updatedAt: Date.now(),

@@ -2,9 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light;
   --dark: #141413;
   --brand-accent: #d88a68;
   --brand-cream: #f0eee6;
@@ -14,36 +15,36 @@
   --section-max: 87.5rem;
   --background: #f0eee6;
   --foreground: #141413;
-  --card: var(--brand-card);
+  --card: #e8e4dc;
   --card-foreground: #141413;
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --popover: #f7f5ef;
+  --popover-foreground: #141413;
+  --primary: #141413;
+  --primary-foreground: #f0eee6;
+  --secondary: #e8e4dc;
+  --secondary-foreground: #141413;
+  --muted: #e4e0d6;
+  --muted-foreground: #6b6960;
+  --accent: #e4e0d6;
+  --accent-foreground: #141413;
+  --destructive: #c44a3a;
+  --border: rgb(20 20 19 / 12%);
+  --input: rgb(20 20 19 / 12%);
+  --ring: #d88a68;
+  --chart-1: #d88a68;
+  --chart-2: #6b6960;
+  --chart-3: #8a8780;
+  --chart-4: #b0ada3;
+  --chart-5: #d4d0c4;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #e8e4dc;
+  --sidebar-foreground: #141413;
+  --sidebar-primary: #d88a68;
+  --sidebar-primary-foreground: #f0eee6;
+  --sidebar-accent: #ddd8cc;
+  --sidebar-accent-foreground: #141413;
+  --sidebar-border: rgb(20 20 19 / 12%);
+  --sidebar-ring: #d88a68;
 }
 
 @theme inline {
@@ -164,8 +165,9 @@ body.menu-open {
   touch-action: none;
 }
 
-/* Claude.ai dark theme — warm charcoal surfaces from live tokens */
+/* Claude.ai dark theme — warm charcoal surfaces */
 .dark {
+  color-scheme: dark;
   --background: #141413;
   --foreground: #faf9f5;
   --card: #262624;
@@ -181,9 +183,7 @@ body.menu-open {
   --accent: #30302e;
   --accent-foreground: #faf9f5;
   --brand-accent: #d97757;
-  --brand-cream: #141413;
   --brand-card: #262624;
-  --brand-dark: #faf9f5;
   --dark: #141413;
   --destructive: #e05c4a;
   --border: rgb(255 255 255 / 8%);

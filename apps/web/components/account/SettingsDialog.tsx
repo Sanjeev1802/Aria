@@ -24,7 +24,7 @@ import {
   saveSettings,
   type SettingsData,
 } from "@/lib/aria/settings";
-import { applyTheme } from "@/lib/aria/theme";
+import { setThemePreference } from "@/lib/aria/theme";
 import {
   formatTokenCount,
   getTokenLimit,
@@ -149,11 +149,11 @@ export function SettingsDialog({
     setSettings((prev) => {
       const next = { ...prev, [key]: value };
       saveSettings(next);
-      if (key === "theme") {
-        applyTheme(value as SettingsData["theme"]);
-      }
       return next;
     });
+    if (key === "theme") {
+      setThemePreference(value as SettingsData["theme"]);
+    }
     flashSaved();
   }
 

@@ -15,6 +15,11 @@ export type MessageTokenUsage = {
   total: number;
 };
 
+export type ChatSource = {
+  title: string;
+  url: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
@@ -22,6 +27,7 @@ export type ChatMessage = {
   createdAt: number;
   attachments?: ChatAttachment[];
   tokens?: MessageTokenUsage;
+  sources?: ChatSource[];
 };
 
 export type Conversation = {

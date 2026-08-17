@@ -264,7 +264,7 @@ export function ChatComposer({
             aria-label="Send message"
             className={`mb-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
               canSend
-                ? "bg-accent text-foreground hover:opacity-90"
+                ? "bg-accent text-white hover:opacity-90"
                 : "bg-foreground/5 text-foreground/25"
             }`}
           >
