@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import { estimateTokens } from "@/lib/aria/tokens";
 import {
   generationDefaults,
@@ -7,6 +7,12 @@ import {
   requireApiKey,
 } from "./config";
 import { buildSystemPrompt } from "./prompt";
+import {
+  isGroundingCoolingDown,
+  isQuotaError,
+  messageNeedsLiveSearch,
+  startGroundingCooldown,
+} from "./search";
 import type { PromptContext } from "./types";
 
 export type ChatTurn = {
@@ -19,6 +25,13 @@ export type GroundingSource = {
   url: string;
 };
 
+/** Why the reply did or did not use live web grounding. */
+export type SearchStatus =
+  | "used"
+  | "not_needed"
+  | "disabled"
+  | "unavailable";
+
 export type AriaReply = {
   content: string;
   promptTokens: number;
@@ -26,6 +39,7 @@ export type AriaReply = {
   model: string;
   sources: GroundingSource[];
   grounded: boolean;
+  searchStatus: SearchStatus;
 };
 
 const MAX_SOURCES = 8;
@@ -64,6 +78,22 @@ function extractSources(response: GroundedResponse): GroundingSource[] {
   return sources;
 }
 
+function lastUserMessage(messages: ChatTurn[]) {
+  return [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+}
+
+function resolveSearchPlan(messages: ChatTurn[]): {
+  attempt: boolean;
+  status: SearchStatus;
+} {
+  if (!isLiveSearchEnabled()) return { attempt: false, status: "disabled" };
+  if (isGroundingCoolingDown()) return { attempt: false, status: "unavailable" };
+  if (!messageNeedsLiveSearch(lastUserMessage(messages))) {
+    return { attempt: false, status: "not_needed" };
+  }
+  return { attempt: true, status: "used" };
+}
+
 export async function generateAriaReply(options: {
   messages: ChatTurn[];
   context?: PromptContext;
@@ -75,23 +105,40 @@ export async function generateAriaReply(options: {
 
   const apiKey = requireApiKey();
   const model = getModelName();
-  const liveSearch = isLiveSearchEnabled();
-
-  const systemInstruction = buildSystemPrompt({
-    ...options.context,
-    liveSearch,
-  });
-
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
-    model,
-    contents,
-    config: {
-      systemInstruction,
-      ...generationDefaults,
-      ...(liveSearch ? { tools: [{ googleSearch: {} }] } : {}),
-    },
-  });
+  const plan = resolveSearchPlan(options.messages);
+
+  const call = (withSearch: boolean) =>
+    ai.models.generateContent({
+      model,
+      contents,
+      config: {
+        systemInstruction: buildSystemPrompt({
+          ...options.context,
+          liveSearch: withSearch,
+        }),
+        ...generationDefaults,
+        ...(withSearch ? { tools: [{ googleSearch: {} }] } : {}),
+      },
+    });
+
+  let response: GenerateContentResponse;
+  let searchStatus: SearchStatus = plan.status;
+
+  if (plan.attempt) {
+    try {
+      response = await call(true);
+    } catch (error) {
+      // Grounding is metered separately, so quota can run out while plain
+      // generation still works. Fall back rather than failing the message.
+      if (!isQuotaError(error)) throw error;
+      startGroundingCooldown();
+      searchStatus = "unavailable";
+      response = await call(false);
+    }
+  } else {
+    response = await call(false);
+  }
 
   const content = response.text?.trim();
   if (!content) {
@@ -99,18 +146,21 @@ export async function generateAriaReply(options: {
   }
 
   const sources = extractSources(response as GroundedResponse);
+  if (searchStatus === "used" && sources.length === 0) {
+    searchStatus = "not_needed";
+  }
+
   const usage = response.usageMetadata;
 
   return {
     content,
     promptTokens:
       usage?.promptTokenCount ??
-      estimateTokens(
-        `${systemInstruction}\n${options.messages.map((m) => m.content).join("\n")}`,
-      ),
+      estimateTokens(options.messages.map((m) => m.content).join("\n")),
     completionTokens: usage?.candidatesTokenCount ?? estimateTokens(content),
     model,
     sources,
     grounded: sources.length > 0,
+    searchStatus,
   };
 }

@@ -9,7 +9,17 @@
  * The rest of the app talks to ARIA only through this barrel.
  */
 export { generateAriaReply } from "./client";
-export type { AriaReply, ChatTurn, GroundingSource } from "./client";
+export type {
+  AriaReply,
+  ChatTurn,
+  GroundingSource,
+  SearchStatus,
+} from "./client";
+export {
+  clearGroundingCooldown,
+  isGroundingCoolingDown,
+  messageNeedsLiveSearch,
+} from "./search";
 export {
   DEFAULT_MODEL,
   generationDefaults,

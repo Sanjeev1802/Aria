@@ -91,6 +91,7 @@ export async function POST(request: Request) {
       model: reply.model,
       sources: reply.sources,
       grounded: reply.grounded,
+      searchStatus: reply.searchStatus,
     });
   } catch (error) {
     const message = extractErrorMessage(error);
