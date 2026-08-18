@@ -1,7 +1,0 @@
-{
-  "name": "@aria/workspace",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Deprecated — chat/workspace now lives in @aria/web at /dashboard on port 3000.",
-  "scripts": {}
-}

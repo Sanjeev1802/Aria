@@ -2,58 +2,84 @@
 
 **ARIA** is an enterprise AI assistant that turns business data into trusted decisions. Connect analytics, reports, internal knowledge, APIs, and operational systems into one grounded workspace.
 
-This repository is the **Aria platform monorepo** — marketing site, authenticated chat workspace, shared packages, and backend scaffolds.
+This repository is a **single Next.js application** — the marketing site, sign-in, and the authenticated ARIA chat workspace all run on one origin.
 
 ---
 
-## What we’re building
+## Surfaces
 
-| Surface | Purpose |
+| Route | Purpose |
 | --- | --- |
-| **Marketing (`web`)** | Product story, features, pricing, docs, blog, and access requests |
-| **Dashboard (`/dashboard`)** | Signed-in ARIA chat experience (same app, port 3000) |
-| **Admin / Docs** | Internal console and API documentation (scaffolded) |
-| **Backend** | API, AI orchestration, analytics, documents, and workers (scaffolded) |
-
-**Product flow today**
-
-- **TRY ARIA** on marketing → contact / request access  
-- **Sign in** → `/sign-in` → `/dashboard` chat (Firebase email/password)  
-- Dashboard chat is gated behind authentication  
+| `/` | Marketing home |
+| `/features` · `/pricing` | Product story and plans |
+| `/blog` · `/docs` · `/changelog` · `/contact` | Resources and access requests |
+| `/sign-in` | Firebase email/password authentication |
+| `/dashboard` | Authenticated ARIA chat (gated) |
+| `/dashboard/plans` | Plan and seat management |
+| `/api/chat` | Server route that calls Gemini and returns ARIA's reply |
 
 ---
 
-## Monorepo layout
+## Project structure
 
 ```
-aria/
-├── apps/
-│   ├── web/           # Marketing + sign-in + dashboard/chat → :3000
-│   ├── admin/         # Admin console (scaffold)
-│   └── docs/          # Docs site (scaffold)
-├── packages/
-│   ├── auth/          # Firebase client + AuthProvider
-│   ├── ui/            # Shared UI primitives
-│   ├── types/         # Shared TypeScript types
-│   ├── config/        # Brand tokens + app URLs
-│   └── utils/         # Shared helpers (e.g. cn)
-├── backend/           # api · ai · analytics · documents · workers
-├── database/
-├── infrastructure/
-└── turbo.json
+Aria/
+├── app/
+│   ├── (marketing)/        # Public marketing routes + shared marketing layout
+│   ├── api/chat/           # Chat endpoint (Gemini, server-only)
+│   ├── dashboard/          # Authenticated chat workspace
+│   ├── sign-in/            # Auth entry point
+│   ├── globals.css         # Theme tokens (light + dark)
+│   └── layout.tsx          # Root layout + theme bootstrap
+├── components/
+│   ├── account/            # Account menu, settings, plans, users
+│   ├── chat/               # Chat shell, thread, composer, sidebar
+│   ├── features/ home/ layout/ pricing/ resources/
+│   ├── providers.tsx       # App-wide providers
+│   └── theme-provider.tsx  # Applies theme after hydration
+├── lib/
+│   ├── aria/               # Client state: conversations, settings, profile, tokens
+│   │   └── model/          # ARIA model layer (see below)
+│   ├── auth/               # Firebase client + AuthProvider / useAuth
+│   └── data/               # Static content for marketing pages
+├── next.config.ts
+├── tsconfig.json           # "@/*" maps to the repo root
+└── package.json
 ```
 
-Apps share auth, config, and UI through npm workspaces. Turbo orchestrates `dev`, `build`, and `lint`.
+Imports use the `@/` alias, which resolves from the repo root — e.g. `@/lib/auth`, `@/components/chat/ChatThread`.
+
+### The model layer (`lib/aria/model/`)
+
+ARIA's behaviour lives in one place, split into modules so the system prompt can be reviewed like code.
+
+```
+lib/aria/model/
+├── client.ts        # Gemini call, search grounding, quota fallback
+├── config.ts        # Model name, generation defaults, API key
+├── search.ts        # Live-search heuristics + grounding cooldown
+├── format.ts        # Section rendering helpers
+├── types.ts
+└── prompt/
+    ├── identity.ts  mission.ts  context.ts  voice.ts
+    ├── behavior.ts  rules.ts    tools.ts    output.ts
+    ├── examples.ts              # Few-shot tone calibration
+    ├── runtime.ts               # Current date, timezone, search status
+    ├── user-prefs.ts            # Settings + profile injection
+    └── index.ts                 # Assembles the final system prompt
+```
+
+Each prompt module exports one tagged section (`<identity>`, `<mission>`, …). `prompt/index.ts` composes the static sections with the dynamic ones on every request.
 
 ---
 
 ## Tech stack
 
-- **Frontend:** Next.js, React, TypeScript, Tailwind CSS  
-- **Auth:** Firebase Authentication (email/password)  
-- **Monorepo:** npm workspaces + Turborepo  
-- **Motion / UI:** Motion, Lucide icons  
-- **Brand:** cream `#F0EEE6`, charcoal `#141413`, accent `#D88A68` · Geist + Newsreader  
+- **Framework:** Next.js 16 (App Router, Turbopack), React 19, TypeScript
+- **Styling:** Tailwind CSS v4
+- **Auth:** Firebase Authentication (email/password)
+- **Model:** Google Gemini via `@google/genai`, with Google Search grounding
+- **Brand:** cream `#F0EEE6`, charcoal `#141413`, accent `#D88A68` · Geist + Newsreader
 
 ---
 
@@ -62,14 +88,11 @@ Apps share auth, config, and UI through npm workspaces. Turbo orchestrates `dev`
 **Requirements:** Node.js 20+
 
 ```bash
-# Install
 npm install
 
-# Env
 cp .env.example .env
-# Fill NEXT_PUBLIC_FIREBASE_* and app URLs
+# Fill NEXT_PUBLIC_FIREBASE_* and GEMINI_API_KEY
 
-# Develop (single app on port 3000)
 npm run dev            # http://localhost:3000
 ```
 
@@ -78,10 +101,13 @@ npm run dev            # http://localhost:3000
 | Variable | Role |
 | --- | --- |
 | `NEXT_PUBLIC_FIREBASE_*` | Client Firebase config (sign-in) |
-| `FIREBASE_*` | Admin SDK (server-only; when used) |
+| `FIREBASE_*` | Admin SDK (server-only) |
 | `NEXT_PUBLIC_WEB_URL` | App origin (default `http://localhost:3000`) |
+| `GEMINI_API_KEY` | Gemini access (server-only — never prefix with `NEXT_PUBLIC_`) |
+| `GEMINI_MODEL` | Model name (default `gemini-3.1-flash-lite-preview`) |
+| `GEMINI_ENABLE_SEARCH` | Set `false` to disable live web grounding |
 
-Copy `.env.example` at the repo root. Never commit `.env`. Place the same Firebase vars in `apps/web/.env.local` for Next.js.
+Next.js reads `.env` from the repo root. Never commit it.
 
 ---
 
@@ -89,31 +115,21 @@ Copy `.env.example` at the repo root. Never commit `.env`. Place the same Fireba
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Run the web app on port 3000 |
+| `npm run dev` | Dev server on port 3000 |
 | `npm run build` | Production build |
-| `npm run lint` | Lint the web app |
-| `npm run clean` | Clean build outputs |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run clean` | Remove `.next` |
 
 ---
 
 ## Architecture notes
 
-- **Single origin:** Marketing, sign-in, and dashboard/chat all run on port 3000 (`apps/web`).  
-- **Routes:** `/` marketing · `/sign-in` auth · `/dashboard` authenticated chat.  
-- **Shared packages:** Prefer `@aria/auth`, `@aria/config`, `@aria/ui`, etc. instead of duplicating client setup.  
-- **Backend folders** under `backend/` are intentional scaffolds for upcoming API, AI, document, and worker services.
-
----
-
-## Branch
-
-Active development branch: [`aria-v2`](https://github.com/The-Binary-Holdings/Aria/tree/aria-v2)
-
-```bash
-git clone https://github.com/The-Binary-Holdings/Aria.git
-cd Aria
-git checkout aria-v2
-```
+- **Single origin, single app.** Marketing, auth, and chat share one Next.js instance on port 3000.
+- **Theme.** A blocking script in `app/layout.tsx` applies the stored preference before paint; `theme-provider.tsx` re-applies it after hydration. Tokens live in `app/globals.css`.
+- **Grounding fallback.** If Google Search grounding hits its quota, `model/client.ts` retries without the search tool and starts a cooldown, so chat keeps working. The response reports a `searchStatus`.
+- **Server-only secrets.** `GEMINI_API_KEY` is read only in `app/api/chat/route.ts` and the model layer; it never reaches the client.
 
 ---
 
