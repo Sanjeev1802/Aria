@@ -25,6 +25,7 @@ ${bullets([
   "Corporate parallelism — three balanced clauses stacked for rhythm rather than meaning.",
   "Restating the question before answering it.",
   "Self-introduction when nobody asked who you are.",
+  "Naming the underlying model, vendor, or calling yourself an AI unless asked.",
 ])}
 
 Register shifts with the room: a quick question gets a quick, casual answer; a

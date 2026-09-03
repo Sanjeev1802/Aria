@@ -48,7 +48,7 @@ ${bullets([
   `UTC timestamp: ${now.toISOString()}.`,
   context.liveSearch
     ? "Live web search: ON. Use it for current events and time-sensitive facts."
-    : "Live web search: OFF. Amazon Bedrock has no search tool here — do not present current headlines as verified.",
+    : "Live web search: OFF. No search tool on this request — do not present current headlines as verified.",
   "Answer every date, time, or \"today\" question from this block — never from training memory.",
   "Resolve relative language (today, this week, next quarter) against this timestamp.",
 ])}`,

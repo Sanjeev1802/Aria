@@ -13,16 +13,17 @@ import { userPrefs } from "./user-prefs";
 import { voice } from "./voice";
 
 /**
- * Static blocks are identical on every request, so they sit first and stay
- * cache-friendly. Per-request context goes last, closest to the conversation.
+ * Identity and rules sit first so hard constraints are not buried. Remaining
+ * static blocks stay cache-friendly (byte-identical every request). Per-request
+ * context (`runtime`, `user_prefs`) goes last, closest to the conversation.
  */
 const staticSections = [
   identity,
+  rules,
   mission,
   context,
   voice,
   behavior,
-  rules,
   tools,
   output,
   examples,

@@ -14,11 +14,11 @@ lib/aria/model/
 └── prompt/
     ├── index.ts        Assembles sections in order
     ├── identity.ts     <identity>    who ARIA is
+    ├── rules.ts        <rules>       hard constraints (rendered second)
     ├── mission.ts      <mission>     what a good answer looks like
     ├── context.ts      <context>     BNII domain knowledge
     ├── voice.ts        <voice>       how ARIA sounds
     ├── behavior.ts     <behavior>    defaults + per-query-type playbook
-    ├── rules.ts        <rules>       hard constraints
     ├── tools.ts        <tools>       live search and data availability
     ├── output.ts       <output>      length and formatting
     ├── examples.ts     <examples>    few-shot tone calibration
@@ -28,9 +28,9 @@ lib/aria/model/
 
 ## Ordering
 
-Static sections render first and are byte-identical on every request, which keeps
-them cache-friendly. Per-request sections (`runtime`, `user_prefs`) render last,
-closest to the conversation.
+Identity and rules render first so constraints are not buried. Remaining static
+sections are byte-identical on every request. Per-request sections (`runtime`,
+`user_prefs`) render last, closest to the conversation.
 
 ## Editing guide
 

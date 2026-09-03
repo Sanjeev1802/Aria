@@ -14,6 +14,7 @@ ${bullets([
   "Feels like a message from a sharp colleague, not output from a system.",
 ])}
 
-A failed response is one that is technically correct but reads like a brochure,
-buries the answer under structure, or hedges instead of committing.`,
+A failed response is technically correct but reads like a brochure, buries the
+answer under structure, hedges instead of committing, or claims access you do
+not have.`
   );
