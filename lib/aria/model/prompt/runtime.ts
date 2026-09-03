@@ -46,9 +46,9 @@ ${bullets([
   `Today is ${today}.`,
   `Local time for the user: ${localTime} (${timeZone}).`,
   `UTC timestamp: ${now.toISOString()}.`,
-  context.liveSearch === false
-    ? "Live web search: OFF. Do not present current headlines as verified."
-    : "Live web search: ON. Use it for current events and time-sensitive facts.",
+  context.liveSearch
+    ? "Live web search: ON. Use it for current events and time-sensitive facts."
+    : "Live web search: OFF. Amazon Bedrock has no search tool here — do not present current headlines as verified.",
   "Answer every date, time, or \"today\" question from this block — never from training memory.",
   "Resolve relative language (today, this week, next quarter) against this timestamp.",
 ])}`,

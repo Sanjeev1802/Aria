@@ -1,18 +1,19 @@
-import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
+import {
+  BedrockRuntimeClient,
+  ConverseCommand,
+  type ConverseCommandOutput,
+  type Message,
+} from "@aws-sdk/client-bedrock-runtime";
 import { estimateTokens } from "@/lib/aria/tokens";
 import {
   generationDefaults,
   getModelName,
+  getRegion,
   isLiveSearchEnabled,
   requireApiKey,
 } from "./config";
 import { buildSystemPrompt } from "./prompt";
-import {
-  isGroundingCoolingDown,
-  isQuotaError,
-  messageNeedsLiveSearch,
-  startGroundingCooldown,
-} from "./search";
+import { messageNeedsLiveSearch } from "./search";
 import type { PromptContext } from "./types";
 
 export type ChatTurn = {
@@ -42,125 +43,126 @@ export type AriaReply = {
   searchStatus: SearchStatus;
 };
 
-const MAX_SOURCES = 8;
+let cachedClient: BedrockRuntimeClient | null = null;
+let cachedClientKey = "";
 
-type GroundedResponse = {
-  candidates?: Array<{
-    groundingMetadata?: {
-      groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
-    };
-  }>;
-};
+function getBedrockClient() {
+  const apiKey = requireApiKey();
+  const region = getRegion();
+  const cacheKey = `${region}:${apiKey}`;
 
-function toGeminiContents(messages: ChatTurn[]) {
-  return messages
-    .filter((message) => message.role !== "system" && message.content.trim())
-    .map((message) => ({
-      role: message.role === "assistant" ? "model" : "user",
-      parts: [{ text: message.content }],
-    }));
-}
-
-function extractSources(response: GroundedResponse): GroundingSource[] {
-  const chunks =
-    response.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
-  const seen = new Set<string>();
-  const sources: GroundingSource[] = [];
-
-  for (const chunk of chunks) {
-    const url = chunk.web?.uri?.trim();
-    if (!url || seen.has(url)) continue;
-    seen.add(url);
-    sources.push({ title: chunk.web?.title?.trim() || url, url });
-    if (sources.length === MAX_SOURCES) break;
+  if (cachedClient && cachedClientKey === cacheKey) {
+    return cachedClient;
   }
 
-  return sources;
+  // Prefer the Bedrock API key over the IAM credential chain.
+  process.env.AWS_BEARER_TOKEN_BEDROCK = apiKey;
+
+  cachedClient = new BedrockRuntimeClient({
+    region,
+    authSchemePreference: ["httpBearerAuth"],
+    token: { token: apiKey },
+  });
+  cachedClientKey = cacheKey;
+  return cachedClient;
+}
+
+function toBedrockMessages(messages: ChatTurn[]): Message[] {
+  const turns = messages.filter(
+    (message) => message.role !== "system" && message.content.trim(),
+  );
+  const merged: Message[] = [];
+
+  for (const turn of turns) {
+    const role = turn.role === "assistant" ? "assistant" : "user";
+    const last = merged[merged.length - 1];
+    if (last?.role === role) {
+      const existing = last.content?.[0];
+      const previous = existing && "text" in existing ? existing.text ?? "" : "";
+      last.content = [{ text: `${previous}\n\n${turn.content}` }];
+    } else {
+      merged.push({ role, content: [{ text: turn.content }] });
+    }
+  }
+
+  if (merged[0]?.role === "assistant") {
+    merged.unshift({
+      role: "user",
+      content: [{ text: "(continue)" }],
+    });
+  }
+
+  return merged;
+}
+
+function extractText(response: ConverseCommandOutput) {
+  const parts = response.output?.message?.content ?? [];
+  return parts
+    .map((part) => ("text" in part ? part.text?.trim() : ""))
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
 }
 
 function lastUserMessage(messages: ChatTurn[]) {
   return [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
 }
 
-function resolveSearchPlan(messages: ChatTurn[]): {
-  attempt: boolean;
-  status: SearchStatus;
-} {
-  if (!isLiveSearchEnabled()) return { attempt: false, status: "disabled" };
-  if (isGroundingCoolingDown()) return { attempt: false, status: "unavailable" };
-  if (!messageNeedsLiveSearch(lastUserMessage(messages))) {
-    return { attempt: false, status: "not_needed" };
-  }
-  return { attempt: true, status: "used" };
+function resolveSearchStatus(messages: ChatTurn[]): SearchStatus {
+  if (!isLiveSearchEnabled()) return "disabled";
+  if (!messageNeedsLiveSearch(lastUserMessage(messages))) return "not_needed";
+  return "unavailable";
 }
 
 export async function generateAriaReply(options: {
   messages: ChatTurn[];
   context?: PromptContext;
 }): Promise<AriaReply> {
-  const contents = toGeminiContents(options.messages);
-  if (contents.length === 0) {
+  const conversation = toBedrockMessages(options.messages);
+  if (conversation.length === 0) {
     throw new Error("At least one user message is required");
   }
 
-  const apiKey = requireApiKey();
   const model = getModelName();
-  const ai = new GoogleGenAI({ apiKey });
-  const plan = resolveSearchPlan(options.messages);
+  const searchStatus = resolveSearchStatus(options.messages);
+  const client = getBedrockClient();
 
-  const call = (withSearch: boolean) =>
-    ai.models.generateContent({
-      model,
-      contents,
-      config: {
-        systemInstruction: buildSystemPrompt({
-          ...options.context,
-          liveSearch: withSearch,
-        }),
-        ...generationDefaults,
-        ...(withSearch ? { tools: [{ googleSearch: {} }] } : {}),
+  const response = await client.send(
+    new ConverseCommand({
+      modelId: model,
+      system: [
+        {
+          text: buildSystemPrompt({
+            ...options.context,
+            liveSearch: searchStatus === "used",
+          }),
+        },
+      ],
+      messages: conversation,
+      inferenceConfig: {
+        temperature: generationDefaults.temperature,
+        topP: generationDefaults.topP,
+        maxTokens: generationDefaults.maxTokens,
       },
-    });
+    }),
+  );
 
-  let response: GenerateContentResponse;
-  let searchStatus: SearchStatus = plan.status;
-
-  if (plan.attempt) {
-    try {
-      response = await call(true);
-    } catch (error) {
-      // Grounding is metered separately, so quota can run out while plain
-      // generation still works. Fall back rather than failing the message.
-      if (!isQuotaError(error)) throw error;
-      startGroundingCooldown();
-      searchStatus = "unavailable";
-      response = await call(false);
-    }
-  } else {
-    response = await call(false);
-  }
-
-  const content = response.text?.trim();
+  const content = extractText(response);
   if (!content) {
     throw new Error("The model returned an empty response");
   }
 
-  const sources = extractSources(response as GroundedResponse);
-  if (searchStatus === "used" && sources.length === 0) {
-    searchStatus = "not_needed";
-  }
-
-  const usage = response.usageMetadata;
+  const usage = response.usage;
 
   return {
     content,
     promptTokens:
-      usage?.promptTokenCount ??
+      usage?.inputTokens ??
       estimateTokens(options.messages.map((m) => m.content).join("\n")),
-    completionTokens: usage?.candidatesTokenCount ?? estimateTokens(content),
+    completionTokens: usage?.outputTokens ?? estimateTokens(content),
     model,
-    sources,
-    grounded: sources.length > 0,
+    sources: [],
+    grounded: false,
     searchStatus,
   };
 }

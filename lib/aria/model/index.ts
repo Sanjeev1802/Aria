@@ -3,7 +3,7 @@
  *
  * Everything that decides how ARIA thinks and speaks lives here:
  *   config.ts   — model selection and generation parameters
- *   client.ts   — the provider call and grounding extraction
+ *   client.ts   — the Bedrock Converse call
  *   prompt/     — one module per system-prompt section
  *
  * The rest of the app talks to ARIA only through this barrel.

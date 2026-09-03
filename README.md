@@ -16,7 +16,7 @@ This repository is a **single Next.js application** — the marketing site, sign
 | `/sign-in` | Firebase email/password authentication |
 | `/dashboard` | Authenticated ARIA chat (gated) |
 | `/dashboard/plans` | Plan and seat management |
-| `/api/chat` | Server route that calls Gemini and returns ARIA's reply |
+| `/api/chat` | Server route that calls Amazon Bedrock and returns ARIA's reply |
 
 ---
 
@@ -26,7 +26,7 @@ This repository is a **single Next.js application** — the marketing site, sign
 Aria/
 ├── app/
 │   ├── (marketing)/        # Public marketing routes + shared marketing layout
-│   ├── api/chat/           # Chat endpoint (Gemini, server-only)
+│   ├── api/chat/           # Chat endpoint (Bedrock, server-only)
 │   ├── dashboard/          # Authenticated chat workspace
 │   ├── sign-in/            # Auth entry point
 │   ├── globals.css         # Theme tokens (light + dark)
@@ -55,7 +55,7 @@ ARIA's behaviour lives in one place, split into modules so the system prompt can
 
 ```
 lib/aria/model/
-├── client.ts        # Gemini call, search grounding, quota fallback
+├── client.ts        # Bedrock Converse call
 ├── config.ts        # Model name, generation defaults, API key
 ├── search.ts        # Live-search heuristics + grounding cooldown
 ├── format.ts        # Section rendering helpers
@@ -78,7 +78,7 @@ Each prompt module exports one tagged section (`<identity>`, `<mission>`, …). 
 - **Framework:** Next.js 16 (App Router, Turbopack), React 19, TypeScript
 - **Styling:** Tailwind CSS v4
 - **Auth:** Firebase Authentication (email/password)
-- **Model:** Google Gemini via `@google/genai`, with Google Search grounding
+- **Model:** Amazon Bedrock (Nova Micro) via `@aws-sdk/client-bedrock-runtime`
 - **Brand:** cream `#F0EEE6`, charcoal `#141413`, accent `#D88A68` · Geist + Newsreader
 
 ---
@@ -91,7 +91,7 @@ Each prompt module exports one tagged section (`<identity>`, `<mission>`, …). 
 npm install
 
 cp .env.example .env
-# Fill NEXT_PUBLIC_FIREBASE_* and GEMINI_API_KEY
+# Fill NEXT_PUBLIC_FIREBASE_* and BEDROCK_API_KEY
 
 npm run dev            # http://localhost:3000
 ```
@@ -103,9 +103,9 @@ npm run dev            # http://localhost:3000
 | `NEXT_PUBLIC_FIREBASE_*` | Client Firebase config (sign-in) |
 | `FIREBASE_*` | Admin SDK (server-only) |
 | `NEXT_PUBLIC_WEB_URL` | App origin (default `http://localhost:3000`) |
-| `GEMINI_API_KEY` | Gemini access (server-only — never prefix with `NEXT_PUBLIC_`) |
-| `GEMINI_MODEL` | Model name (default `gemini-3.1-flash-lite-preview`) |
-| `GEMINI_ENABLE_SEARCH` | Set `false` to disable live web grounding |
+| `BEDROCK_API_KEY` | Amazon Bedrock API key (server-only — never prefix with `NEXT_PUBLIC_`) |
+| `BEDROCK_REGION` | AWS region (default `ap-southeast-1`) |
+| `BEDROCK_MODEL_ID` | Model / inference profile (default `apac.amazon.nova-micro-v1:0`) |
 
 Next.js reads `.env` from the repo root. Never commit it.
 
@@ -128,8 +128,7 @@ Next.js reads `.env` from the repo root. Never commit it.
 
 - **Single origin, single app.** Marketing, auth, and chat share one Next.js instance on port 3000.
 - **Theme.** A blocking script in `app/layout.tsx` applies the stored preference before paint; `theme-provider.tsx` re-applies it after hydration. Tokens live in `app/globals.css`.
-- **Grounding fallback.** If Google Search grounding hits its quota, `model/client.ts` retries without the search tool and starts a cooldown, so chat keeps working. The response reports a `searchStatus`.
-- **Server-only secrets.** `GEMINI_API_KEY` is read only in `app/api/chat/route.ts` and the model layer; it never reaches the client.
+- **Server-only secrets.** `BEDROCK_API_KEY` is read only in the model layer; it never reaches the client.
 
 ---
 

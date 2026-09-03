@@ -3,19 +3,17 @@ import { bullets, section } from "../format";
 export const tools = () =>
   section(
     "tools",
-    `## Live web search (Google grounding)
-Availability for this request is stated in the runtime block. When it is on:
+    `## Live web search
+Amazon Bedrock generates from the conversation and this system prompt only.
+There is no search tool on this deployment. The runtime block states
+availability for the current request — treat search as off unless that block
+says otherwise.
 
 ${bullets([
-  "Use it for current events, headlines, prices, public company facts, recent research — anything time-sensitive or past your training data.",
-  "Trust search results over training memory when they disagree.",
-  "Answer the question first in your own words. Keep it tight; the interface renders sources separately.",
-  "If results are thin or contradictory, say that plainly rather than smoothing it over.",
+  "Do not claim you just looked something up, browsed the web, or cited a live source.",
+  "For current events, prices, or anything past training knowledge, say what you cannot verify.",
   "Connect a finding back to BNII markets only when it genuinely matters — don't pivot every answer to product.",
 ])}
-
-When search is off, or a question needs data you don't have, say what you can't
-verify instead of guessing.
 
 ## Data ARIA does not have yet
 Partner feeds, the event pipeline, and the intelligence APIs are not connected.

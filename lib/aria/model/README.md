@@ -8,7 +8,7 @@ directly.
 lib/aria/model/
 ├── index.ts        Public API (the only import path the app should use)
 ├── config.ts       Model name, generation params, env flags
-├── client.ts       Provider call + grounding-source extraction
+├── client.ts       Bedrock Converse call
 ├── format.ts       XML section helpers
 ├── types.ts        PromptContext and section types
 └── prompt/
@@ -50,6 +50,7 @@ it in `examples.ts` instead of adding another line to `voice.ts`.
 
 | Variable | Purpose |
 | --- | --- |
-| `GEMINI_API_KEY` | Required. Provider key. |
-| `GEMINI_MODEL` | Optional. Defaults to `gemini-3.1-flash-lite-preview`. |
-| `GEMINI_ENABLE_SEARCH` | Optional. `false` disables live web grounding. |
+| `BEDROCK_API_KEY` | Required. Amazon Bedrock API key. |
+| `BEDROCK_REGION` | Optional. Defaults to `ap-southeast-1`. |
+| `BEDROCK_MODEL_ID` | Optional. Defaults to `apac.amazon.nova-micro-v1:0`. |
+| `BEDROCK_ENABLE_SEARCH` | Optional. Leave unset/false until a search tool is wired. |

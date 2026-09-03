@@ -27,21 +27,23 @@ function isChatTurn(value: unknown): value is ChatTurn {
 function extractErrorMessage(error: unknown) {
   if (!(error instanceof Error)) return "Failed to generate reply";
   const raw = error.message;
-  try {
-    const parsed = JSON.parse(raw) as {
-      error?: { message?: string; status?: string; code?: number };
-    };
-    if (parsed.error?.message) {
-      if (
-        parsed.error.status === "RESOURCE_EXHAUSTED" ||
-        parsed.error.code === 429
-      ) {
-        return "Gemini quota exceeded. Check billing/rate limits, then try again.";
-      }
-      return parsed.error.message;
-    }
-  } catch {
-    /* not JSON */
+  const name = "name" in error ? String(error.name) : "";
+  if (
+    name === "ThrottlingException" ||
+    /\b(429|throttl|Too many requests|quota)\b/i.test(`${name} ${raw}`)
+  ) {
+    return "Bedrock quota exceeded. Check billing/rate limits, then try again.";
+  }
+  if (
+    name === "AccessDeniedException" ||
+    /not authorized|access denied|API Key is valid/i.test(raw)
+  ) {
+    return /API Key is valid/i.test(raw)
+      ? "Bedrock API key is invalid or expired. Generate a new key in the Amazon Bedrock console."
+      : `${raw} Confirm BEDROCK_API_KEY, BEDROCK_REGION, and BEDROCK_MODEL_ID.`;
+  }
+  if (name === "ValidationException") {
+    return raw;
   }
   return raw;
 }
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = extractErrorMessage(error);
-    const status = message.includes("GEMINI_API_KEY")
+    const status = message.includes("BEDROCK_API_KEY")
       ? 503
       : message.toLowerCase().includes("quota")
         ? 429

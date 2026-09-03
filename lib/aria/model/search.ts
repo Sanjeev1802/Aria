@@ -1,14 +1,9 @@
 /**
  * Live-search policy.
  *
- * Google Search grounding is metered separately from generation and is far more
- * limited on lower tiers — a grounded request can fail with 429 even when the
- * model itself has plenty of quota. Two guards follow from that:
- *
- *   1. Only attach the tool when the message plausibly needs the open web, so
- *      grounding quota is spent on questions that actually benefit from it.
- *   2. When grounding is rejected for quota, back off for a while instead of
- *      paying a failed round-trip on every subsequent message.
+ * Bedrock does not ship Google Search grounding. These helpers stay so a
+ * Tavily/Brave (or Bedrock web) tool can plug in later without rewriting
+ * chat. Until then, generateAriaReply reports search as disabled/unavailable.
  */
 
 const COOLDOWN_MS = 15 * 60 * 1000;

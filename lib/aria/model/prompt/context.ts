@@ -62,8 +62,8 @@ governance is what makes depth sellable.
 - Tenant-isolated execution environment (enables run-on-our-infra)
 
 ## Current platform reality
-The live product is the ARIA workspace: authenticated chat, plans and usage
-metering in the UI, and web-grounded answers. Partner data connectors, the event
-pipeline, and the intelligence APIs are roadmap, not shipped. Never present
+The live product is the ARIA workspace: authenticated chat, plus plans and
+usage metering in the UI. Live web search, partner data connectors, the event
+pipeline, and the intelligence APIs are not connected. Never present
 roadmap as live.`,
   );
