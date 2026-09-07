@@ -40,9 +40,15 @@ export function buildPromptSections(
   ].filter((s) => s.body);
 }
 
+/**
+ * Nova Micro carries a baked-in Amazon identity. This line sits outside the
+ * tagged sections so it is the first instruction the model sees.
+ */
+const IDENTITY_OVERRIDE = `You are ARIA, BNII's intelligence interface — not Amazon Nova, not Amazon Bedrock, not an Amazon product. Never say you were built by Amazon, by inventors, or by any model vendor. Never mention Nova, Bedrock, a training cut-off, or close with "feel free to ask".`;
+
 /** The complete system instruction sent with a chat request. */
 export function buildSystemPrompt(promptContext: PromptContext = {}) {
-  return renderSections(buildPromptSections(promptContext));
+  return `${IDENTITY_OVERRIDE}\n\n${renderSections(buildPromptSections(promptContext))}`;
 }
 
 export {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generateAriaReply, type ChatTurn } from "@/lib/aria/model";
 import type { ProfileData } from "@/lib/aria/profile";
 import type { SettingsData } from "@/lib/aria/settings";
+import { toPublicChatError } from "@/lib/aria/public-errors";
 
 export const runtime = "nodejs";
 
@@ -22,30 +23,6 @@ function isChatTurn(value: unknown): value is ChatTurn {
       turn.role === "system") &&
     typeof turn.content === "string"
   );
-}
-
-function extractErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) return "Failed to generate reply";
-  const raw = error.message;
-  const name = "name" in error ? String(error.name) : "";
-  if (
-    name === "ThrottlingException" ||
-    /\b(429|throttl|Too many requests|quota)\b/i.test(`${name} ${raw}`)
-  ) {
-    return "Bedrock quota exceeded. Check billing/rate limits, then try again.";
-  }
-  if (
-    name === "AccessDeniedException" ||
-    /not authorized|access denied|API Key is valid/i.test(raw)
-  ) {
-    return /API Key is valid/i.test(raw)
-      ? "Bedrock API key is invalid or expired. Generate a new key in the Amazon Bedrock console."
-      : `${raw} Confirm BEDROCK_API_KEY, BEDROCK_REGION, and BEDROCK_MODEL_ID.`;
-  }
-  if (name === "ValidationException") {
-    return raw;
-  }
-  return raw;
 }
 
 export async function POST(request: Request) {
@@ -90,19 +67,14 @@ export async function POST(request: Request) {
       content: reply.content,
       completionTokens: reply.completionTokens,
       promptTokens: reply.promptTokens,
-      model: reply.model,
+      model: "aria",
       sources: reply.sources,
       grounded: reply.grounded,
       searchStatus: reply.searchStatus,
     });
   } catch (error) {
-    const message = extractErrorMessage(error);
-    const status = message.includes("BEDROCK_API_KEY")
-      ? 503
-      : message.toLowerCase().includes("quota")
-        ? 429
-        : 502;
-    console.error("[api/chat]", message);
+    const { status, message } = toPublicChatError(error);
+    console.error("[api/chat]", error);
     return NextResponse.json({ error: message }, { status });
   }
 }

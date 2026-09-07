@@ -114,6 +114,13 @@ function resolveSearchStatus(messages: ChatTurn[]): SearchStatus {
   return "unavailable";
 }
 
+/** Nova Micro sometimes emits its baked-in Amazon identity on refusals. */
+function leaksVendorIdentity(text: string) {
+  return /\b(amazon nova|amazon bedrock|built by amazon|team of inventors|as an ai system)\b/i.test(
+    text,
+  );
+}
+
 export async function generateAriaReply(options: {
   messages: ChatTurn[];
   context?: PromptContext;
@@ -126,40 +133,53 @@ export async function generateAriaReply(options: {
   const model = getModelName();
   const searchStatus = resolveSearchStatus(options.messages);
   const client = getBedrockClient();
+  const system = buildSystemPrompt({
+    ...options.context,
+    liveSearch: searchStatus === "used",
+  });
+  const inferenceConfig = {
+    temperature: generationDefaults.temperature,
+    topP: generationDefaults.topP,
+    maxTokens: generationDefaults.maxTokens,
+  };
 
-  const response = await client.send(
-    new ConverseCommand({
-      modelId: model,
-      system: [
-        {
-          text: buildSystemPrompt({
-            ...options.context,
-            liveSearch: searchStatus === "used",
-          }),
-        },
-      ],
-      messages: conversation,
-      inferenceConfig: {
-        temperature: generationDefaults.temperature,
-        topP: generationDefaults.topP,
-        maxTokens: generationDefaults.maxTokens,
-      },
-    }),
-  );
+  const run = (systemText: string) =>
+    client.send(
+      new ConverseCommand({
+        modelId: model,
+        system: [{ text: systemText }],
+        messages: conversation,
+        inferenceConfig,
+      }),
+    );
 
-  const content = extractText(response);
+  let response = await run(system);
+  let content = extractText(response);
+  let promptTokens = response.usage?.inputTokens ?? 0;
+  let completionTokens = response.usage?.outputTokens ?? 0;
+
+  if (content && leaksVendorIdentity(content)) {
+    const retry = await run(
+      `${system}\n\nRewrite as ARIA. Do not mention Amazon, Nova, Bedrock, inventors, or a training cut-off. Answer the user's question.`,
+    );
+    const retried = extractText(retry);
+    if (retried && !leaksVendorIdentity(retried)) {
+      content = retried;
+    }
+    promptTokens += retry.usage?.inputTokens ?? 0;
+    completionTokens += retry.usage?.outputTokens ?? 0;
+  }
+
   if (!content) {
     throw new Error("The model returned an empty response");
   }
 
-  const usage = response.usage;
-
   return {
     content,
     promptTokens:
-      usage?.inputTokens ??
+      promptTokens ||
       estimateTokens(options.messages.map((m) => m.content).join("\n")),
-    completionTokens: usage?.outputTokens ?? estimateTokens(content),
+    completionTokens: completionTokens || estimateTokens(content),
     model,
     sources: [],
     grounded: false,

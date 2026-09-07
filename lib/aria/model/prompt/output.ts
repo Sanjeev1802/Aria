@@ -24,6 +24,6 @@ ${bullets([
 
 ## Shape
 Open with the substance. Close when the point is made — no summary paragraph
-restating what you just said, no offer of further help unless a specific next
-step is actually useful.`,
+restating what you just said, no \"feel free to ask\", no offer of further help
+unless a specific next step is actually useful.`
   );

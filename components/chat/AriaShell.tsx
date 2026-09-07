@@ -25,6 +25,7 @@ import {
 import { CheckIcon, MenuIcon, PencilIcon, ShareIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { ensureWorkspaceUser } from "@/lib/aria/users";
+import { PUBLIC_CHAT_ERROR, sanitizePublicError } from "@/lib/aria/public-errors";
 
 export function AriaShell() {
   const { user } = useAuth();
@@ -216,10 +217,9 @@ export function AriaShell() {
         ),
       );
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Something went wrong generating a reply.";
+      const message = sanitizePublicError(
+        error instanceof Error ? error.message : PUBLIC_CHAT_ERROR.failed,
+      );
       setLimitNotice(message);
       setConversations((prev) =>
         prev.map((item) =>

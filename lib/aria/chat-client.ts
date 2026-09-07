@@ -2,6 +2,7 @@ import { loadProfile, type ProfileData } from "@/lib/aria/profile";
 import { loadSettings, type SettingsData } from "@/lib/aria/settings";
 import { estimateTokens } from "@/lib/aria/tokens";
 import type { ChatMessage } from "@/lib/aria/types";
+import { PUBLIC_CHAT_ERROR, sanitizePublicError } from "@/lib/aria/public-errors";
 
 export type AssistantReplyResult = {
   content: string;
@@ -58,7 +59,9 @@ export async function requestAssistantReply(
   };
 
   if (!response.ok) {
-    throw new Error(data.error || `Chat request failed (${response.status})`);
+    throw new Error(
+      sanitizePublicError(data.error || PUBLIC_CHAT_ERROR.failed),
+    );
   }
 
   const content = data.content?.trim();
@@ -79,7 +82,7 @@ export async function requestAssistantReply(
     content,
     completionTokens: data.completionTokens ?? estimateTokens(content),
     promptTokens: data.promptTokens,
-    model: data.model,
+    model: "aria",
     sources,
     grounded: Boolean(data.grounded || sources.length),
   };
