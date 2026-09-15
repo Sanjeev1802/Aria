@@ -26,10 +26,16 @@ export function getRegion() {
   );
 }
 
-export function requireApiKey() {
-  const key =
+export function getApiKey() {
+  return (
     process.env.BEDROCK_API_KEY?.trim() ||
-    process.env.AWS_BEARER_TOKEN_BEDROCK?.trim();
+    process.env.AWS_BEARER_TOKEN_BEDROCK?.trim() ||
+    ""
+  );
+}
+
+export function requireApiKey() {
+  const key = getApiKey();
   if (!key) {
     throw new Error("BEDROCK_API_KEY is not configured");
   }

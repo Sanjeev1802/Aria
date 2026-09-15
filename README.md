@@ -13,7 +13,7 @@ This repository is a **single Next.js application** — the marketing site, sign
 | `/` | Marketing home |
 | `/features` · `/pricing` | Product story and plans |
 | `/blog` · `/docs` · `/changelog` · `/contact` | Resources and access requests |
-| `/sign-in` | Firebase email/password authentication |
+| `/sign-in` · `/sign-up` · `/forgot-password` | Amazon Cognito authentication |
 | `/dashboard` | Authenticated ARIA chat (gated) |
 | `/dashboard/plans` | Plan and seat management |
 | `/api/chat` | Server route that calls Amazon Bedrock and returns ARIA's reply |
@@ -40,7 +40,7 @@ Aria/
 ├── lib/
 │   ├── aria/               # Client state: conversations, settings, profile, tokens
 │   │   └── model/          # ARIA model layer (see below)
-│   ├── auth/               # Firebase client + AuthProvider / useAuth
+│   ├── auth/               # Cognito client + AuthProvider / JWT verify
 │   └── data/               # Static content for marketing pages
 ├── next.config.ts
 ├── tsconfig.json           # "@/*" maps to the repo root
@@ -77,7 +77,8 @@ Each prompt module exports one tagged section (`<identity>`, `<mission>`, …). 
 
 - **Framework:** Next.js 16 (App Router, Turbopack), React 19, TypeScript
 - **Styling:** Tailwind CSS v4
-- **Auth:** Firebase Authentication (email/password)
+- **Auth:** Amazon Cognito (sign up, sign in, forgot password)
+- **Database:** Aurora PostgreSQL via Prisma
 - **Model:** Amazon Bedrock (Nova Micro) via `@aws-sdk/client-bedrock-runtime`
 - **Brand:** cream `#F0EEE6`, charcoal `#141413`, accent `#D88A68` · Geist + Newsreader
 
@@ -91,7 +92,7 @@ Each prompt module exports one tagged section (`<identity>`, `<mission>`, …). 
 npm install
 
 cp .env.example .env
-# Fill NEXT_PUBLIC_FIREBASE_* and BEDROCK_API_KEY
+# Fill NEXT_PUBLIC_COGNITO_*, DATABASE_URL, and BEDROCK_API_KEY
 
 npm run dev            # http://localhost:3000
 ```
@@ -100,8 +101,8 @@ npm run dev            # http://localhost:3000
 
 | Variable | Role |
 | --- | --- |
-| `NEXT_PUBLIC_FIREBASE_*` | Client Firebase config (sign-in) |
-| `FIREBASE_*` | Admin SDK (server-only) |
+| `NEXT_PUBLIC_COGNITO_*` | Cognito user pool + public app client |
+| `DATABASE_URL` | Aurora / Postgres connection string (server-only) |
 | `NEXT_PUBLIC_WEB_URL` | App origin (default `http://localhost:3000`) |
 | `BEDROCK_API_KEY` | Amazon Bedrock API key (server-only — never prefix with `NEXT_PUBLIC_`) |
 | `BEDROCK_REGION` | AWS region (default `ap-southeast-1`) |

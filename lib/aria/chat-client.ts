@@ -14,9 +14,11 @@ export type AssistantReplyResult = {
 };
 
 type RequestChatOptions = {
+  conversationId: string;
   messages: Pick<ChatMessage, "role" | "content">[];
   settings?: Partial<SettingsData>;
   profile?: Partial<ProfileData>;
+  getIdToken: () => Promise<string | null>;
 };
 
 function clientTimeline() {
@@ -33,10 +35,19 @@ export async function requestAssistantReply(
   const profile = options.profile ?? loadProfile();
   const timeline = clientTimeline();
 
+  const token = await options.getIdToken();
+  if (!token) {
+    throw new Error("Sign in required.");
+  }
+
   const response = await fetch("/api/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({
+      conversationId: options.conversationId,
       messages: options.messages.map((message) => ({
         role: message.role,
         content: message.content,

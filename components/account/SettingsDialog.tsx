@@ -106,6 +106,8 @@ export function SettingsDialog({
 
   useEffect(() => {
     if (!open) return;
+    // Sync dialog fields from localStorage when opened.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from persisted workspace settings
     setTab(initialTab);
     setSettings(loadSettings());
     const loadedProfile = loadProfile();

@@ -56,6 +56,7 @@ export function AccountMenu({ collapsed, onNavigate }: AccountMenuProps) {
   const plan = getPlan(planId);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate plan and admin from localStorage
     setPlanId(loadPlanId());
     if (user?.email) {
       ensureWorkspaceUser(user.email, user.displayName);

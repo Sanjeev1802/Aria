@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { blogPosts } from "@/lib/data/resources";
 
@@ -26,12 +27,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <article className="page-container py-10 sm:py-14 md:py-16 lg:py-20">
-      <a
+      <Link
         href="/blog"
         className="text-sm text-foreground/50 transition-colors hover:text-foreground"
       >
         ← Back to blog
-      </a>
+      </Link>
 
       <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-foreground/50">
         <span>{post.category}</span>

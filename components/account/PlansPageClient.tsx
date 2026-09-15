@@ -18,6 +18,7 @@ export function PlansPageClient() {
   const [pending, setPending] = useState<PlanId | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate selected plan
     setCurrent(loadPlanId());
   }, []);
 

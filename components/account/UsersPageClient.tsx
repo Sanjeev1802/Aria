@@ -46,6 +46,7 @@ export function UsersPageClient() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load workspace roster for the signed-in user
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email]);

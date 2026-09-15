@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+ARIA_AWS_DEPLOYMENT_REPORT.md
+ARIA_AWS_MIGRATION_AND_DEPLOYMENT_REPORT.md
+*.md
+!README.md

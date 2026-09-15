@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import FeaturesDropdown from "@/components/features/FeaturesDropdown";
 import ResourcesDropdown from "@/components/resources/ResourcesDropdown";
 
@@ -108,12 +109,12 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/90">
       <div className="page-container flex items-center justify-between gap-3 py-4 sm:gap-4 sm:py-5">
-        <a
+        <Link
           href="/"
           className="min-w-0 shrink text-base font-semibold tracking-tight text-foreground sm:text-lg md:text-xl"
         >
           BNII ARIA
-        </a>
+        </Link>
 
         <nav
           className="hidden items-center justify-center gap-5 lg:flex xl:gap-8"

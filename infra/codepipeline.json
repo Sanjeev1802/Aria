@@ -1,0 +1,72 @@
+{
+  "pipeline": {
+    "name": "aria-prod",
+    "roleArn": "arn:aws:iam::<account>:role/aria-codepipeline",
+    "artifactStore": {
+      "type": "S3",
+      "location": "aria-pipeline-artifacts-<account>-ap-southeast-1"
+    },
+    "stages": [
+      {
+        "name": "Source",
+        "actions": [
+          {
+            "name": "GitHub",
+            "actionTypeId": {
+              "category": "Source",
+              "owner": "AWS",
+              "provider": "CodeStarSourceConnection",
+              "version": "1"
+            },
+            "configuration": {
+              "ConnectionArn": "arn:aws:codeconnections:ap-southeast-1:<account>:connection/<id>",
+              "FullRepositoryId": "The-Binary-Holdings/Aria",
+              "BranchName": "Bedrock-deployment",
+              "OutputArtifactFormat": "CODE_ZIP"
+            },
+            "outputArtifacts": [{ "name": "SourceOutput" }]
+          }
+        ]
+      },
+      {
+        "name": "Build",
+        "actions": [
+          {
+            "name": "CodeBuild",
+            "actionTypeId": {
+              "category": "Build",
+              "owner": "AWS",
+              "provider": "CodeBuild",
+              "version": "1"
+            },
+            "configuration": {
+              "ProjectName": "aria-build"
+            },
+            "inputArtifacts": [{ "name": "SourceOutput" }],
+            "outputArtifacts": [{ "name": "BuildOutput" }]
+          }
+        ]
+      },
+      {
+        "name": "Deploy",
+        "actions": [
+          {
+            "name": "ECS",
+            "actionTypeId": {
+              "category": "Deploy",
+              "owner": "AWS",
+              "provider": "ECS",
+              "version": "1"
+            },
+            "configuration": {
+              "ClusterName": "aria-prod",
+              "ServiceName": "aria-web",
+              "FileName": "imagedefinitions.json"
+            },
+            "inputArtifacts": [{ "name": "BuildOutput" }]
+          }
+        ]
+      }
+    ]
+  }
+}

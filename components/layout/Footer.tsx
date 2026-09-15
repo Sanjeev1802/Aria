@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { footerColumns, footerTagline } from "@/lib/data/footer";
 
 type FooterProps = {
@@ -18,12 +19,12 @@ export default function Footer({ roundedTop = false }: FooterProps) {
       <div className="page-container py-14 pb-16 sm:py-16 sm:pb-20 md:py-20 lg:py-24 safe-bottom">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] lg:gap-16 xl:gap-24">
           <div className="min-w-0">
-            <a
+            <Link
               href="/"
               className="text-lg font-semibold tracking-tight text-background sm:text-xl"
             >
               BNII ARIA
-            </a>
+            </Link>
             <p className="mt-4 max-w-sm font-serif text-sm leading-relaxed text-background/60 sm:text-base">
               {footerTagline}
             </p>

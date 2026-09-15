@@ -7,10 +7,10 @@ import {
 import { estimateTokens } from "@/lib/aria/tokens";
 import {
   generationDefaults,
+  getApiKey,
   getModelName,
   getRegion,
   isLiveSearchEnabled,
-  requireApiKey,
 } from "./config";
 import { buildSystemPrompt } from "./prompt";
 import { messageNeedsLiveSearch } from "./search";
@@ -47,22 +47,25 @@ let cachedClient: BedrockRuntimeClient | null = null;
 let cachedClientKey = "";
 
 function getBedrockClient() {
-  const apiKey = requireApiKey();
+  const apiKey = getApiKey();
   const region = getRegion();
-  const cacheKey = `${region}:${apiKey}`;
+  const cacheKey = `${region}:${apiKey || "iam"}`;
 
   if (cachedClient && cachedClientKey === cacheKey) {
     return cachedClient;
   }
 
-  // Prefer the Bedrock API key over the IAM credential chain.
-  process.env.AWS_BEARER_TOKEN_BEDROCK = apiKey;
+  if (apiKey) {
+    process.env.AWS_BEARER_TOKEN_BEDROCK = apiKey;
+    cachedClient = new BedrockRuntimeClient({
+      region,
+      authSchemePreference: ["httpBearerAuth"],
+      token: { token: apiKey },
+    });
+  } else {
+    cachedClient = new BedrockRuntimeClient({ region });
+  }
 
-  cachedClient = new BedrockRuntimeClient({
-    region,
-    authSchemePreference: ["httpBearerAuth"],
-    token: { token: apiKey },
-  });
   cachedClientKey = cacheKey;
   return cachedClient;
 }
@@ -153,7 +156,7 @@ export async function generateAriaReply(options: {
       }),
     );
 
-  let response = await run(system);
+  const response = await run(system);
   let content = extractText(response);
   let promptTokens = response.usage?.inputTokens ?? 0;
   let completionTokens = response.usage?.outputTokens ?? 0;

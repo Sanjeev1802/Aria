@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -9,58 +10,85 @@ import {
   type ReactNode,
 } from "react";
 import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  type User,
-} from "firebase/auth";
-import { getFirebaseAuth } from "./client";
+  getCurrentSession,
+  signIn as cognitoSignIn,
+  signOutCurrentUser,
+} from "./cognito-client";
+import type { AuthUser } from "./types";
 
 type AuthContextValue = {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<User>;
+  getIdToken: () => Promise<string | null>;
+  signIn: (email: string, password: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function persistSessionCookie(idToken: string | null) {
+  if (!idToken) {
+    await fetch("/api/auth/session", { method: "DELETE" });
+    return;
+  }
+  await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const auth = getFirebaseAuth();
-      const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-        setUser(nextUser);
-        setLoading(false);
+    let cancelled = false;
+    getCurrentSession()
+      .then(async (next) => {
+        if (cancelled) return;
+        setUser(next);
+        if (next) await persistSessionCookie(next.idToken);
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-      return unsubscribe;
-    } catch (error) {
-      console.error(error);
-      setLoading(false);
-      return undefined;
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const getIdToken = useCallback(async () => {
+    const session = await getCurrentSession();
+    if (session) {
+      setUser(session);
+      return session.idToken;
     }
+    setUser(null);
+    return null;
   }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       loading,
+      getIdToken,
       async signIn(email, password) {
-        const credential = await signInWithEmailAndPassword(
-          getFirebaseAuth(),
-          email,
-          password,
-        );
-        return credential.user;
+        const next = await cognitoSignIn(email, password);
+        await persistSessionCookie(next.idToken);
+        setUser(next);
+        return next;
       },
       async signOut() {
-        await firebaseSignOut(getFirebaseAuth());
+        signOutCurrentUser();
+        await persistSessionCookie(null);
+        setUser(null);
       },
     }),
-    [user, loading],
+    [user, loading, getIdToken],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

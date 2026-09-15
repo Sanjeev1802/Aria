@@ -1,0 +1,42 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: ap-southeast-1
+    IMAGE_REPO_NAME: aria
+    CONTAINER_NAME: aria
+  secrets-manager:
+    NEXT_PUBLIC_COGNITO_USER_POOL_ID: aria/build:NEXT_PUBLIC_COGNITO_USER_POOL_ID
+    NEXT_PUBLIC_COGNITO_CLIENT_ID: aria/build:NEXT_PUBLIC_COGNITO_CLIENT_ID
+    NEXT_PUBLIC_COGNITO_REGION: aria/build:NEXT_PUBLIC_COGNITO_REGION
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:-latest}
+      - REPO_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+  build:
+    commands:
+      - npm ci
+      - npx prisma generate
+      - npm run typecheck
+      - npm run lint
+      - docker build
+          --build-arg NEXT_PUBLIC_COGNITO_REGION=$NEXT_PUBLIC_COGNITO_REGION
+          --build-arg NEXT_PUBLIC_COGNITO_USER_POOL_ID=$NEXT_PUBLIC_COGNITO_USER_POOL_ID
+          --build-arg NEXT_PUBLIC_COGNITO_CLIENT_ID=$NEXT_PUBLIC_COGNITO_CLIENT_ID
+          -t $REPO_URI:$IMAGE_TAG
+          -t $REPO_URI:latest
+          .
+  post_build:
+    commands:
+      - docker push $REPO_URI:$IMAGE_TAG
+      - docker push $REPO_URI:latest
+      - printf '[{"name":"%s","imageUri":"%s"}]' $CONTAINER_NAME $REPO_URI:$IMAGE_TAG > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json

@@ -8,6 +8,7 @@ export default function CookieBanner() {
   useEffect(() => {
     const accepted = localStorage.getItem("aria-cookies-accepted");
     if (!accepted) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only cookie consent
       setVisible(true);
     }
   }, []);

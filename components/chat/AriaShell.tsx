@@ -4,9 +4,11 @@ import { useEffect, useState, useTransition } from "react";
 import type { Conversation } from "@/lib/aria/types";
 import { createId, titleFromPrompt } from "@/lib/aria/types";
 import {
-  loadConversations,
-  saveConversations,
-} from "@/lib/aria/conversations";
+  createConversation as createRemoteConversation,
+  deleteConversation as deleteRemoteConversation,
+  getConversation,
+  listConversations,
+} from "@/lib/aria/conversation-api";
 import { requestAssistantReply } from "@/lib/aria/chat-client";
 import {
   buildTokenUsage,
@@ -28,7 +30,7 @@ import { ensureWorkspaceUser } from "@/lib/aria/users";
 import { PUBLIC_CHAT_ERROR, sanitizePublicError } from "@/lib/aria/public-errors";
 
 export function AriaShell() {
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -48,19 +50,47 @@ export function AriaShell() {
   }, [user]);
 
   useEffect(() => {
-    const stored = loadConversations();
-    setConversations(stored);
-    setActiveId(stored[0]?.id ?? null);
-    const usage = loadTokenUsage();
-    setTokenUsed(usage.used);
-    setTokenLimit(getTokenLimit());
-    setHydrated(true);
-  }, []);
+    if (!user) return;
+    let cancelled = false;
+    listConversations(getIdToken)
+      .then((items) => {
+        if (cancelled) return;
+        setConversations(items);
+        setActiveId(items[0]?.id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setConversations([]);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          const usage = loadTokenUsage();
+          setTokenUsed(usage.used);
+          setTokenLimit(getTokenLimit());
+          setHydrated(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, getIdToken]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    saveConversations(conversations);
-  }, [conversations, hydrated]);
+    if (!activeId || !hydrated || thinking) return;
+    let cancelled = false;
+    getConversation(getIdToken, activeId)
+      .then((detail) => {
+        if (cancelled) return;
+        setConversations((prev) =>
+          prev.map((item) => (item.id === detail.id ? detail : item)),
+        );
+      })
+      .catch(() => {
+        /* keep list row if detail fails */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId, getIdToken, hydrated, thinking]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -76,25 +106,22 @@ export function AriaShell() {
   const isEmpty = !active || active.messages.length === 0;
   const tokensRemaining = Math.max(0, tokenLimit - tokenUsed);
 
-  function createConversation(firstMessage?: string) {
-    const id = createId("chat");
-    const conversation: Conversation = {
-      id,
-      title: firstMessage ? titleFromPrompt(firstMessage) : "New chat",
-      messages: [],
-      updatedAt: Date.now(),
-    };
+  async function createConversation(firstMessage?: string) {
+    const conversation = await createRemoteConversation(
+      getIdToken,
+      firstMessage ? titleFromPrompt(firstMessage) : "New chat",
+    );
     setConversations((prev) => [conversation, ...prev]);
-    setActiveId(id);
+    setActiveId(conversation.id);
     return conversation;
   }
 
   function handleNewChat() {
-    createConversation();
-    setLimitNotice(null);
+    void createConversation().then(() => setLimitNotice(null));
   }
 
   function handleDeleteChat(id: string) {
+    void deleteRemoteConversation(getIdToken, id).catch(() => undefined);
     setConversations((prev) => {
       const next = prev.filter((c) => c.id !== id);
       if (activeId === id) {
@@ -142,7 +169,16 @@ export function AriaShell() {
 
     let conversation = active;
     if (!conversation) {
-      conversation = createConversation(content);
+      try {
+        conversation = await createConversation(content);
+      } catch (error) {
+        setLimitNotice(
+          sanitizePublicError(
+            error instanceof Error ? error.message : PUBLIC_CHAT_ERROR.failed,
+          ),
+        );
+        return;
+      }
     }
 
     const userMessage = {
@@ -184,7 +220,11 @@ export function AriaShell() {
         content: message.content,
       }));
 
-      const reply = await requestAssistantReply({ messages: history });
+      const reply = await requestAssistantReply({
+        conversationId: conversation.id,
+        messages: history,
+        getIdToken,
+      });
       let completionTokens = reply.completionTokens;
       setTokenUsed((u) => {
         completionTokens = Math.min(
