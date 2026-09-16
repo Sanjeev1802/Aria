@@ -48,10 +48,10 @@ export function AriaShell() {
     if (user?.email) {
       ensureWorkspaceUser(user.email, user.displayName);
     }
-  }, [user]);
+  }, [user?.sub, user?.email, user?.displayName]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.sub) return;
     let cancelled = false;
     listConversations(getIdToken)
       .then((items) => {
@@ -81,7 +81,7 @@ export function AriaShell() {
     return () => {
       cancelled = true;
     };
-  }, [user, getIdToken]);
+  }, [user?.sub, getIdToken]);
 
   useEffect(() => {
     if (!activeId || !hydrated || thinking) return;

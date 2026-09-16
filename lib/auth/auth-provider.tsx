@@ -82,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getIdToken = useCallback(async () => {
     const session = await getCurrentSession();
     if (session) {
-      setUser(session);
       return session.idToken;
     }
     setUser(null);
