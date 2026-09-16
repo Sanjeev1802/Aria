@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authErrorMessage, isNewPasswordRequiredError, useAuth } from "@/lib/auth";
 import { AuthShell, authInputClassName } from "@/components/auth/AuthShell";
-import { AtSignIcon, LockIcon } from "lucide-react";
+import { AtSignIcon, LockIcon, UserIcon } from "lucide-react";
 import { Suspense } from "react";
 
 function SignInForm() {
@@ -17,6 +17,8 @@ function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [requiredAttributes, setRequiredAttributes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,6 +37,7 @@ function SignInForm() {
       router.replace(nextPath.startsWith("/") ? nextPath : "/dashboard");
     } catch (err) {
       if (isNewPasswordRequiredError(err)) {
+        setRequiredAttributes(err.requiredAttributes);
         setStep("new-password");
         setError(null);
         return;
@@ -50,7 +53,11 @@ function SignInForm() {
     setError(null);
     setSubmitting(true);
     try {
-      await completeNewPassword(newPassword);
+      const attributes: Record<string, string> = {};
+      if (requiredAttributes.includes("name") && fullName.trim()) {
+        attributes.name = fullName.trim();
+      }
+      await completeNewPassword(newPassword, attributes);
       router.replace(nextPath.startsWith("/") ? nextPath : "/dashboard");
     } catch (err) {
       setError(authErrorMessage(err, "Unable to set your new password. Please try again."));
@@ -66,6 +73,28 @@ function SignInForm() {
         description="Your account was created with a temporary password. Choose a permanent password to continue."
       >
         <form className="flex flex-col gap-5" onSubmit={handleNewPassword}>
+          {requiredAttributes.includes("name") ? (
+            <div className="flex flex-col gap-2">
+              <label htmlFor="full-name" className="block text-sm font-medium text-brand-dark">
+                Full name
+              </label>
+              <div className="relative">
+                <UserIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-brand-dark/40" />
+                <input
+                  id="full-name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={submitting}
+                  placeholder="Your name"
+                  className={authInputClassName}
+                />
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-2">
             <label
               htmlFor="new-password"
@@ -113,6 +142,8 @@ function SignInForm() {
             onClick={() => {
               setStep("sign-in");
               setNewPassword("");
+              setFullName("");
+              setRequiredAttributes([]);
               setError(null);
             }}
             className="text-sm text-brand-dark/60 hover:text-brand-dark disabled:opacity-60"

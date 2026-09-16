@@ -7,23 +7,24 @@ import {
   CognitoUserPool,
   type CognitoUserSession,
 } from "amazon-cognito-identity-js";
+import { assertCognitoConfigured, cognitoEnv } from "./cognito-env";
 import { NewPasswordRequiredError } from "./errors";
 import type { AuthUser } from "./types";
 
-let pendingNewPasswordUser: CognitoUser | null = null;
+type PendingNewPassword = {
+  user: CognitoUser;
+  email: string;
+  requiredAttributes: string[];
+  userAttributes: Record<string, string>;
+};
 
-function requireEnv(name: string) {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`${name} is not configured`);
-  }
-  return value;
-}
+let pendingNewPassword: PendingNewPassword | null = null;
 
 export function getUserPool() {
+  assertCognitoConfigured();
   return new CognitoUserPool({
-    UserPoolId: requireEnv("NEXT_PUBLIC_COGNITO_USER_POOL_ID"),
-    ClientId: requireEnv("NEXT_PUBLIC_COGNITO_CLIENT_ID"),
+    UserPoolId: cognitoEnv.userPoolId,
+    ClientId: cognitoEnv.clientId,
   });
 }
 
@@ -98,11 +99,56 @@ export function resendConfirmationCode(email: string) {
   });
 }
 
-function finishNewPasswordChallenge(user: CognitoUser, newPassword: string) {
+const READ_ONLY_USER_ATTRIBUTES = new Set([
+  "email_verified",
+  "phone_number_verified",
+  "sub",
+  "identities",
+  "cognito:user_status",
+  "cognito:mfa_enabled",
+]);
+
+function isMutableUserAttribute(key: string) {
+  return !READ_ONLY_USER_ATTRIBUTES.has(key) && !key.startsWith("cognito:");
+}
+
+function buildRequiredAttributes(
+  pending: PendingNewPassword,
+  extra: Record<string, string>,
+) {
+  const attributes: Record<string, string> = {};
+
+  for (const key of pending.requiredAttributes) {
+    if (!isMutableUserAttribute(key)) continue;
+    const value = extra[key]?.trim() || pending.userAttributes[key]?.trim();
+    if (value) attributes[key] = value;
+  }
+
+  for (const key of pending.requiredAttributes) {
+    if (attributes[key]?.trim()) continue;
+    if (key === "name") {
+      const localPart = pending.email.split("@")[0]?.replace(/[._-]+/g, " ").trim();
+      attributes.name = localPart
+        ? localPart.replace(/\b\w/g, (char) => char.toUpperCase())
+        : "ARIA User";
+    }
+  }
+
+  return attributes;
+}
+
+function finishNewPasswordChallenge(
+  pending: PendingNewPassword,
+  newPassword: string,
+  extraAttributes: Record<string, string> = {},
+) {
+  const user = pending.user;
+  const attributeData = buildRequiredAttributes(pending, extraAttributes);
+
   return new Promise<AuthUser>((resolve, reject) => {
-    user.completeNewPasswordChallenge(newPassword, {}, {
+    user.completeNewPasswordChallenge(newPassword, attributeData, {
       onSuccess(session) {
-        pendingNewPasswordUser = null;
+        pendingNewPassword = null;
         resolve(sessionToUser(session));
       },
       onFailure(error) {
@@ -112,21 +158,33 @@ function finishNewPasswordChallenge(user: CognitoUser, newPassword: string) {
   });
 }
 
-export function completeNewPasswordSignIn(newPassword: string) {
-  const user = pendingNewPasswordUser;
-  if (!user) {
+export function getPendingNewPasswordRequirements() {
+  if (!pendingNewPassword) return null;
+  return {
+    requiredAttributes: pendingNewPassword.requiredAttributes,
+    userAttributes: pendingNewPassword.userAttributes,
+  };
+}
+
+export function completeNewPasswordSignIn(
+  newPassword: string,
+  extraAttributes: Record<string, string> = {},
+) {
+  const pending = pendingNewPassword;
+  if (!pending) {
     return Promise.reject(
       new Error("Sign-in session expired. Enter your email and temporary password again."),
     );
   }
-  return finishNewPasswordChallenge(user, newPassword);
+  return finishNewPasswordChallenge(pending, newPassword, extraAttributes);
 }
 
 export function signIn(email: string, password: string) {
-  pendingNewPasswordUser = null;
-  const user = cognitoUser(email);
+  pendingNewPassword = null;
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = cognitoUser(normalizedEmail);
   const details = new AuthenticationDetails({
-    Username: email.trim().toLowerCase(),
+    Username: normalizedEmail,
     Password: password,
   });
 
@@ -138,9 +196,16 @@ export function signIn(email: string, password: string) {
       onFailure(error) {
         reject(error);
       },
-      newPasswordRequired() {
-        pendingNewPasswordUser = user;
-        reject(new NewPasswordRequiredError());
+      newPasswordRequired(userAttributes, requiredAttributes) {
+        const required = Array.isArray(requiredAttributes) ? requiredAttributes : [];
+        pendingNewPassword = {
+          user,
+          email: normalizedEmail,
+          requiredAttributes: required,
+          userAttributes:
+            userAttributes && typeof userAttributes === "object" ? userAttributes : {},
+        };
+        reject(new NewPasswordRequiredError(required));
       },
     });
   });

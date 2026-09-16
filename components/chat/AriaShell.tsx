@@ -41,6 +41,7 @@ export function AriaShell() {
   const [tokenLimit, setTokenLimit] = useState(100_000);
   const [shareCopied, setShareCopied] = useState(false);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -52,14 +53,22 @@ export function AriaShell() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    setLoadError(null);
     listConversations(getIdToken)
       .then((items) => {
         if (cancelled) return;
         setConversations(items);
         setActiveId(items[0]?.id ?? null);
       })
-      .catch(() => {
-        if (!cancelled) setConversations([]);
+      .catch((error) => {
+        if (!cancelled) {
+          setConversations([]);
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load conversations.",
+          );
+        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -303,6 +312,14 @@ export function AriaShell() {
       />
 
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 border-foreground/10 bg-card sm:rounded-2xl sm:border">
+        {loadError ? (
+          <div
+            role="alert"
+            className="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          >
+            {loadError}
+          </div>
+        ) : null}
         <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-foreground/10 px-2.5 sm:px-4">
           <button
             type="button"

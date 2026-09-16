@@ -1,13 +1,12 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
+import { assertCognitoConfigured, cognitoEnv } from "./cognito-env";
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | null = null;
 
 function getVerifier() {
-  const userPoolId = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID?.trim();
-  const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID?.trim();
-  if (!userPoolId || !clientId) {
-    throw new Error("Cognito is not configured");
-  }
+  assertCognitoConfigured();
+  const userPoolId = cognitoEnv.userPoolId;
+  const clientId = cognitoEnv.clientId;
   if (!verifier) {
     verifier = CognitoJwtVerifier.create({
       userPoolId,

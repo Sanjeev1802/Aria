@@ -22,7 +22,10 @@ type AuthContextValue = {
   loading: boolean;
   getIdToken: () => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<AuthUser>;
-  completeNewPassword: (newPassword: string) => Promise<AuthUser>;
+  completeNewPassword: (
+    newPassword: string,
+    attributes?: Record<string, string>,
+  ) => Promise<AuthUser>;
   signOut: () => Promise<void>;
 };
 
@@ -30,14 +33,27 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function persistSessionCookie(idToken: string | null) {
   if (!idToken) {
-    await fetch("/api/auth/session", { method: "DELETE" });
+    const response = await fetch("/api/auth/session", { method: "DELETE" });
+    if (!response.ok) {
+      throw new Error("Unable to clear your session.");
+    }
     return;
   }
-  await fetch("/api/auth/session", {
+  const response = await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ idToken }),
   });
+  if (!response.ok) {
+    let message = "Unable to establish a server session.";
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body.error?.trim()) message = body.error;
+    } catch {
+      // ignore malformed error body
+    }
+    throw new Error(message);
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -84,8 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(next);
         return next;
       },
-      async completeNewPassword(newPassword) {
-        const next = await completeNewPasswordSignIn(newPassword);
+      async completeNewPassword(newPassword, attributes) {
+        const next = await completeNewPasswordSignIn(newPassword, attributes);
         await persistSessionCookie(next.idToken);
         setUser(next);
         return next;

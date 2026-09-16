@@ -1,8 +1,10 @@
 export class NewPasswordRequiredError extends Error {
   readonly name = "NewPasswordRequired";
+  readonly requiredAttributes: string[];
 
-  constructor() {
+  constructor(requiredAttributes: string[] = []) {
     super("Set a new password to finish signing in.");
+    this.requiredAttributes = requiredAttributes;
   }
 }
 
@@ -31,15 +33,34 @@ const COGNITO_MESSAGES: Record<string, string> = {
   TooManyFailedAttemptsException: "Too many attempts. Please try again later.",
   CodeDeliveryFailureException:
     "We could not send a verification code. Try again shortly.",
+  PasswordResetRequiredException:
+    "Your password must be reset before you can sign in. Use Forgot password.",
+  InvalidSessionException:
+    "Your sign-in session expired. Enter your email and password again.",
 };
 
+function cognitoErrorKey(error: object) {
+  const record = error as {
+    name?: string;
+    code?: string;
+    __type?: string;
+  };
+  const raw = record.name || record.code || record.__type || "";
+  return raw.replace(/^com\.amazonaws\.cognito\.signin\.model\./, "");
+}
+
 export function authErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim()) {
+    if (error instanceof NewPasswordRequiredError) return error.message;
+    const key = cognitoErrorKey(error);
+    if (key && COGNITO_MESSAGES[key]) return COGNITO_MESSAGES[key];
+    return error.message;
+  }
   if (!error || typeof error !== "object") return fallback;
-  const record = error as { name?: string; code?: string; message?: string };
-  const key = record.name || record.code || "";
+  const record = error as { message?: string };
+  const key = cognitoErrorKey(error);
   if (key && COGNITO_MESSAGES[key]) return COGNITO_MESSAGES[key];
   if (typeof record.message === "string" && record.message.trim()) {
-    if (/cognito|amazon/i.test(record.message)) return fallback;
     return record.message;
   }
   return fallback;
