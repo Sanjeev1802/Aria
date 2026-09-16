@@ -53,10 +53,10 @@ export function AriaShell() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    setLoadError(null);
     listConversations(getIdToken)
       .then((items) => {
         if (cancelled) return;
+        setLoadError(null);
         setConversations(items);
         setActiveId(items[0]?.id ?? null);
       })
