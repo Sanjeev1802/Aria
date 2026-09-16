@@ -1,0 +1,42 @@
+{
+  "region": "ap-southeast-1",
+  "githubRepository": "The-Binary-Holdings/Aria",
+  "accounts": {
+    "dev": {
+      "name": "BNII-Development",
+      "accountId": "124623493787",
+      "profile": "bnii-dev",
+      "stackName": "aria-dev",
+      "pipelineStackName": "aria-pipeline-dev",
+      "clusterName": "aria-dev",
+      "serviceName": "aria-web",
+      "ecrRepository": "aria",
+      "desiredCount": 1,
+      "githubBranch": "develop-aws"
+    },
+    "beta": {
+      "name": "BNII-Beta",
+      "accountId": "786971361224",
+      "profile": "bnii-beta",
+      "stackName": "aria-beta",
+      "pipelineStackName": "aria-pipeline-beta",
+      "clusterName": "aria-beta",
+      "serviceName": "aria-web",
+      "ecrRepository": "aria",
+      "desiredCount": 1,
+      "githubBranch": "preview-aws"
+    },
+    "prod": {
+      "name": "BNII-Production",
+      "accountId": "642155086245",
+      "profile": "bnii-prod",
+      "stackName": "aria-prod",
+      "pipelineStackName": "aria-pipeline-prod",
+      "clusterName": "aria-prod",
+      "serviceName": "aria-web",
+      "ecrRepository": "aria",
+      "desiredCount": 2,
+      "githubBranch": "prod-aws"
+    }
+  }
+}

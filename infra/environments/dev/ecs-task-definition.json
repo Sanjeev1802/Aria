@@ -37,7 +37,7 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/aria-prod",
+          "awslogs-group": "/ecs/aria-dev",
           "awslogs-region": "ap-southeast-1",
           "awslogs-stream-prefix": "aria"
         }

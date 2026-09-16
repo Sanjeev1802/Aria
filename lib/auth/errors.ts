@@ -22,7 +22,7 @@ export function authErrorMessage(error: unknown, fallback: string) {
   const key = record.name || record.code || "";
   if (key && COGNITO_MESSAGES[key]) return COGNITO_MESSAGES[key];
   if (typeof record.message === "string" && record.message.trim()) {
-    if (/firebase|cognito|amazon/i.test(record.message)) return fallback;
+    if (/cognito|amazon/i.test(record.message)) return fallback;
     return record.message;
   }
   return fallback;

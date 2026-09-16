@@ -7,6 +7,6 @@ if [ -z "$DATABASE_URL" ] && [ -n "$DB_HOST" ] && [ -n "$DB_USER" ] && [ -n "$DB
 fi
 
 if [ -n "$DATABASE_URL" ]; then
-  npx prisma migrate deploy
+  prisma migrate deploy
 fi
 exec node server.js

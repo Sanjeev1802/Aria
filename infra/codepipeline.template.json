@@ -1,10 +1,10 @@
 {
   "pipeline": {
-    "name": "aria-prod",
-    "roleArn": "arn:aws:iam::<account>:role/aria-codepipeline",
+    "name": "aria-{{ENV}}",
+    "roleArn": "arn:aws:iam::{{ACCOUNT_ID}}:role/aria-codepipeline-{{ENV}}",
     "artifactStore": {
       "type": "S3",
-      "location": "aria-pipeline-artifacts-<account>-ap-southeast-1"
+      "location": "aria-pipeline-{{ENV}}-{{ACCOUNT_ID}}"
     },
     "stages": [
       {
@@ -19,9 +19,9 @@
               "version": "1"
             },
             "configuration": {
-              "ConnectionArn": "arn:aws:codeconnections:ap-southeast-1:<account>:connection/<id>",
+              "ConnectionArn": "{{GITHUB_CONNECTION_ARN}}",
               "FullRepositoryId": "The-Binary-Holdings/Aria",
-              "BranchName": "Bedrock-deployment",
+              "BranchName": "{{GITHUB_BRANCH}}",
               "OutputArtifactFormat": "CODE_ZIP"
             },
             "outputArtifacts": [{ "name": "SourceOutput" }]
@@ -40,7 +40,7 @@
               "version": "1"
             },
             "configuration": {
-              "ProjectName": "aria-build"
+              "ProjectName": "aria-build-{{ENV}}"
             },
             "inputArtifacts": [{ "name": "SourceOutput" }],
             "outputArtifacts": [{ "name": "BuildOutput" }]
@@ -59,7 +59,7 @@
               "version": "1"
             },
             "configuration": {
-              "ClusterName": "aria-prod",
+              "ClusterName": "aria-{{ENV}}",
               "ServiceName": "aria-web",
               "FileName": "imagedefinitions.json"
             },

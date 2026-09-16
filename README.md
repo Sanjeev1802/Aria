@@ -133,6 +133,20 @@ Next.js reads `.env` from the repo root. Never commit it.
 
 ---
 
+## AWS deployment
+
+ARIA runs on **ECS Fargate** with **Cognito**, **Aurora PostgreSQL**, and **Bedrock** in `ap-southeast-1`. Firebase is not used.
+
+| Environment | AWS Account |
+| --- | --- |
+| Development | 124623493787 |
+| Beta | 786971361224 |
+| Production | 642155086245 |
+
+See [`infra/README.md`](infra/README.md) for the full deployment guide and `./scripts/setup-aws-env.sh` to provision each account.
+
+---
+
 ## License / ownership
 
 Private — The Binary Holdings. All rights reserved unless otherwise noted.
