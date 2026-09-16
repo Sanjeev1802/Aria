@@ -120,7 +120,12 @@ export function signOutCurrentUser() {
 }
 
 export function getCurrentSession() {
-  const current = getUserPool().getCurrentUser();
+  let current: CognitoUser | null = null;
+  try {
+    current = getUserPool().getCurrentUser();
+  } catch {
+    return Promise.resolve(null);
+  }
   if (!current) return Promise.resolve(null);
 
   return new Promise<AuthUser | null>((resolve) => {
