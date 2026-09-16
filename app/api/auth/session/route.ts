@@ -5,15 +5,38 @@ export const runtime = "nodejs";
 
 const COOKIE = "aria_id_token";
 
-function cookieOptions() {
-  const secure = process.env.NODE_ENV === "production";
+/** Secure cookies are ignored on plain HTTP (e.g. dev ALB). Use request proto, not NODE_ENV. */
+function isSecureRequest(request: Request): boolean {
+  const override = process.env.ARIA_COOKIE_SECURE?.trim().toLowerCase();
+  if (override === "true") return true;
+  if (override === "false") return false;
+
+  for (const header of [
+    request.headers.get("cloudfront-forwarded-proto"),
+    request.headers.get("x-forwarded-proto"),
+  ]) {
+    if (!header) continue;
+    const proto = header.split(",")[0]?.trim().toLowerCase();
+    if (proto === "https") return true;
+    if (proto === "http") return false;
+  }
+
+  try {
+    return new URL(request.url).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function cookieOptions(request: Request, maxAge: number) {
+  const secure = isSecureRequest(request);
   return [
     `${COOKIE}=`,
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
     secure ? "Secure" : "",
-    "Max-Age=3600",
+    `Max-Age=${maxAge}`,
   ]
     .filter(Boolean)
     .join("; ");
@@ -41,22 +64,19 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ ok: true });
   response.headers.set(
     "Set-Cookie",
-    cookieOptions().replace(`${COOKIE}=`, `${COOKIE}=${encodeURIComponent(idToken)}`),
+    cookieOptions(request, 3600).replace(
+      `${COOKIE}=`,
+      `${COOKIE}=${encodeURIComponent(idToken)}`,
+    ),
   );
   return response;
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const response = NextResponse.json({ ok: true });
   response.headers.set(
     "Set-Cookie",
-    [
-      `${COOKIE}=`,
-      "Path=/",
-      "HttpOnly",
-      "SameSite=Lax",
-      "Max-Age=0",
-    ].join("; "),
+    cookieOptions(request, 0).replace(`${COOKIE}=`, `${COOKIE}=`),
   );
   return response;
 }
