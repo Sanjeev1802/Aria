@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { authErrorMessage, useAuth } from "@/lib/auth";
+import { authErrorMessage, isNewPasswordRequiredError, useAuth } from "@/lib/auth";
 import { AuthShell, authInputClassName } from "@/components/auth/AuthShell";
 import { AtSignIcon, LockIcon } from "lucide-react";
 import { Suspense } from "react";
@@ -12,9 +12,11 @@ function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") || "/dashboard";
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, signIn, completeNewPassword } = useAuth();
+  const [step, setStep] = useState<"sign-in" | "new-password">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,10 +34,94 @@ function SignInForm() {
       await signIn(email.trim(), password);
       router.replace(nextPath.startsWith("/") ? nextPath : "/dashboard");
     } catch (err) {
+      if (isNewPasswordRequiredError(err)) {
+        setStep("new-password");
+        setError(null);
+        return;
+      }
       setError(authErrorMessage(err, "Unable to sign in. Please try again."));
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleNewPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await completeNewPassword(newPassword);
+      router.replace(nextPath.startsWith("/") ? nextPath : "/dashboard");
+    } catch (err) {
+      setError(authErrorMessage(err, "Unable to set your new password. Please try again."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (step === "new-password") {
+    return (
+      <AuthShell
+        title="Set a new password"
+        description="Your account was created with a temporary password. Choose a permanent password to continue."
+      >
+        <form className="flex flex-col gap-5" onSubmit={handleNewPassword}>
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="new-password"
+              className="block text-sm font-medium text-brand-dark"
+            >
+              New password
+            </label>
+            <div className="relative">
+              <LockIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-brand-dark/40" />
+              <input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={submitting}
+                placeholder="At least 8 characters with upper, lower, and number"
+                className={authInputClassName}
+              />
+            </div>
+          </div>
+
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
+              {error}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex h-11 w-full items-center justify-center rounded-full bg-foreground text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            {submitting ? "Saving password…" : "Continue to ARIA"}
+          </button>
+
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => {
+              setStep("sign-in");
+              setNewPassword("");
+              setError(null);
+            }}
+            className="text-sm text-brand-dark/60 hover:text-brand-dark disabled:opacity-60"
+          >
+            Back to sign in
+          </button>
+        </form>
+      </AuthShell>
+    );
   }
 
   return (

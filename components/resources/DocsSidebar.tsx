@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { DocSection } from "@/lib/data/resources";
 
 type DocsSidebarProps = {
@@ -13,6 +14,7 @@ export default function DocsSidebar({
   activeSlug,
 }: DocsSidebarProps) {
   const selectId = useId();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const flatItems = sections.flatMap((section) => section.items);
   const activeTitle =
@@ -30,7 +32,7 @@ export default function DocsSidebar({
           className="w-full appearance-none rounded-xl border border-foreground/15 bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-foreground/30"
           value={activeSlug}
           onChange={(event) => {
-            window.location.href = `/docs?page=${event.target.value}`;
+            router.push(`/docs?page=${event.target.value}`);
           }}
         >
           {sections.map((section) => (

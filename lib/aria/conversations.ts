@@ -24,7 +24,10 @@ export function saveConversations(conversations: Conversation[]) {
       ...c,
       messages: c.messages.map((m) => ({
         ...m,
-        attachments: m.attachments?.map(({ dataUrl: _, ...rest }) => rest),
+        attachments: m.attachments?.map(({ dataUrl, ...rest }) => {
+          void dataUrl;
+          return rest;
+        }),
       })),
     }));
     try {

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  completeNewPasswordSignIn,
   getCurrentSession,
   signIn as cognitoSignIn,
   signOutCurrentUser,
@@ -21,6 +22,7 @@ type AuthContextValue = {
   loading: boolean;
   getIdToken: () => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<AuthUser>;
+  completeNewPassword: (newPassword: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
 };
 
@@ -78,6 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getIdToken,
       async signIn(email, password) {
         const next = await cognitoSignIn(email, password);
+        await persistSessionCookie(next.idToken);
+        setUser(next);
+        return next;
+      },
+      async completeNewPassword(newPassword) {
+        const next = await completeNewPasswordSignIn(newPassword);
         await persistSessionCookie(next.idToken);
         setUser(next);
         return next;

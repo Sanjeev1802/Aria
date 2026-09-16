@@ -1,3 +1,20 @@
+export class NewPasswordRequiredError extends Error {
+  readonly name = "NewPasswordRequired";
+
+  constructor() {
+    super("Set a new password to finish signing in.");
+  }
+}
+
+export function isNewPasswordRequiredError(error: unknown): error is NewPasswordRequiredError {
+  return (
+    error instanceof NewPasswordRequiredError ||
+    (typeof error === "object" &&
+      error !== null &&
+      (error as { name?: string }).name === "NewPasswordRequired")
+  );
+}
+
 const COGNITO_MESSAGES: Record<string, string> = {
   UserNotFoundException: "Email or password is incorrect.",
   NotAuthorizedException: "Email or password is incorrect.",

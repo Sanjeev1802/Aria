@@ -7,7 +7,10 @@ import {
   CognitoUserPool,
   type CognitoUserSession,
 } from "amazon-cognito-identity-js";
+import { NewPasswordRequiredError } from "./errors";
 import type { AuthUser } from "./types";
+
+let pendingNewPasswordUser: CognitoUser | null = null;
 
 function requireEnv(name: string) {
   const value = process.env[name]?.trim();
@@ -95,7 +98,32 @@ export function resendConfirmationCode(email: string) {
   });
 }
 
+function finishNewPasswordChallenge(user: CognitoUser, newPassword: string) {
+  return new Promise<AuthUser>((resolve, reject) => {
+    user.completeNewPasswordChallenge(newPassword, {}, {
+      onSuccess(session) {
+        pendingNewPasswordUser = null;
+        resolve(sessionToUser(session));
+      },
+      onFailure(error) {
+        reject(error);
+      },
+    });
+  });
+}
+
+export function completeNewPasswordSignIn(newPassword: string) {
+  const user = pendingNewPasswordUser;
+  if (!user) {
+    return Promise.reject(
+      new Error("Sign-in session expired. Enter your email and temporary password again."),
+    );
+  }
+  return finishNewPasswordChallenge(user, newPassword);
+}
+
 export function signIn(email: string, password: string) {
+  pendingNewPasswordUser = null;
   const user = cognitoUser(email);
   const details = new AuthenticationDetails({
     Username: email.trim().toLowerCase(),
@@ -109,6 +137,10 @@ export function signIn(email: string, password: string) {
       },
       onFailure(error) {
         reject(error);
+      },
+      newPasswordRequired() {
+        pendingNewPasswordUser = user;
+        reject(new NewPasswordRequiredError());
       },
     });
   });

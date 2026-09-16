@@ -101,7 +101,7 @@ export function PlansPageClient() {
                 disabled={isCurrent}
                 onClick={() => {
                   if (plan.id === "enterprise") {
-                    window.location.href = "/contact";
+                    router.push("/contact");
                     return;
                   }
                   setPending(plan.id);
