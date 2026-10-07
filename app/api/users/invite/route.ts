@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createInviteToken } from "@/lib/auth/invite-token";
 import { requireUser } from "@/lib/auth/require-user";
 import {
   buildTeamInviteLink,
@@ -48,7 +49,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const inviteLink = buildTeamInviteLink(email);
+  let inviteToken: string;
+  try {
+    inviteToken = createInviteToken({ email, name });
+  } catch (err) {
+    console.error("[invite]", err);
+    return NextResponse.json(
+      {
+        error:
+          "Invite signing is not configured. Set INVITE_TOKEN_SECRET or ARIA_EMBED_SECRET.",
+      },
+      { status: 500 },
+    );
+  }
+
+  const inviteLink = buildTeamInviteLink(inviteToken);
 
   const sent = await sendTeamInviteEmail({
     to: email,

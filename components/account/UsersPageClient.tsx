@@ -108,7 +108,7 @@ export function UsersPageClient() {
       setEmail("");
       setRole("user");
       setFormSuccess(
-        `Invited ${result.user!.email} as ${result.user!.role}. An email with a sign-up link was sent.`,
+        `Invited ${result.user!.email} as ${result.user!.role}. An email with a password setup link was sent.`,
       );
       setInviteOpen(false);
       refresh();
