@@ -13,7 +13,18 @@ export const generationDefaults = {
 
 export type ModelProvider = "anthropic" | "bedrock";
 
+function envFlag(name: string) {
+  const raw = process.env[name]?.trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "on";
+}
+
+/** When set, chat uses Bedrock even if an Anthropic key is also configured. */
+export function useBedrock() {
+  return envFlag("USE_BEDROCK");
+}
+
 export function getModelProvider(): ModelProvider {
+  if (useBedrock()) return "bedrock";
   if (getAnthropicApiKey()) return "anthropic";
   return "bedrock";
 }
@@ -63,9 +74,12 @@ export function getApiKey() {
 }
 
 export function requireModelCredentials() {
-  if (getAnthropicApiKey()) return getAnthropicApiKey();
+  if (getModelProvider() === "anthropic" && getAnthropicApiKey()) {
+    return getAnthropicApiKey();
+  }
   const bedrockKey = getBedrockApiKey();
   if (bedrockKey) return bedrockKey;
+  if (useBedrock()) return "";
   throw new Error(
     "ANTHROPIC_API_KEY or BEDROCK_API_KEY must be configured",
   );

@@ -57,6 +57,7 @@ const secret = {
   DB_PASSWORD: dbPass,
   ANTHROPIC_API_KEY: existing.ANTHROPIC_API_KEY || "",
   ANTHROPIC_MODEL_ID: existing.ANTHROPIC_MODEL_ID || "claude-sonnet-4-6",
+  USE_BEDROCK: existing.USE_BEDROCK || "false",
   BEDROCK_API_KEY: existing.BEDROCK_API_KEY || "",
   BEDROCK_REGION: existing.BEDROCK_REGION || "ap-southeast-1",
   BEDROCK_MODEL_ID: existing.BEDROCK_MODEL_ID || "apac.amazon.nova-micro-v1:0",
@@ -72,7 +73,7 @@ const useLocalDatabase =
 
 if (fs.existsSync(envFile)) {
   const localEnv = fs.readFileSync(envFile, "utf8");
-  for (const key of ["ANTHROPIC_API_KEY", "ANTHROPIC_MODEL_ID", "BEDROCK_API_KEY"]) {
+  for (const key of ["ANTHROPIC_API_KEY", "ANTHROPIC_MODEL_ID", "USE_BEDROCK", "BEDROCK_API_KEY", "BEDROCK_REGION", "BEDROCK_MODEL_ID"]) {
     const match = localEnv.match(new RegExp(`^${key}=(.+)$`, "m"));
     if (match?.[1]) secret[key] = match[1];
   }
@@ -112,6 +113,7 @@ const local = {
   DB_PASSWORD: secret.DB_PASSWORD,
   ANTHROPIC_API_KEY: secret.ANTHROPIC_API_KEY,
   ANTHROPIC_MODEL_ID: secret.ANTHROPIC_MODEL_ID,
+  USE_BEDROCK: secret.USE_BEDROCK,
   BEDROCK_API_KEY: secret.BEDROCK_API_KEY,
   BEDROCK_REGION: secret.BEDROCK_REGION,
   BEDROCK_MODEL_ID: secret.BEDROCK_MODEL_ID,
