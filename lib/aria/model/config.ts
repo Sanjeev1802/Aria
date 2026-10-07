@@ -19,12 +19,12 @@ function envFlag(name: string) {
 }
 
 /** When set, chat uses Bedrock even if an Anthropic key is also configured. */
-export function useBedrock() {
+export function isBedrockEnabled() {
   return envFlag("USE_BEDROCK");
 }
 
 export function getModelProvider(): ModelProvider {
-  if (useBedrock()) return "bedrock";
+  if (isBedrockEnabled()) return "bedrock";
   if (getAnthropicApiKey()) return "anthropic";
   return "bedrock";
 }
@@ -79,7 +79,7 @@ export function requireModelCredentials() {
   }
   const bedrockKey = getBedrockApiKey();
   if (bedrockKey) return bedrockKey;
-  if (useBedrock()) return "";
+  if (isBedrockEnabled()) return "";
   throw new Error(
     "ANTHROPIC_API_KEY or BEDROCK_API_KEY must be configured",
   );
