@@ -52,7 +52,7 @@ it in `examples.ts` instead of adding another line to `voice.ts`.
 | --- | --- |
 | `USE_BEDROCK` | When `true`, chat uses Bedrock even if `ANTHROPIC_API_KEY` is set. |
 | `ANTHROPIC_API_KEY` | Direct Anthropic API key (`sk-ant-...`). Used when `USE_BEDROCK` is not true. |
-| `ANTHROPIC_MODEL_ID` | Optional. Defaults to `claude-sonnet-4-6`. |
+| `ANTHROPIC_MODEL_ID` | Optional. Defaults to `claude-sonnet-4-6`. Dev (`aria-dev`) sets `claude-haiku-4-5`. |
 | `BEDROCK_API_KEY` | Bedrock bearer token. IAM task role auth is used when this is unset. |
 | `BEDROCK_REGION` | Optional. Defaults to `ap-southeast-1`. |
 | `BEDROCK_MODEL_ID` | Optional. Defaults to `apac.amazon.nova-micro-v1:0`. |

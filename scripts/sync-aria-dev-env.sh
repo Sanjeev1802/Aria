@@ -56,7 +56,7 @@ const secret = {
   DB_USER: dbUser,
   DB_PASSWORD: dbPass,
   ANTHROPIC_API_KEY: existing.ANTHROPIC_API_KEY || "",
-  ANTHROPIC_MODEL_ID: existing.ANTHROPIC_MODEL_ID || "claude-sonnet-4-6",
+  ANTHROPIC_MODEL_ID: "claude-haiku-4-5",
   USE_BEDROCK: existing.USE_BEDROCK || "false",
   BEDROCK_API_KEY: existing.BEDROCK_API_KEY || "",
   BEDROCK_REGION: existing.BEDROCK_REGION || "ap-southeast-1",

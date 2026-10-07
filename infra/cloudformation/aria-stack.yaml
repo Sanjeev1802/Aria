@@ -66,6 +66,15 @@ Parameters:
     AllowedValues: [ENABLED, DISABLED]
     Description: ENABLED when tasks run in public subnets without a NAT gateway
 
+Mappings:
+  AnthropicModel:
+    dev:
+      Id: claude-haiku-4-5
+    beta:
+      Id: claude-sonnet-4-6
+    prod:
+      Id: claude-sonnet-4-6
+
 Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
   HasGitHubConnection: !Not [!Equals [!Ref GitHubConnectionArn, ""]]
@@ -198,12 +207,13 @@ Resources:
           {
             "BEDROCK_API_KEY": "${BedrockKey}",
             "ANTHROPIC_API_KEY": "${AnthropicKey}",
-            "ANTHROPIC_MODEL_ID": "claude-sonnet-4-6",
+            "ANTHROPIC_MODEL_ID": "${AnthropicModelId}",
             "NEXT_PUBLIC_COGNITO_USER_POOL_ID": "${CognitoUserPool}",
             "NEXT_PUBLIC_COGNITO_CLIENT_ID": "${CognitoUserPoolClient}"
           }
         - BedrockKey: !Ref BedrockApiKey
           AnthropicKey: !Ref AnthropicApiKey
+          AnthropicModelId: !FindInMap [AnthropicModel, !Ref EnvironmentName, Id]
 
   # ── ECR ──────────────────────────────────────────────────────────────────
   EcrRepository:
@@ -517,7 +527,7 @@ Resources:
             - Name: ARIA_PUBLIC_URL
               Value: !Ref PublicWebUrl
             - Name: ANTHROPIC_MODEL_ID
-              Value: claude-sonnet-4-6
+              Value: !FindInMap [AnthropicModel, !Ref EnvironmentName, Id]
           Secrets:
             - Name: DB_USER
               ValueFrom: !Sub "${DbMasterSecret}:username::"
