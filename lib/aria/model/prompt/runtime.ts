@@ -18,6 +18,26 @@ function resolveTimeZone(timeZone: PromptContext["timeZone"]) {
   );
 }
 
+function localHour(now: Date, timeZone: string) {
+  const part = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    hourCycle: "h23",
+  })
+    .formatToParts(now)
+    .find((entry) => entry.type === "hour");
+  const hour = Number(part?.value);
+  return Number.isFinite(hour) ? hour % 24 : 12;
+}
+
+function partOfDay(hour: number) {
+  if (hour < 5) return "late night";
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  if (hour < 21) return "evening";
+  return "night";
+}
+
 /**
  * Models have no reliable sense of "now". The client sends its clock and
  * timezone on every request so date questions resolve to reality rather than a
@@ -37,6 +57,7 @@ export const runtime = (context: PromptContext) => {
     day: "numeric",
   });
   const localTime = format({ hour: "numeric", minute: "2-digit", hour12: true });
+  const dayPart = partOfDay(localHour(now, timeZone));
 
   return section(
     "runtime",
@@ -44,7 +65,7 @@ export const runtime = (context: PromptContext) => {
 
 ${bullets([
   `Today is ${today}.`,
-  `Local time for the user: ${localTime} (${timeZone}).`,
+  `Local time for the user: ${localTime} (${timeZone}). It is ${dayPart} for them.`,
   `UTC timestamp: ${now.toISOString()}.`,
   context.liveSearch
     ? "Live web search: ON. Use it for current events and time-sensitive facts."
