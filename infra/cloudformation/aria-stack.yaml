@@ -49,6 +49,23 @@ Parameters:
     Default: ""
     Description: Amazon Bedrock API key (stored in Secrets Manager)
 
+  AnthropicApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Anthropic API key (stored in Secrets Manager)
+
+  PublicWebUrl:
+    Type: String
+    Default: ""
+    Description: Public origin for this environment, such as https://staging.bnii.ai
+
+  AssignPublicIp:
+    Type: String
+    Default: DISABLED
+    AllowedValues: [ENABLED, DISABLED]
+    Description: ENABLED when tasks run in public subnets without a NAT gateway
+
 Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
   HasGitHubConnection: !Not [!Equals [!Ref GitHubConnectionArn, ""]]
@@ -119,7 +136,7 @@ Resources:
     Properties:
       DBClusterIdentifier: !Sub "aria-${EnvironmentName}"
       Engine: aurora-postgresql
-      EngineVersion: "15.4"
+      EngineVersion: "15.19"
       DatabaseName: aria
       MasterUsername: aria_app
       MasterUserPassword: !Sub "{{resolve:secretsmanager:${DbMasterSecret}:SecretString:password}}"
@@ -180,10 +197,13 @@ Resources:
         - |
           {
             "BEDROCK_API_KEY": "${BedrockKey}",
+            "ANTHROPIC_API_KEY": "${AnthropicKey}",
+            "ANTHROPIC_MODEL_ID": "claude-sonnet-4-6",
             "NEXT_PUBLIC_COGNITO_USER_POOL_ID": "${CognitoUserPool}",
             "NEXT_PUBLIC_COGNITO_CLIENT_ID": "${CognitoUserPoolClient}"
           }
         - BedrockKey: !Ref BedrockApiKey
+          AnthropicKey: !Ref AnthropicApiKey
 
   # ── ECR ──────────────────────────────────────────────────────────────────
   EcrRepository:
@@ -301,6 +321,16 @@ Resources:
                   - secretsmanager:GetSecretValue
                 Resource:
                   - !Ref BuildSecret
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub "arn:aws:s3:::aria-pipeline-${EnvironmentName}-${AWS::AccountId}"
+                  - !Sub "arn:aws:s3:::aria-pipeline-${EnvironmentName}-${AWS::AccountId}/*"
 
   CodePipelineRole:
     Type: AWS::IAM::Role
@@ -482,6 +512,12 @@ Resources:
               Value: !GetAtt AuroraCluster.Endpoint.Address
             - Name: DB_NAME
               Value: aria
+            - Name: NEXT_PUBLIC_WEB_URL
+              Value: !Ref PublicWebUrl
+            - Name: ARIA_PUBLIC_URL
+              Value: !Ref PublicWebUrl
+            - Name: ANTHROPIC_MODEL_ID
+              Value: claude-sonnet-4-6
           Secrets:
             - Name: DB_USER
               ValueFrom: !Sub "${DbMasterSecret}:username::"
@@ -489,6 +525,8 @@ Resources:
               ValueFrom: !Sub "${DbMasterSecret}:password::"
             - Name: BEDROCK_API_KEY
               ValueFrom: !Sub "${RuntimeSecret}:BEDROCK_API_KEY::"
+            - Name: ANTHROPIC_API_KEY
+              ValueFrom: !Sub "${RuntimeSecret}:ANTHROPIC_API_KEY::"
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -498,7 +536,7 @@ Resources:
           HealthCheck:
             Command:
               - CMD-SHELL
-              - node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+              - node -e "fetch('http://'+require('os').hostname()+':3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
             Interval: 30
             Timeout: 5
             Retries: 3
@@ -516,7 +554,7 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
+          AssignPublicIp: !Ref AssignPublicIp
           Subnets: !Ref PrivateSubnetIds
           SecurityGroups: [!Ref EcsSecurityGroup]
       LoadBalancers:
@@ -560,6 +598,8 @@ Resources:
             Value: !Ref EnvironmentName
           - Name: AWS_DEFAULT_REGION
             Value: !Ref AWS::Region
+          - Name: ARIA_BUILD_SECRET_ID
+            Value: !Sub "aria/${EnvironmentName}/build"
       Source:
         Type: CODEPIPELINE
         BuildSpec: buildspec.yml
