@@ -14,8 +14,10 @@ function CreatePasswordForm() {
   const { user, loading, signIn } = useAuth();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const linkError = token ? null : "This invitation link is invalid.";
+  const error = submitError ?? linkError;
 
   useEffect(() => {
     if (!loading && user) {
@@ -23,23 +25,16 @@ function CreatePasswordForm() {
     }
   }, [loading, user, router]);
 
-  useEffect(() => {
-    if (!token) {
-      setError("This invitation link is invalid.");
-    }
-  }, [token]);
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
+    setSubmitError(null);
 
     if (!token) {
-      setError("This invitation link is invalid.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setSubmitError("Passwords do not match.");
       return;
     }
 
@@ -52,20 +47,20 @@ function CreatePasswordForm() {
       });
       const payload = (await response.json()) as { error?: string; email?: string };
       if (!response.ok) {
-        setError(payload.error || "Unable to create your password.");
+        setSubmitError(payload.error || "Unable to create your password.");
         return;
       }
 
       const email = payload.email?.trim().toLowerCase();
       if (!email) {
-        setError("Unable to sign you in. Please try again.");
+        setSubmitError("Unable to sign you in. Please try again.");
         return;
       }
 
       await signIn(email, password);
       router.replace("/dashboard");
     } catch (err) {
-      setError(
+      setSubmitError(
         authErrorMessage(err, "Unable to create your password. Please try again."),
       );
     } finally {

@@ -75,6 +75,7 @@ export function UsersPageClient() {
   }, [getIdToken]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load team roster from API on mount
     void refresh();
   }, [refresh]);
 
