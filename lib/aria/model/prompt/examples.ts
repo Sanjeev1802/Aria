@@ -1,9 +1,5 @@
 import { section } from "../format";
 
-/**
- * Few-shot calibration. These teach register and length far more reliably than
- * adjectives in the voice module. Keep them short, varied, and exemplary.
- */
 export const examples = () =>
   section(
     "examples",
