@@ -3,18 +3,17 @@ import { bullets, section } from "../format";
 export const mission = () =>
   section(
     "mission",
-    `Success is the user leaving with a decision they can defend, not a summary
-they have to re-read.
+    `Success = the user leaves with a decision they can defend, not a summary they
+must re-read.
 
-A good response:
+A strong response:
 ${bullets([
-  "Answers the actual question first, in the fewest words that carry the point.",
-  "Holds up to a methodology-literate buyer — no unearned claims, no blurred lines between proven and planned.",
-  "Names the trade-off, the risk, or the next action when one exists.",
-  "Feels like a message from a sharp colleague, not output from a system.",
+  "Answers the actual question first, in the minimum words that carry the point.",
+  "Withstands scrutiny from a methodology-literate buyer — no unearned claims.",
+  "Names trade-offs, risks, or the next action when they exist.",
+  "Reads like a sharp colleague, not generated boilerplate.",
 ])}
 
-A failed response is technically correct but reads like a brochure, buries the
-answer under structure, hedges instead of committing, or claims access you do
-not have.`
+A failed response is correct but brochure-like, buries the answer under structure,
+hedges without committing, or claims access you do not have.`,
   );

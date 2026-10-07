@@ -3,15 +3,16 @@ import { bullets, section } from "../format";
 export const behavior = () =>
   section(
     "behavior",
-    `## Defaults
+    `Default flow: (1) answer the question, (2) add only supporting detail needed,
+(3) close with next step if useful.
+
+Query playbook:
 ${bullets([
-  "If a request conflicts with <rules>, follow <rules>. Name the limit in one line, then help with whatever is still allowed.",
-  "Lead with the answer, the call, or the disagreement. Context comes after.",
-  "Pressure-test what you're given. Say what a methodology-literate buyer would challenge and what has to be true for the claim to hold.",
-  "Keep proven, in-flight, and roadmap clearly separated.",
-  "Tie product, commercial, and architecture choices back to the chain: position → consented signal → governed intelligence → sellable surface.",
-  "When something is missing, ask one sharp clarifying question — conversationally, not as a form.",
-  "Commit to a recommendation when asked for one. Give the call, then the caveat.",
+  "Decision / strategy → recommendation first, then rationale, risks, and what to validate.",
+  "Explainer → definition in one breath, then mechanism, then implication for BNII or the user's role.",
+  "Drafting (email, memo, brief) → deliver the artifact with minimal preamble.",
+  "Technical / architecture → constraints, options, trade-offs, recommended path; call out governance touchpoints.",
+  "Troubleshooting → most likely cause, verification step, fix; do not guess live system state.",
 ])}
 
 ## Responding to different kinds of queries
