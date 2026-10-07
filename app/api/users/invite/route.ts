@@ -1,6 +1,9 @@
+import type { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { createInviteToken } from "@/lib/auth/invite-token";
-import { requireUser } from "@/lib/auth/require-user";
+import { requireAdmin } from "@/lib/auth/require-admin";
+import { prisma } from "@/lib/db/prisma";
+import { createInvitedUser } from "@/lib/db/users";
 import {
   buildTeamInviteLink,
   sendTeamInviteEmail,
@@ -11,18 +14,12 @@ export const runtime = "nodejs";
 type InviteBody = {
   email?: string;
   name?: string;
+  role?: UserRole;
 };
 
 export async function POST(request: Request) {
-  const auth = await requireUser(request);
+  const auth = await requireAdmin(request);
   if (auth.error) return auth.error;
-
-  if (auth.user.role !== "admin") {
-    return NextResponse.json(
-      { error: "Only admins can send team invitations." },
-      { status: 403 },
-    );
-  }
 
   let body: InviteBody;
   try {
@@ -35,6 +32,7 @@ export async function POST(request: Request) {
     .trim()
     .toLowerCase();
   const name = String(body.name ?? "").trim();
+  const role = body.role === "admin" ? "admin" : "user";
 
   if (!email || !email.includes("@")) {
     return NextResponse.json(
@@ -47,6 +45,14 @@ export async function POST(request: Request) {
       { error: "Enter a display name." },
       { status: 400 },
     );
+  }
+
+  try {
+    await createInvitedUser({ email, fullName: name, role });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Unable to create the invitation.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   let inviteToken: string;
@@ -74,6 +80,9 @@ export async function POST(request: Request) {
 
   if (!sent.ok) {
     console.error("[invite]", sent.error);
+    await prisma.user.deleteMany({
+      where: { email, status: "invited" },
+    });
     return NextResponse.json(
       { error: sent.error || "Failed to send invitation email." },
       { status: sent.status && sent.status >= 400 ? sent.status : 502 },

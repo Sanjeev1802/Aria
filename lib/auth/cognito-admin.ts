@@ -1,5 +1,6 @@
 import {
   AdminCreateUserCommand,
+  AdminDeleteUserCommand,
   AdminGetUserCommand,
   AdminSetUserPasswordCommand,
   CognitoIdentityProviderClient,
@@ -30,6 +31,27 @@ function getClient() {
 function generateTemporaryPassword() {
   const base = randomBytes(12).toString("base64url");
   return `Aa1${base}`;
+}
+
+function readCognitoSub(
+  attributes: { Name?: string; Value?: string }[] | undefined,
+) {
+  const sub = attributes?.find((attribute) => attribute.Name === "sub")?.Value;
+  if (!sub) {
+    throw new Error("Cognito user is missing a subject identifier.");
+  }
+  return sub;
+}
+
+async function getCognitoSub(username: string) {
+  const userPoolId = getUserPoolId();
+  const response = await getClient().send(
+    new AdminGetUserCommand({
+      UserPoolId: userPoolId,
+      Username: username,
+    }),
+  );
+  return readCognitoSub(response.UserAttributes);
 }
 
 export async function activateInvitedUser(
@@ -67,7 +89,8 @@ export async function activateInvitedUser(
         Permanent: true,
       }),
     );
-    return;
+
+    return { cognitoSub: readCognitoSub(existing.UserAttributes) };
   } catch (err) {
     if (!(err instanceof UserNotFoundException)) {
       throw err;
@@ -96,4 +119,27 @@ export async function activateInvitedUser(
       Permanent: true,
     }),
   );
+
+  return { cognitoSub: await getCognitoSub(username) };
+}
+
+export async function deleteCognitoUser(email: string) {
+  const userPoolId = getUserPoolId();
+  if (!userPoolId) {
+    throw new Error("Cognito user pool is not configured.");
+  }
+
+  try {
+    await getClient().send(
+      new AdminDeleteUserCommand({
+        UserPoolId: userPoolId,
+        Username: email.trim().toLowerCase(),
+      }),
+    );
+  } catch (err) {
+    if (err instanceof UserNotFoundException) {
+      return;
+    }
+    throw err;
+  }
 }

@@ -19,10 +19,7 @@ import {
   loadPlanId,
   type PlanId,
 } from "@/lib/aria/plans";
-import {
-  ensureWorkspaceUser,
-  isAdminEmail,
-} from "@/lib/aria/users";
+import { useDbUser } from "@/lib/aria/use-db-user";
 import {
   ChevronUpIcon,
   CreditCardIcon,
@@ -41,13 +38,13 @@ type AccountMenuProps = {
 export function AccountMenu({ collapsed, onNavigate }: AccountMenuProps) {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useDbUser();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [planId, setPlanId] = useState<PlanId>("free");
-  const [isAdmin, setIsAdmin] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const initial = (user?.email?.[0] ?? "A").toUpperCase();
@@ -56,14 +53,8 @@ export function AccountMenu({ collapsed, onNavigate }: AccountMenuProps) {
   const plan = getPlan(planId);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate plan and admin from localStorage
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate plan from localStorage
     setPlanId(loadPlanId());
-    if (user?.email) {
-      ensureWorkspaceUser(user.email, user.displayName);
-      setIsAdmin(isAdminEmail(user.email));
-    } else {
-      setIsAdmin(false);
-    }
   }, [open, user]);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { activateInvitedUser } from "@/lib/auth/cognito-admin";
 import { verifyInviteToken } from "@/lib/auth/invite-token";
+import { activateInvitedUserRecord } from "@/lib/db/users";
 
 export const runtime = "nodejs";
 
@@ -55,7 +56,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    await activateInvitedUser(invite.email, invite.name, password);
+    const { cognitoSub } = await activateInvitedUser(
+      invite.email,
+      invite.name,
+      password,
+    );
+    await activateInvitedUserRecord(invite.email, cognitoSub);
   } catch (err) {
     const message =
       err instanceof Error

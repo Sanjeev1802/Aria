@@ -1,17 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth";
 import { ConfirmDialog } from "@/components/chat/ConfirmDialog";
-import {
-  addWorkspaceUser,
-  ensureWorkspaceUser,
-  loadWorkspaceUsers,
-  removeWorkspaceUser,
-  updateWorkspaceUserRole,
-  type WorkspaceRole,
-  type WorkspaceUser,
-} from "@/lib/aria/users";
 import { getPlan, loadPlanId } from "@/lib/aria/plans";
 import {
   MailPlusIcon,
@@ -20,52 +11,87 @@ import {
   UserPlusIcon,
 } from "lucide-react";
 
+type TeamMember = {
+  id: string;
+  email: string;
+  name: string;
+  role: "admin" | "user";
+  status: "active" | "invited" | "disabled";
+  createdAt: number;
+};
+
 const fieldClass =
   "box-border h-10 w-full rounded-xl border border-foreground/12 bg-background px-3 text-[13px] text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/10";
 
 export function UsersPageClient() {
   const { user, getIdToken } = useAuth();
-  const [users, setUsers] = useState<WorkspaceUser[]>([]);
+  const [users, setUsers] = useState<TeamMember[]>([]);
   const [query, setQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<WorkspaceRole>("user");
+  const [role, setRole] = useState<"admin" | "user">("user");
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [planName, setPlanName] = useState("Business");
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  function refresh() {
-    if (user?.email) {
-      ensureWorkspaceUser(user.email, user.displayName);
+  const refresh = useCallback(async () => {
+    setListError(null);
+    setLoading(true);
+    try {
+      const token = await getIdToken();
+      if (!token) {
+        setUsers([]);
+        setListError("Sign in again to manage team members.");
+        return;
+      }
+
+      const response = await fetch("/api/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        users?: TeamMember[];
+      };
+
+      if (!response.ok) {
+        setUsers([]);
+        setListError(payload.error || "Unable to load team members.");
+        return;
+      }
+
+      setUsers(payload.users ?? []);
+      setPlanName(getPlan(loadPlanId()).name);
+    } catch {
+      setUsers([]);
+      setListError("Unable to load team members.");
+    } finally {
+      setLoading(false);
     }
-    setUsers(loadWorkspaceUsers());
-    setPlanName(getPlan(loadPlanId()).name);
-  }
+  }, [getIdToken]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load workspace roster for the signed-in user
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.email]);
+    void refresh();
+  }, [refresh]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter(
-      (u) =>
-        u.email.includes(q) ||
-        u.name.toLowerCase().includes(q) ||
-        u.role.includes(q),
+      (member) =>
+        member.email.includes(q) ||
+        member.name.toLowerCase().includes(q) ||
+        member.role.includes(q),
     );
   }, [users, query]);
 
-  const deleteTarget = users.find((u) => u.id === deleteId) ?? null;
-  const adminCount = users.filter((u) => u.role === "admin").length;
-  const pendingCount = users.filter((u) => u.status === "invited").length;
+  const deleteTarget = users.find((member) => member.id === deleteId) ?? null;
+  const adminCount = users.filter((member) => member.role === "admin").length;
+  const pendingCount = users.filter((member) => member.status === "invited").length;
   const actorEmail = user?.email ?? "";
 
   async function handleInvite(event: FormEvent) {
@@ -98,20 +124,14 @@ export function UsersPageClient() {
         return;
       }
 
-      const result = addWorkspaceUser({ name, email, role });
-      if (result.error) {
-        setFormError(result.error);
-        return;
-      }
-
       setName("");
       setEmail("");
       setRole("user");
       setFormSuccess(
-        `Invited ${result.user!.email} as ${result.user!.role}. An email with a password setup link was sent.`,
+        `Invited ${email.trim().toLowerCase()} as ${role}. An email with a password setup link was sent.`,
       );
       setInviteOpen(false);
-      refresh();
+      await refresh();
     } catch {
       setFormError("Could not send the invitation email.");
     } finally {
@@ -119,27 +139,69 @@ export function UsersPageClient() {
     }
   }
 
-  function handleRoleChange(id: string, nextRole: WorkspaceRole) {
+  async function handleRoleChange(id: string, nextRole: "admin" | "user") {
     setListError(null);
-    const result = updateWorkspaceUserRole(id, nextRole, actorEmail);
-    if (result.error) {
-      setListError(result.error);
-      return;
+    try {
+      const token = await getIdToken();
+      if (!token) {
+        setListError("Sign in again to manage team members.");
+        return;
+      }
+
+      const response = await fetch(`/api/users/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: nextRole }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setListError(payload.error || "Could not update this member.");
+        return;
+      }
+
+      await refresh();
+    } catch {
+      setListError("Could not update this member.");
     }
-    refresh();
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteId) return;
     setListError(null);
-    const result = removeWorkspaceUser(deleteId, actorEmail);
-    if (result.error) {
-      setListError(result.error);
+    try {
+      const token = await getIdToken();
+      if (!token) {
+        setListError("Sign in again to manage team members.");
+        setDeleteId(null);
+        return;
+      }
+
+      const response = await fetch(`/api/users/${deleteId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setListError(payload.error || "Could not remove this member.");
+        setDeleteId(null);
+        return;
+      }
+
       setDeleteId(null);
-      return;
+      await refresh();
+    } catch {
+      setListError("Could not remove this member.");
+      setDeleteId(null);
     }
-    setDeleteId(null);
-    refresh();
   }
 
   return (
@@ -204,7 +266,11 @@ export function UsersPageClient() {
           </p>
         ) : null}
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <p className="px-3 py-8 text-center text-[13px] text-foreground/45">
+            Loading team members…
+          </p>
+        ) : filtered.length === 0 ? (
           <p className="px-3 py-8 text-center text-[13px] text-foreground/45">
             No members found.
           </p>
@@ -254,7 +320,7 @@ export function UsersPageClient() {
                       onChange={(e) =>
                         handleRoleChange(
                           member.id,
-                          e.target.value as WorkspaceRole,
+                          e.target.value as "admin" | "user",
                         )
                       }
                       className="h-7 min-w-0 rounded-md border border-foreground/12 bg-background px-1.5 text-[11px] text-foreground outline-none"
@@ -392,17 +458,19 @@ export function UsersPageClient() {
 
       <ConfirmDialog
         open={Boolean(deleteId)}
-        title="Remove this member?"
+        title="Delete this member permanently?"
         description={
           deleteTarget
-            ? `“${deleteTarget.name}” (${deleteTarget.email}) will lose access to this organization workspace.`
-            : "This member will be removed from the workspace."
+            ? deleteTarget.status === "invited"
+              ? `“${deleteTarget.name}” (${deleteTarget.email}) will be permanently deleted. Their invitation will be cancelled and they will no longer be able to join with this invite. This action cannot be undone.`
+              : `“${deleteTarget.name}” (${deleteTarget.email}) will be permanently deleted from this workspace, including their account access. This action cannot be undone.`
+            : "This member will be permanently deleted from the workspace. This action cannot be undone."
         }
-        confirmLabel="Remove"
+        confirmLabel="Delete permanently"
         cancelLabel="Cancel"
         destructive
         onCancel={() => setDeleteId(null)}
-        onConfirm={confirmDelete}
+        onConfirm={() => void confirmDelete()}
       />
     </div>
   );

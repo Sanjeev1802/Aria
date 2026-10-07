@@ -36,10 +36,7 @@ import {
   loadPlanId,
   type PlanId,
 } from "@/lib/aria/plans";
-import {
-  ensureWorkspaceUser,
-  isAdminEmail,
-} from "@/lib/aria/users";
+import { useDbUser } from "@/lib/aria/use-db-user";
 import { UsersPageClient } from "@/components/account/UsersPageClient";
 import {
   BellIcon,
@@ -74,6 +71,7 @@ export function SettingsDialog({
   const titleId = useId();
   const router = useRouter();
   const { user } = useAuth();
+  const { isAdmin } = useDbUser();
   const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [settings, setSettings] = useState<SettingsData>(defaultSettings);
   const [profile, setProfile] = useState<ProfileData>(defaultProfile);
@@ -81,7 +79,6 @@ export function SettingsDialog({
   const [used, setUsed] = useState(0);
   const [limit, setLimit] = useState(100_000);
   const [planId, setPlanId] = useState<PlanId>("free");
-  const [isAdmin, setIsAdmin] = useState(false);
   const savedTimerRef = useRef<number | null>(null);
   const profileSaveTimerRef = useRef<number | null>(null);
 
@@ -121,12 +118,6 @@ export function SettingsDialog({
     setLimit(getTokenLimit());
     const id = loadPlanId();
     setPlanId(id);
-    if (user?.email) {
-      ensureWorkspaceUser(user.email, user.displayName);
-      setIsAdmin(isAdminEmail(user.email));
-    } else {
-      setIsAdmin(false);
-    }
     setSavedFlash(false);
   }, [open, initialTab, user]);
 
