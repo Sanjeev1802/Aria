@@ -3,7 +3,7 @@
  *
  * Everything that decides how ARIA thinks and speaks lives here:
  *   config.ts   — model selection and generation parameters
- *   client.ts   — the Bedrock Converse call
+ *   client.ts   — provider router (Anthropic or Bedrock)
  *   prompt/     — one module per system-prompt section
  *
  * The rest of the app talks to ARIA only through this barrel.
@@ -21,12 +21,16 @@ export {
   messageNeedsLiveSearch,
 } from "./search";
 export {
-  DEFAULT_MODEL,
+  DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_BEDROCK_MODEL,
   generationDefaults,
   getModelName,
+  getModelProvider,
   isLiveSearchEnabled,
   requireApiKey,
+  requireModelCredentials,
 } from "./config";
+export type { ModelProvider } from "./config";
 export { buildPromptSections, buildSystemPrompt } from "./prompt";
 export type {
   DynamicSectionBuilder,
