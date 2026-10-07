@@ -29,8 +29,8 @@ DB_SECRET_ARN=$(aws_cmd rds describe-db-clusters \
 DB_JSON=$(aws_cmd secretsmanager get-secret-value --secret-id "$DB_SECRET_ARN" --query SecretString --output text)
 EXISTING=$(aws_cmd secretsmanager get-secret-value --secret-id "$SECRET_ID" --query SecretString --output text 2>/dev/null || echo "{}")
 
-node <<'NODE' "$POOL_ID" "$CLIENT_ID" "$AURORA" "$DB_JSON" "$EXISTING" "$CF_URL" "$ALB_URL" "$ENV_FILE" "$SECRET_ID"
-const [poolId, clientId, aurora, dbJsonRaw, existingRaw, cfUrl, albUrl, envFile, secretId] = process.argv.slice(1);
+node - "$POOL_ID" "$CLIENT_ID" "$AURORA" "$DB_JSON" "$EXISTING" "$CF_URL" "$ALB_URL" "$ENV_FILE" "$SECRET_ID" <<'NODE'
+const [poolId, clientId, aurora, dbJsonRaw, existingRaw, cfUrl, albUrl, envFile, secretId] = process.argv.slice(2);
 const db = JSON.parse(dbJsonRaw);
 const existing = JSON.parse(existingRaw || "{}");
 const dbUser = db.username || existing.DB_USER || "aria_admin";
@@ -55,19 +55,33 @@ const secret = {
   DB_NAME: dbName,
   DB_USER: dbUser,
   DB_PASSWORD: dbPass,
+  ANTHROPIC_API_KEY: existing.ANTHROPIC_API_KEY || "",
+  ANTHROPIC_MODEL_ID: existing.ANTHROPIC_MODEL_ID || "claude-sonnet-4-6",
   BEDROCK_API_KEY: existing.BEDROCK_API_KEY || "",
   BEDROCK_REGION: existing.BEDROCK_REGION || "ap-southeast-1",
   BEDROCK_MODEL_ID: existing.BEDROCK_MODEL_ID || "apac.amazon.nova-micro-v1:0",
   BEDROCK_ENABLE_SEARCH: existing.BEDROCK_ENABLE_SEARCH || "false",
 };
 
+const fs = require("fs");
+const { execSync } = require("child_process");
+
+const useLocalDatabase =
+  fs.existsSync(envFile) &&
+  /^USE_LOCAL_DATABASE=true\s*$/m.test(fs.readFileSync(envFile, "utf8"));
+
+if (fs.existsSync(envFile)) {
+  const localEnv = fs.readFileSync(envFile, "utf8");
+  for (const key of ["ANTHROPIC_API_KEY", "ANTHROPIC_MODEL_ID", "BEDROCK_API_KEY"]) {
+    const match = localEnv.match(new RegExp(`^${key}=(.+)$`, "m"));
+    if (match?.[1]) secret[key] = match[1];
+  }
+}
+
 if (!secret.DATABASE_URL) {
   console.error("Could not build DATABASE_URL. Check Aurora endpoint and RDS master secret.");
   process.exit(1);
 }
-
-const fs = require("fs");
-const { execSync } = require("child_process");
 
 execSync(
   `aws secretsmanager put-secret-value --secret-id ${JSON.stringify(secretId)} --region ap-southeast-1 --secret-string ${JSON.stringify(JSON.stringify(secret))}`,
@@ -75,7 +89,15 @@ execSync(
 );
 console.log(`Updated Secrets Manager secret: ${secretId}`);
 
+const existingLocal = fs.existsSync(envFile)
+  ? fs.readFileSync(envFile, "utf8")
+  : "";
+const localDatabaseUrl =
+  useLocalDatabase &&
+  existingLocal.match(/^DATABASE_URL=(.+)$/m)?.[1]?.trim();
+
 const local = {
+  USE_LOCAL_DATABASE: useLocalDatabase ? "true" : "",
   NEXT_PUBLIC_WEB_URL: "http://localhost:3000",
   ARIA_PUBLIC_URL: "http://localhost:3000",
   ARIA_EMBED_SECRET: secret.ARIA_EMBED_SECRET,
@@ -83,11 +105,13 @@ const local = {
   NEXT_PUBLIC_COGNITO_REGION: secret.NEXT_PUBLIC_COGNITO_REGION,
   NEXT_PUBLIC_COGNITO_USER_POOL_ID: secret.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
   NEXT_PUBLIC_COGNITO_CLIENT_ID: secret.NEXT_PUBLIC_COGNITO_CLIENT_ID,
-  DATABASE_URL: secret.DATABASE_URL,
+  DATABASE_URL: localDatabaseUrl || secret.DATABASE_URL,
   DB_HOST: secret.DB_HOST,
   DB_NAME: secret.DB_NAME,
   DB_USER: secret.DB_USER,
   DB_PASSWORD: secret.DB_PASSWORD,
+  ANTHROPIC_API_KEY: secret.ANTHROPIC_API_KEY,
+  ANTHROPIC_MODEL_ID: secret.ANTHROPIC_MODEL_ID,
   BEDROCK_API_KEY: secret.BEDROCK_API_KEY,
   BEDROCK_REGION: secret.BEDROCK_REGION,
   BEDROCK_MODEL_ID: secret.BEDROCK_MODEL_ID,

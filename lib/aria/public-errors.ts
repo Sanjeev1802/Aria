@@ -16,7 +16,11 @@ export function toPublicChatError(error: unknown): {
 } {
   const raw = error instanceof Error ? error.message : "";
   const name = error instanceof Error && "name" in error ? String(error.name) : "";
-  const blob = `${name} ${raw}`;
+  const status =
+    error && typeof error === "object" && "status" in error
+      ? Number((error as { status?: number }).status)
+      : 0;
+  const blob = `${name} ${raw} ${status}`;
 
   if (
     name === "ThrottlingException" ||
@@ -27,7 +31,18 @@ export function toPublicChatError(error: unknown): {
 
   if (
     name === "AccessDeniedException" ||
-    /not authorized|access denied|api key|BEDROCK_/i.test(blob)
+    name === "AuthenticationError" ||
+    /not authorized|access denied|invalid.*api key|authentication failed|BEDROCK_|ANTHROPIC_/i.test(
+      blob,
+    )
+  ) {
+    return { status: 503, message: PUBLIC_CHAT_ERROR.unavailable };
+  }
+
+  if (
+    name === "NotFoundError" ||
+    /\bnot_found_error\b/i.test(blob) ||
+    (status === 404 && /\bmodel:/i.test(blob))
   ) {
     return { status: 503, message: PUBLIC_CHAT_ERROR.unavailable };
   }

@@ -15,6 +15,7 @@
       "environment": [
         { "name": "NODE_ENV", "value": "production" },
         { "name": "PORT", "value": "3000" },
+        { "name": "ANTHROPIC_MODEL_ID", "value": "claude-sonnet-4-6" },
         { "name": "BEDROCK_REGION", "value": "ap-southeast-1" },
         { "name": "BEDROCK_MODEL_ID", "value": "apac.amazon.nova-micro-v1:0" },
         { "name": "BEDROCK_ENABLE_SEARCH", "value": "false" },
@@ -34,8 +35,12 @@
           "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:{{ACCOUNT_ID}}:secret:aria/{{ENV}}/db-master:password::"
         },
         {
+          "name": "ANTHROPIC_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:{{ACCOUNT_ID}}:secret:aria-{{ENV}}:ANTHROPIC_API_KEY::"
+        },
+        {
           "name": "BEDROCK_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:{{ACCOUNT_ID}}:secret:aria/{{ENV}}/runtime:BEDROCK_API_KEY::"
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:{{ACCOUNT_ID}}:secret:aria-{{ENV}}:BEDROCK_API_KEY::"
         }
       ],
       "logConfiguration": {

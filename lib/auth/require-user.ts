@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { assertDatabaseConfigured, isDatabaseConfigError } from "@/lib/db/config";
+import {
+  assertDatabaseConfigured,
+  isDatabaseConfigError,
+  isDatabaseConnectionError,
+} from "@/lib/db/config";
 import { upsertUserFromToken } from "@/lib/db/users";
 import { readRequestToken, verifyIdToken } from "./verify-jwt";
 
@@ -23,7 +27,19 @@ export async function requireUser(request: Request) {
         error: NextResponse.json(
           {
             error:
-              "Database is not configured for local dev. Set DATABASE_URL in .env.local (run ./scripts/bootstrap-local-env.sh dev).",
+              "Database is not configured. Set DATABASE_URL in .env.local, or run ./scripts/sync-aria-dev-env.sh after AWS login.",
+          },
+          { status: 503 },
+        ),
+      };
+    }
+    if (isDatabaseConnectionError(error)) {
+      console.error("[auth] database unreachable", error);
+      return {
+        error: NextResponse.json(
+          {
+            error:
+              "Unable to reach the database. If you're developing locally against Aurora, confirm AWS VPN/network access and restart npm run dev.",
           },
           { status: 503 },
         ),

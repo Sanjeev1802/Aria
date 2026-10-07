@@ -27,3 +27,30 @@ export type StaticSectionBuilder = () => PromptSection;
 
 /** Dynamic modules are rendered per request. */
 export type DynamicSectionBuilder = (context: PromptContext) => PromptSection;
+
+export type ChatTurn = {
+  role: "user" | "assistant" | "system";
+  content: string;
+};
+
+export type GroundingSource = {
+  title: string;
+  url: string;
+};
+
+/** Why the reply did or did not use live web grounding. */
+export type SearchStatus =
+  | "used"
+  | "not_needed"
+  | "disabled"
+  | "unavailable";
+
+export type AriaReply = {
+  content: string;
+  promptTokens: number;
+  completionTokens: number;
+  model: string;
+  sources: GroundingSource[];
+  grounded: boolean;
+  searchStatus: SearchStatus;
+};

@@ -55,6 +55,7 @@ const updates = {
   NEXT_PUBLIC_COGNITO_USER_POOL_ID: "${POOL_ID}",
   NEXT_PUBLIC_COGNITO_CLIENT_ID: "${CLIENT_ID}",
   DATABASE_URL: secret.DATABASE_URL || "",
+  ANTHROPIC_MODEL_ID: secret.ANTHROPIC_MODEL_ID || "claude-sonnet-4-6",
   BEDROCK_REGION: secret.BEDROCK_REGION || "${REGION}",
   BEDROCK_MODEL_ID: secret.BEDROCK_MODEL_ID || "apac.amazon.nova-micro-v1:0",
   BEDROCK_ENABLE_SEARCH: secret.BEDROCK_ENABLE_SEARCH || "false",
