@@ -1,6 +1,36 @@
 import type { User, UserRole } from "@prisma/client";
+import { cacheDel, cacheGet, cacheSet } from "@/lib/cache/redis";
 import { prisma } from "./prisma";
 import type { CognitoIdToken } from "@/lib/auth/verify-jwt";
+
+const USER_CACHE_TTL_SEC = 60;
+
+type CachedUser = Omit<User, "createdAt" | "updatedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+function userCacheKey(cognitoSub: string) {
+  return `user:${cognitoSub}`;
+}
+
+function reviveUser(cached: CachedUser): User {
+  return {
+    ...cached,
+    createdAt: new Date(cached.createdAt),
+    updatedAt: new Date(cached.updatedAt),
+  };
+}
+
+async function rememberUser(user: User) {
+  if (!user.cognitoSub) return;
+  await cacheSet(userCacheKey(user.cognitoSub), user, USER_CACHE_TTL_SEC);
+}
+
+async function forgetUser(cognitoSub: string | null | undefined) {
+  if (!cognitoSub) return;
+  await cacheDel(userCacheKey(cognitoSub));
+}
 
 function pendingCognitoSub(email: string) {
   return `invited:${email.trim().toLowerCase()}`;
@@ -54,17 +84,20 @@ export async function activateInvitedUserRecord(
   const existing = await prisma.user.findUnique({ where: { email: normalized } });
 
   if (existing) {
-    return prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: existing.id },
       data: {
         cognitoSub,
         status: "active",
       },
     });
+    await forgetUser(existing.cognitoSub);
+    await rememberUser(user);
+    return user;
   }
 
   const userCount = await prisma.user.count();
-  return prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       email: normalized,
       fullName: normalized.split("@")[0] || "User",
@@ -73,6 +106,8 @@ export async function activateInvitedUserRecord(
       status: "active",
     },
   });
+  await rememberUser(user);
+  return user;
 }
 
 export async function upsertUserFromToken(payload: CognitoIdToken): Promise<User> {
@@ -83,34 +118,50 @@ export async function upsertUserFromToken(payload: CognitoIdToken): Promise<User
     throw new Error("Token is missing subject or email");
   }
 
+  const tokenName = payload.name?.trim();
+  const cached = await cacheGet<CachedUser>(userCacheKey(payload.sub));
+  if (
+    cached &&
+    cached.email === email &&
+    cached.status === "active" &&
+    (!tokenName || cached.fullName === tokenName)
+  ) {
+    return reviveUser(cached);
+  }
+
   const existingBySub = await prisma.user.findUnique({
     where: { cognitoSub: payload.sub },
   });
   if (existingBySub) {
-    return prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: existingBySub.id },
       data: {
         email,
-        fullName: payload.name?.trim() || existingBySub.fullName,
+        fullName: tokenName || existingBySub.fullName,
         status: "active",
       },
     });
+    await rememberUser(user);
+    return user;
   }
 
   const existingByEmail = await prisma.user.findUnique({ where: { email } });
   if (existingByEmail) {
-    return prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: existingByEmail.id },
       data: {
         cognitoSub: payload.sub,
-        fullName: payload.name?.trim() || existingByEmail.fullName,
+        fullName: tokenName || existingByEmail.fullName,
         status: "active",
       },
     });
+    await forgetUser(existingByEmail.cognitoSub);
+    await rememberUser(user);
+    return user;
   }
 
   const userCount = await prisma.user.count();
-  return prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       cognitoSub: payload.sub,
       email,
@@ -119,6 +170,8 @@ export async function upsertUserFromToken(payload: CognitoIdToken): Promise<User
       status: "active",
     },
   });
+  await rememberUser(user);
+  return user;
 }
 
 export async function updateUserRoleRecord(
@@ -148,10 +201,12 @@ export async function updateUserRoleRecord(
     }
   }
 
-  return prisma.user.update({
+  const user = await prisma.user.update({
     where: { id },
     data: { role },
   });
+  await rememberUser(user);
+  return user;
 }
 
 export async function removeUserRecord(id: string, actorId: string) {
@@ -172,6 +227,7 @@ export async function removeUserRecord(id: string, actorId: string) {
   }
 
   await prisma.user.delete({ where: { id } });
+  await forgetUser(target.cognitoSub);
   return target;
 }
 

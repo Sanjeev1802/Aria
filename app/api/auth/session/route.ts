@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  clientRateLimitIdentity,
+  enforceRateLimit,
+} from "@/lib/cache/rate-limit";
 import { verifyIdToken } from "@/lib/auth/verify-jwt";
 
 export const runtime = "nodejs";
@@ -43,6 +47,14 @@ function cookieOptions(request: Request, maxAge: number) {
 }
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit({
+    scope: "session",
+    identity: clientRateLimitIdentity(request),
+    limit: 20,
+    windowSec: 60,
+  });
+  if (limited) return limited;
+
   let body: { idToken?: string };
   try {
     body = (await request.json()) as { idToken?: string };

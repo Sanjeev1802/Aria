@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ARIA ElastiCache Redis for shared cache and API rate limits
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    AllowedValues: [dev, beta, prod]
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private or task subnets across at least two AZs
+
+  EcsSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group attached to the ECS tasks
+
+  CacheAuthToken:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    MaxLength: 128
+    AllowedPattern: "[a-zA-Z0-9]+"
+    Description: Redis AUTH token. Letters and digits only.
+
+Resources:
+  CacheAuthSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "aria/${EnvironmentName}/cache"
+      Description: !Sub "ARIA ${EnvironmentName} ElastiCache auth token"
+      SecretString: !Sub '{"authToken":"${CacheAuthToken}","port":"6379"}'
+
+  CacheSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      CacheSubnetGroupName: !Sub "aria-${EnvironmentName}"
+      Description: !Sub "ARIA ${EnvironmentName} cache subnets"
+      SubnetIds: !Ref SubnetIds
+
+  CacheSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "ARIA ${EnvironmentName} ElastiCache"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          SourceSecurityGroupId: !Ref EcsSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub "aria-cache-${EnvironmentName}"
+
+  CacheReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      ReplicationGroupId: !Sub "aria-${EnvironmentName}"
+      ReplicationGroupDescription: !Sub "ARIA ${EnvironmentName} cache and rate limits"
+      Engine: redis
+      EngineVersion: "7.1"
+      CacheNodeType: cache.t4g.micro
+      NumCacheClusters: 1
+      AutomaticFailoverEnabled: false
+      TransitEncryptionEnabled: true
+      AtRestEncryptionEnabled: true
+      AuthToken: !Ref CacheAuthToken
+      CacheSubnetGroupName: !Ref CacheSubnetGroup
+      SecurityGroupIds:
+        - !Ref CacheSecurityGroup
+
+Outputs:
+  RedisHost:
+    Value: !GetAtt CacheReplicationGroup.PrimaryEndPoint.Address
+  RedisPort:
+    Value: !GetAtt CacheReplicationGroup.PrimaryEndPoint.Port
+  CacheAuthSecretArn:
+    Value: !Ref CacheAuthSecret
+  CacheSecurityGroupId:
+    Value: !Ref CacheSecurityGroup

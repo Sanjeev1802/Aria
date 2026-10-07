@@ -289,9 +289,8 @@ export function ChatComposer({
               overBudget ? "font-medium text-red-700" : "text-foreground/40"
             }`}
           >
-            ~{formatTokenCountExact(draftTokens)} tokens
             {Number.isFinite(tokensRemaining)
-              ? ` · ${formatTokenCountExact(tokensRemaining)} left`
+              ? `${formatTokenCountExact(tokensRemaining)} left`
               : null}
           </p>
         </div>

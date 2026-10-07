@@ -5,6 +5,7 @@ import {
   isDatabaseConnectionError,
 } from "@/lib/db/config";
 import { upsertUserFromToken } from "@/lib/db/users";
+import { enforceRateLimit } from "@/lib/cache/rate-limit";
 import { readRequestToken, verifyIdToken } from "./verify-jwt";
 
 export async function requireUser(request: Request) {
@@ -18,6 +19,13 @@ export async function requireUser(request: Request) {
   try {
     assertDatabaseConfigured();
     const payload = await verifyIdToken(token);
+    const limited = await enforceRateLimit({
+      scope: "user",
+      identity: payload.sub,
+      limit: 180,
+      windowSec: 60,
+    });
+    if (limited) return { error: limited };
     const user = await upsertUserFromToken(payload);
     return { user, payload, token };
   } catch (error) {

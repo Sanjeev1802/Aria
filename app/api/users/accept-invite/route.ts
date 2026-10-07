@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  clientRateLimitIdentity,
+  enforceRateLimit,
+} from "@/lib/cache/rate-limit";
 import { activateInvitedUser } from "@/lib/auth/cognito-admin";
 import { verifyInviteToken } from "@/lib/auth/invite-token";
 import { activateInvitedUserRecord } from "@/lib/db/users";
@@ -20,6 +24,14 @@ function isStrongPassword(password: string) {
 }
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit({
+    scope: "accept-invite",
+    identity: clientRateLimitIdentity(request),
+    limit: 8,
+    windowSec: 600,
+  });
+  if (limited) return limited;
+
   let body: AcceptInviteBody;
   try {
     body = (await request.json()) as AcceptInviteBody;

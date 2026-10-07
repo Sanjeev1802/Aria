@@ -3,6 +3,7 @@ import { generateAriaReply, type ChatTurn } from "@/lib/aria/model";
 import type { ProfileData } from "@/lib/aria/profile";
 import type { SettingsData } from "@/lib/aria/settings";
 import { toPublicChatError } from "@/lib/aria/public-errors";
+import { enforceRateLimit } from "@/lib/cache/rate-limit";
 import { requireUser } from "@/lib/auth/require-user";
 import { prisma } from "@/lib/db/prisma";
 import { titleFromPrompt } from "@/lib/aria/types";
@@ -32,6 +33,14 @@ function isChatTurn(value: unknown): value is ChatTurn {
 export async function POST(request: Request) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
+
+  const limited = await enforceRateLimit({
+    scope: "chat",
+    identity: auth.user.id,
+    limit: 20,
+    windowSec: 60,
+  });
+  if (limited) return limited;
 
   let body: ChatRequestBody;
   try {

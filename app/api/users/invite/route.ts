@@ -1,6 +1,7 @@
 import type { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { createInviteToken } from "@/lib/auth/invite-token";
+import { enforceRateLimit } from "@/lib/cache/rate-limit";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { prisma } from "@/lib/db/prisma";
 import { createInvitedUser } from "@/lib/db/users";
@@ -20,6 +21,14 @@ type InviteBody = {
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.error) return auth.error;
+
+  const limited = await enforceRateLimit({
+    scope: "invite",
+    identity: auth.user.id,
+    limit: 10,
+    windowSec: 60,
+  });
+  if (limited) return limited;
 
   let body: InviteBody;
   try {
