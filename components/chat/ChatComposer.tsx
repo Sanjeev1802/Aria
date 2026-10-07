@@ -20,7 +20,7 @@ import { createId } from "@/lib/aria/types";
 import {
   estimateTokens,
   formatBytes,
-  formatTokenCount,
+  formatTokenCountExact,
 } from "@/lib/aria/tokens";
 import { EmojiPicker } from "@/components/chat/EmojiPicker";
 
@@ -77,6 +77,7 @@ export function ChatComposer({
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wasDisabledRef = useRef(disabled);
   const fileInputId = useId();
 
   const draftTokens = estimateTokens(value, attachments);
@@ -88,6 +89,13 @@ export function ChatComposer({
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [value]);
+
+  useEffect(() => {
+    if (wasDisabledRef.current && !disabled) {
+      textareaRef.current?.focus();
+    }
+    wasDisabledRef.current = disabled;
+  }, [disabled]);
 
   function insertEmoji(emoji: string) {
     const el = textareaRef.current;
@@ -281,9 +289,9 @@ export function ChatComposer({
               overBudget ? "font-medium text-red-700" : "text-foreground/40"
             }`}
           >
-            ~{formatTokenCount(draftTokens)} tokens
+            ~{formatTokenCountExact(draftTokens)} tokens
             {Number.isFinite(tokensRemaining)
-              ? ` · ${formatTokenCount(Math.max(0, tokensRemaining))} left`
+              ? ` · ${formatTokenCountExact(tokensRemaining)} left`
               : null}
           </p>
         </div>

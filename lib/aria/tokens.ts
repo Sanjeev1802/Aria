@@ -12,7 +12,9 @@ export const TOKEN_LIMIT = 100_000;
 
 /** Rough estimate: ~4 chars ≈ 1 token (+ file overhead). */
 export function estimateTokens(text: string, attachments: ChatAttachment[] = []) {
-  const textTokens = Math.max(1, Math.ceil(text.trim().length / 4));
+  const trimmed = text.trim();
+  const textTokens =
+    trimmed.length === 0 ? 0 : Math.max(1, Math.ceil(trimmed.length / 4));
   const fileTokens = attachments.reduce((sum, file) => {
     const base = Math.ceil(file.size / 1024);
     return sum + Math.max(8, base);
@@ -36,6 +38,11 @@ export function formatTokenCount(n: number) {
   if (n >= 10_000) return `${Math.round(n / 1000)}k`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
+}
+
+/** Full count. Compact rounding hides usage until it crosses about 500 tokens. */
+export function formatTokenCountExact(n: number) {
+  return Math.max(0, Math.round(n)).toLocaleString("en-US");
 }
 
 export function formatBytes(bytes: number) {
