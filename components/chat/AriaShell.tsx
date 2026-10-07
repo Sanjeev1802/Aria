@@ -26,7 +26,6 @@ import {
 } from "@/components/chat/ChatComposer";
 import { CheckIcon, MenuIcon, PencilIcon, ShareIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { ensureWorkspaceUser } from "@/lib/aria/users";
 import { PUBLIC_CHAT_ERROR, sanitizePublicError } from "@/lib/aria/public-errors";
 
 export function AriaShell() {
@@ -43,12 +42,6 @@ export function AriaShell() {
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
-
-  useEffect(() => {
-    if (user?.email) {
-      ensureWorkspaceUser(user.email, user.displayName);
-    }
-  }, [user?.sub, user?.email, user?.displayName]);
 
   useEffect(() => {
     if (!user?.sub) return;

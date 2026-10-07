@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authErrorMessage } from "@/lib/auth";
 import { signUp } from "@/lib/auth/cognito-client";
 import { AuthShell, authInputClassName } from "@/components/auth/AuthShell";
 import { AtSignIcon, LockIcon, UserIcon } from "lucide-react";
 
-export default function SignUpPage() {
+function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const presetEmail = searchParams.get("email")?.trim().toLowerCase() ?? "";
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -126,5 +128,19 @@ export default function SignUpPage() {
         </Link>
       </p>
     </AuthShell>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center bg-background text-sm text-foreground/60">
+          Loading…
+        </div>
+      }
+    >
+      <SignUpForm />
+    </Suspense>
   );
 }

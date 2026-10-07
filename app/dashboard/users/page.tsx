@@ -27,7 +27,12 @@ function UsersTable() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
-        if (!cancelled) setError("Unable to load users.");
+        const payload = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!cancelled) {
+          setError(payload.error || "Unable to load users.");
+        }
         return;
       }
       const body = (await response.json()) as { users?: ListedUser[] };
