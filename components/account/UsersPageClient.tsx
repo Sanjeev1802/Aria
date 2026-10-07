@@ -75,7 +75,13 @@ export function UsersPageClient() {
   }, [getIdToken]);
 
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void refresh();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
 
   const filtered = useMemo(() => {
