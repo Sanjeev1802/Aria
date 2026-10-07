@@ -24,7 +24,7 @@ const fieldClass =
   "box-border h-10 w-full rounded-xl border border-foreground/12 bg-background px-3 text-[13px] text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-foreground/30 focus:ring-2 focus:ring-foreground/10";
 
 export function UsersPageClient() {
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [query, setQuery] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -36,6 +36,7 @@ export function UsersPageClient() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [planName, setPlanName] = useState("Business");
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
 
   function refresh() {
     if (user?.email) {
@@ -67,21 +68,55 @@ export function UsersPageClient() {
   const pendingCount = users.filter((u) => u.status === "invited").length;
   const actorEmail = user?.email ?? "";
 
-  function handleInvite(event: FormEvent) {
+  async function handleInvite(event: FormEvent) {
     event.preventDefault();
     setFormError(null);
     setFormSuccess(null);
-    const result = addWorkspaceUser({ name, email, role });
-    if (result.error) {
-      setFormError(result.error);
-      return;
+    setInviteSubmitting(true);
+    try {
+      const token = await getIdToken();
+      if (!token) {
+        setFormError("Sign in again to send invitations.");
+        return;
+      }
+
+      const response = await fetch("/api/users/invite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name, email, role }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setFormError(payload.error || "Could not send the invitation email.");
+        return;
+      }
+
+      const result = addWorkspaceUser({ name, email, role });
+      if (result.error) {
+        setFormError(result.error);
+        return;
+      }
+
+      setName("");
+      setEmail("");
+      setRole("user");
+      setFormSuccess(
+        `Invited ${result.user!.email} as ${result.user!.role}. An email with a sign-up link was sent.`,
+      );
+      setInviteOpen(false);
+      refresh();
+    } catch {
+      setFormError("Could not send the invitation email.");
+    } finally {
+      setInviteSubmitting(false);
     }
-    setName("");
-    setEmail("");
-    setRole("user");
-    setFormSuccess(`Invited ${result.user!.email} as ${result.user!.role}.`);
-    setInviteOpen(false);
-    refresh();
   }
 
   function handleRoleChange(id: string, nextRole: WorkspaceRole) {
@@ -344,9 +379,10 @@ export function UsersPageClient() {
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex h-10 items-center justify-center rounded-full bg-foreground px-4 text-[13px] font-medium text-background transition-opacity hover:opacity-90 sm:h-9"
+                  disabled={inviteSubmitting}
+                  className="inline-flex h-10 items-center justify-center rounded-full bg-foreground px-4 text-[13px] font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:h-9"
                 >
-                  Send invite
+                  {inviteSubmitting ? "Sending…" : "Send invite"}
                 </button>
               </div>
             </form>
