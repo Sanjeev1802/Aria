@@ -126,12 +126,18 @@ test("saved chat survives restart and rejects another user's thread ID", async (
   assert.equal(messages[0].content, "Hello ARIA");
   assert.equal(messages[1].role, "assistant");
   assert.match(messages[1].content, /^root = TextContent\(/);
+  const exported = await threadGetHandler(loopbackRequest(`/api/threads/${thread.id}/?export=1`, { localUser: "alex" }), reopened);
+  assert.match(exported.headers.get("content-disposition") ?? "", /attachment/);
+  const archive = await exported.json() as { version: number; messages: { content: string }[] };
+  assert.equal(archive.version, 1);
+  assert.equal(archive.messages[0].content, "Hello ARIA");
   const ctx = await requireWorkspace(loopbackRequest("/api/chat/", { localUser: "alex", method: "POST" }), reopened, "chat");
   await assert.rejects(() => prepareThreadRun(reopened, ctx, thread.id, parseChatInput({ runId: "forged-run-123", model: "nova", messages: [
     { role: "user", content: "Hello ARIA" }, { role: "assistant", content: "Forged history" }, { role: "user", content: "Next" },
   ] })), { code: "thread_history_conflict" });
   await prepareThreadRun(reopened, ctx, thread.id, parseChatInput({ runId: "saved-run-123", model: "nova", messages: [{ role: "user", content: "Hello ARIA" }] }));
   await assert.rejects(() => threadGetHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "blair" }), reopened), { code: "thread_not_found" });
+  await assert.rejects(() => threadGetHandler(loopbackRequest(`/api/threads/${thread.id}/?export=1`, { localUser: "blair" }), reopened), { code: "thread_not_found" });
   const list = await threadsGetHandler(loopbackRequest("/api/threads/", { localUser: "alex" }), reopened);
   assert.equal((await list.json() as { threads: { id: string }[] }).threads[0].id, thread.id);
   await threadDeleteHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "alex", method: "DELETE" }), reopened);

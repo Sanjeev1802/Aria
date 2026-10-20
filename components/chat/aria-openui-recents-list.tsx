@@ -12,6 +12,7 @@ import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAriaSession } from "@/lib/aria-session";
+import { ariaFetch } from "@/lib/aria-session";
 
 function RecentRow({
   title,
@@ -24,6 +25,7 @@ function RecentRow({
   onRenameCancel,
   onStartRename,
   onDelete,
+  onExport,
 }: {
   title: string;
   selected: boolean;
@@ -35,6 +37,7 @@ function RecentRow({
   onRenameCancel: () => void;
   onStartRename: () => void;
   onDelete: () => void;
+  onExport?: () => void;
 }) {
   const renameRef = useRef<HTMLInputElement>(null);
   const renameStartedAt = useRef(0);
@@ -110,6 +113,7 @@ function RecentRow({
             className="aria-openui-recent-menu min-w-[9rem] border-border/60 bg-popover z-[1100]"
           >
             <DropdownMenuItem onSelect={beginRename}>Rename</DropdownMenuItem>
+            {onExport ? <DropdownMenuItem onSelect={onExport}>Export JSON</DropdownMenuItem> : null}
             <DropdownMenuItem
               variant="destructive"
               onSelect={() => {
@@ -143,6 +147,7 @@ export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps)
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [exportError, setExportError] = useState("");
 
   useEffect(() => {
     if (session.status === "authenticated" || session.status === "preview") loadThreads();
@@ -181,8 +186,25 @@ export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps)
     setRenamingId((id) => (id === threadId ? null : id));
   };
 
+  const exportRecent = async (threadId: string) => {
+    if (session.status !== "authenticated") return;
+    try {
+      setExportError("");
+      const response = await ariaFetch(`/api/threads/${threadId}/?export=1`);
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `aria-chat-${threadId}.json`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch { setExportError("Could not export this chat. Try again."); }
+  };
+
   return (
     <div className={cn("aria-openui-recents__list", className)} role="list">
+      {exportError ? <p className="aria-openui-recents__empty" role="alert">{exportError}</p> : null}
       {isLoadingThreads && threads.length === 0 ? (
         <p className="aria-openui-recents__empty" role="status">
           Loading…
@@ -204,6 +226,7 @@ export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps)
           onRenameCancel={() => setRenamingId(null)}
           onStartRename={() => startRename(thread.id, thread.title)}
           onDelete={() => removeRecent(thread.id)}
+          onExport={session.status === "authenticated" ? () => void exportRecent(thread.id) : undefined}
         />
       ))}
     </div>

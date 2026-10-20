@@ -16,7 +16,7 @@ Read `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, this file, and `PROMPT_EVALUATION.md
 - Current commits: `7fc124f` (SQLite), `26a154b` (code expiry), `759f6a7` (projects), `0da6b3a` (chat threads). The branch is pushed.
 - Browser smoke on the standalone production build rendered `/chat/` with the expected unconfigured-service banner. An authenticated local browser smoke was not run: another dev server already held Next's development lock and the standalone build correctly disables `ARIA_LOCAL_DEV`. The route-level local tests exercise the new flows.
 - `SqliteStore` reads the latest disk state before transactions and rolls back failed writes. This is safe for the local demo, but rewrites the full item table on each write and is not the production data store.
-- Authenticated projects use `/api/projects/` and are scoped to the selected workspace. Preview mode retains browser projects. Chat threads use `/api/threads/`; completed responses are saved after ledger settlement, and a user cannot load another user's thread. A persistence failure is logged as `thread_save_deferred`; there is not yet a repair job for that event.
+- Authenticated projects use `/api/projects/` and are scoped to the selected workspace. Preview mode retains browser projects. Chat threads use `/api/threads/`; completed responses are saved after ledger settlement, and a user cannot load another user's thread. The Recents menu can export a user's chat as JSON. A persistence failure is logged as `thread_save_deferred`; there is not yet a repair job for that event.
 - The existing forgot/reset pages were already implemented; no duplicate auth UI was added. Local confirmation codes now expire after 15 minutes and a resend renews the expiry.
 
 ### Milestone 0 — verified (2026-10-20)

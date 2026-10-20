@@ -72,6 +72,11 @@ export async function threadsPostHandler(request: Request, services: Services) {
 export async function threadGetHandler(request: Request, services: Services) {
   const ctx = await requireWorkspace(request, services, "chat");
   const thread = decode(await services.store.get(key(ctx, threadId(request))));
+  if (new URL(request.url).searchParams.get("export") === "1") {
+    return Response.json({ version: 1, thread: exposed(thread), messages: thread.messages }, {
+      headers: { ...noStore, "Content-Disposition": `attachment; filename="aria-chat-${thread.id}.json"` },
+    });
+  }
   return Response.json({ messages: exposedMessages(thread) }, { headers: noStore });
 }
 
