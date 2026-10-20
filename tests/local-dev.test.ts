@@ -53,6 +53,26 @@ test("sqlite store survives reopen with accounts and ledger rows", async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("sqlite transactions observe another store instance and roll back failed writes", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aria-sqlite-concurrent-"));
+  const path = join(dir, "store.sqlite");
+  const one = new SqliteStore(path);
+  const two = new SqliteStore(path);
+  await one.transact([{ kind: "put", item: { pk: "W", sk: "balance", units: 1 } }]);
+  await two.transact([{ kind: "update", key: { pk: "W", sk: "balance" }, add: { units: 1 },
+    when: [{ field: "units", op: "=", value: 1 }] }]);
+  assert.equal((await one.get({ pk: "W", sk: "balance" }))?.units, 2);
+  await assert.rejects(() => one.transact([{ kind: "update", key: { pk: "W", sk: "balance" },
+    add: { units: 1 }, when: [{ field: "units", op: "=", value: 1 }] }]));
+  assert.equal((await two.get({ pk: "W", sk: "balance" }))?.units, 2);
+  const invalid = { pk: "bad", sk: "row" } as { pk: string; sk: string; loop?: unknown };
+  invalid.loop = invalid;
+  await assert.rejects(() => one.transact([{ kind: "put", item: invalid as never }]));
+  assert.equal(await two.get({ pk: "bad", sk: "row" }), undefined);
+  assert.equal((await two.get({ pk: "W", sk: "balance" }))?.units, 2);
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("local users cannot read each other's workspace usage", async () => {
   const dir = mkdtempSync(join(tmpdir(), "aria-iso-"));
   const store = new SqliteStore(join(dir, "s.sqlite"));
