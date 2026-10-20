@@ -60,6 +60,6 @@ Deliver a working local application with real server-owned data and a complete F
 
 Provision staging Cognito, DynamoDB, Bedrock, object storage, queues, email, payments, domain, IAM, budgets, monitoring, and backup. Run the real-service staging checklist in `CURSOR_HANDOFF.md`. Enable `ARIA_LIVE_CHAT` only after those checks pass. AWS and payment services are still required for a public launch; local completion is an application-code milestone.
 
-## Immediate Cursor prompt
+## Current next step
 
-> Continue ARIA code before AWS provisioning. Read `AGENTS.md`, `CURSOR_HANDOFF.md`, and `CODE_FIRST_PLAN.md`. Complete Milestone 0 first: a persistent local Store adapter, two separate loopback-only development identities, and a deterministic streaming fake model through the real chat/ledger pipeline. Preserve the existing UI, current account and ledger security rules, and the production fail-closed switch. Add tests for restart persistence, cross-tenant isolation, credit settlement, and production rejection. Run `npm test`, `npm run typecheck`, and `npm run build`. Record what actually works in `CURSOR_HANDOFF.md`, then proceed to Milestone 1 without provisioning AWS.
+Milestone 0 is complete. Account/team flows from Milestone 1 are implemented except MFA challenge UI and role editing. Milestone 2 now has server-owned project CRUD and saved chat threads; continue with project assignment, search/pagination/export, server-owned library/personalization, and deliberate migration. See `CURSOR_HANDOFF.md` for verified tests and exact next Cursor prompt. Keep AWS and payments setup after the code gate.
