@@ -1,8 +1,8 @@
 # ARIA
 
-**A workspace-native AI chat for teams** — grounded answers, server-owned identity, and usage accounting designed for production.
+**A workspace-native AI chat for teams** — server-owned identity, saved conversations, and usage accounting designed for production.
 
-ARIA is a Next.js application that pairs a polished chat experience (OpenUI + streaming) with **server-authoritative** workspaces, entitlements, and a shared credit ledger. Model calls run through **Amazon Bedrock** (Nova and Claude). Identity and billing state live on the server; the browser never defines plan, balance, or permissions.
+ARIA is a Next.js application that pairs an OpenUI chat interface with **server-authoritative** workspaces, entitlements, saved chats, projects, and a shared credit ledger. The model adapter supports Amazon Nova and Claude through **Amazon Bedrock** when configured; local development uses a deterministic fake model. The browser never defines plan, balance, or permissions.
 
 > **Release status:** Application code is under active development on the `Aria-new-setup` branch. Local development and automated tests are supported today. Production chat remains **disabled by default** until Cognito, DynamoDB, Bedrock, and an explicit operator switch are configured and verified in staging. See [Production readiness](#production-readiness).
 
@@ -14,9 +14,10 @@ ARIA is a Next.js application that pairs a polished chat experience (OpenUI + st
 | --- | --- |
 | **Identity** | Amazon Cognito (password + refresh), HttpOnly session cookies, JWT verification, session revocation, CSRF on writes |
 | **Workspaces** | Personal and team workspaces, roles (owner / admin / member), invitations, seat limits |
-| **Entitlements** | Free, Pro, and Team plans enforced on the server (models, credits, API access) |
+| **Entitlements** | Free, Pro, and Team rules enforced on the server (models, credits, seats); Pro/Team API access is planned, not implemented |
 | **Ledger** | DynamoDB single-table design, atomic reservations, idempotent retries, crash reconciliation |
 | **Chat** | AG-UI streaming, conservative holds, settlement on provider token usage |
+| **Saved work** | Per-user, per-workspace chat history with JSON export; workspace project create, rename, and delete |
 | **Local dev** | Persistent SQLite store, two loopback users, deterministic fake model — no AWS required |
 
 ---
@@ -34,6 +35,7 @@ flowchart LR
     Dir[Accounts / workspaces]
     Ledger[Credit ledger]
     Chat[Chat service]
+    Work[Chats / projects]
   end
   subgraph AWS
     DDB[(DynamoDB)]
@@ -44,8 +46,10 @@ flowchart LR
   API --> Dir
   API --> Ledger
   API --> Chat
+  API --> Work
   Dir --> DDB
   Ledger --> DDB
+  Work --> DDB
   Chat --> Ledger
   Chat --> BR
 ```
@@ -94,9 +98,9 @@ Start the dev server:
 npm run dev
 ```
 
-Open [http://127.0.0.1:3000/sign-in/](http://127.0.0.1:3000/sign-in/). In local mode you can sign in with any email and password. Use the **Local user** control in the chat sidebar to switch between **Alex** and **Blair** (separate workspaces). Chat uses a **deterministic test model** and the real ledger path — not Bedrock.
+Open [http://127.0.0.1:3000/sign-in/](http://127.0.0.1:3000/sign-in/). In local mode you can sign in with a test email and password. Use the **Local user** control in the chat sidebar to switch between **Alex** and **Blair** (separate workspaces). Chat uses a **deterministic test model** and the real ledger path — not Bedrock.
 
-Workspace data and credits persist under `.aria/local-dev.sqlite` (gitignored) across restarts.
+Accounts, credits, projects, and completed chats persist under `.aria/local-dev.sqlite` (gitignored) across restarts. The **Recents** menu can export a saved chat as JSON. Projects can be created, renamed, and deleted; assigning chats or files to a project is still to be built.
 
 ### Design preview (no server)
 
@@ -123,7 +127,7 @@ NEXT_PUBLIC_ARIA_PREVIEW=true
 
 ## Production readiness
 
-Production chat and usage APIs require **all** of the following:
+Production accounts, usage, and saved work require Cognito, DynamoDB, and a canonical app origin. Model calls additionally require Bedrock configuration and the explicit chat switch:
 
 1. **Cognito** user pool and app client (`ARIA_COGNITO_*`)
 2. **DynamoDB** table from [`infra/dynamodb-table.json`](infra/dynamodb-table.json) (`ARIA_DYNAMODB_TABLE`)
@@ -131,7 +135,7 @@ Production chat and usage APIs require **all** of the following:
 4. **Bedrock** model IDs and verified rates (`ARIA_NOVA_*`, `ARIA_CLAUDE_*`, `ARIA_RATE_VERSION`)
 5. **Operator switch:** `ARIA_LIVE_CHAT=enabled` only after the staging checklist in [`CURSOR_HANDOFF.md`](CURSOR_HANDOFF.md) passes
 
-Until then, `/api/chat/` returns **503** by design.
+Without the required production configuration, `/api/chat/` returns **503** by design. Provisioning and real-service staging tests have not been completed.
 
 Never put AWS keys or Cognito secrets in `NEXT_PUBLIC_*` variables.
 
@@ -146,6 +150,16 @@ Allowances are defined in `lib/server/accounts/entitlements.ts` and match the in
 | Free | 200 | 1 | Nova |
 | Pro | 6,000 | 1 | Nova + Claude |
 | Team | 20,000 (shared) | 5 | Nova + Claude + team management |
+
+The `apiAccess` entitlement flag does **not** yet issue API keys or provide a public developer endpoint. No payment provider is connected, so plan changes are operator actions rather than self-service subscriptions.
+
+---
+
+## Current implementation boundary
+
+Local development covers sign-in, password recovery, workspace and team flows, credit accounting, projects, and saved chats. Automated tests cover cross-workspace access, concurrent spending, retries, crash reconciliation, and persistence. A real Cognito, DynamoDB, or Bedrock journey has not been run.
+
+Before a public launch, the application still needs project-to-chat assignment, search and pagination, server-owned library and personalization, authorized-source retrieval and citations, Pro/Team API keys and endpoints, payment checkout and webhooks, and release-level browser, load, and security checks. Follow [`CODE_FIRST_PLAN.md`](CODE_FIRST_PLAN.md) and the exact [Cursor handoff](CURSOR_HANDOFF.md) for the work order. AWS and payments setup come after the local code gate.
 
 ---
 
