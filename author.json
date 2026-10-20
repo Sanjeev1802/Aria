@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "project": "aria-chat",
+  "primaryAuthor": {
+    "name": "Gokulakrishnan",
+    "github": "Gokulakrishnan96"
+  },
+  "coAuthors": [],
+  "policy": {
+    "aiAssistantsAreNotAuthors": true,
+    "excludedFromAuthorship": [
+      "Cursor",
+      "Claude",
+      "Anthropic",
+      "OpenAI",
+      "Composer",
+      "Codex"
+    ],
+    "notes": "Commits and releases credit Gokulakrishnan96 only. AI coding tools are not listed as co-authors."
+  }
+}
