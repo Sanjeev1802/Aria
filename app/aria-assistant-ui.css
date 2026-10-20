@@ -1,0 +1,14 @@
+.chat-page .aria-chat-thread .aui-thread-root {
+  height: 100%;
+  background: transparent;
+}
+
+.chat-page:not(.chatgpt) .aria-chat-thread .aui-composer-input {
+  font-size: 0.875rem;
+}
+
+.chat-page .aria-chat-thread .aui-thread-welcome-suggestion {
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: color-mix(in oklab, var(--muted) 40%, transparent);
+}

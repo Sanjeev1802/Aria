@@ -1,0 +1,172 @@
+/* Profile-specific layout (shared shell: account.css) */
+.aria-profile {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.aria-profile__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 32px 48px;
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.aria-profile__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 0 20px;
+}
+
+.aria-profile__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid oklch(0.32 0.01 260);
+  border-radius: 999px;
+  background: transparent;
+  color: oklch(0.88 0 0);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.aria-profile__action-btn:hover {
+  background: oklch(0.18 0.01 260);
+  border-color: oklch(0.4 0.01 260);
+}
+
+.aria-profile__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 8px 0 28px;
+}
+
+.aria-profile__avatar {
+  width: 96px;
+  height: 96px;
+}
+
+.aria-profile__name {
+  margin: 8px 0 0;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.aria-profile__handle {
+  margin: 0;
+  font-size: 15px;
+  color: oklch(0.58 0.02 260);
+}
+
+.aria-profile__section {
+  margin-bottom: 36px;
+}
+
+.aria-token-heatmap {
+  --aria-heatmap-cell: 10px;
+  --aria-heatmap-gap: 4px;
+  width: 100%;
+}
+
+.aria-token-heatmap__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.aria-token-heatmap__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.aria-token-heatmap__tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aria-token-heatmap__tab {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: oklch(0.58 0.02 260);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.aria-token-heatmap__tab:hover {
+  color: oklch(0.82 0 0);
+}
+
+.aria-token-heatmap__tab--active {
+  color: oklch(0.96 0 0);
+  background: oklch(0.2 0.01 260);
+}
+
+.aria-token-heatmap__grid {
+  display: grid;
+  gap: var(--aria-heatmap-gap);
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.aria-token-heatmap__grid--dots .aria-token-heatmap__cell {
+  border-radius: 999px;
+}
+
+.aria-token-heatmap__cell {
+  width: var(--aria-heatmap-cell);
+  height: var(--aria-heatmap-cell);
+  background: oklch(0.22 0.01 260);
+}
+
+.aria-token-heatmap__cell[data-level="1"] {
+  background: oklch(0.34 0.08 250);
+}
+
+.aria-token-heatmap__cell[data-level="2"] {
+  background: oklch(0.44 0.12 250);
+}
+
+.aria-token-heatmap__cell[data-level="3"] {
+  background: oklch(0.54 0.15 250);
+}
+
+.aria-token-heatmap__cell[data-level="4"] {
+  background: oklch(0.64 0.17 250);
+}
+
+@media (max-width: 640px) {
+  .aria-profile__scroll {
+    padding: 8px 16px 40px;
+  }
+
+  .aria-profile__actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .aria-token-heatmap__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

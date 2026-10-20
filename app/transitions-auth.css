@@ -1,0 +1,291 @@
+/* Auth pages — transitions.dev modal + texts reveal + error shake */
+:root {
+  --modal-open-dur: 250ms;
+  --modal-close-dur: 150ms;
+  --modal-scale: 0.96;
+  --modal-scale-close: 0.96;
+  --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --shake-distance: 6px;
+  --shake-overshoot: 4px;
+  --shake-dur-a: 80ms;
+  --shake-dur-b: 60ms;
+  --shake-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --revert-hold: 3000ms;
+  --revert-dur: 280ms;
+}
+
+.t-modal {
+  transform-origin: center;
+  transform: scale(var(--modal-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--modal-open-dur) var(--modal-ease),
+    opacity var(--modal-open-dur) var(--modal-ease);
+  will-change: transform, opacity;
+}
+
+.t-modal.is-open {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.t-modal.is-closing {
+  transform: scale(var(--modal-scale-close));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--modal-close-dur) var(--modal-ease),
+    opacity var(--modal-close-dur) var(--modal-ease);
+}
+
+.t-input {
+  transition: border-color 150ms ease-out;
+  will-change: transform;
+}
+
+.t-input.is-error {
+  transition: border-color var(--revert-dur) ease-out;
+}
+
+.t-error-msg {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #f0a8a8;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--revert-dur) ease-out,
+    visibility 0s linear var(--revert-dur);
+}
+
+.t-input-wrap.is-error .t-error-msg {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--revert-dur) ease-out,
+    visibility 0s linear 0s;
+}
+
+.t-input.is-shaking {
+  animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear;
+}
+
+@keyframes t-input-shake {
+  0% {
+    transform: translateX(0);
+    animation-timing-function: var(--shake-ease);
+  }
+  28.57% {
+    transform: translateX(var(--shake-distance));
+    animation-timing-function: var(--shake-ease);
+  }
+  57.14% {
+    transform: translateX(calc(var(--shake-distance) * -1));
+    animation-timing-function: var(--shake-ease);
+  }
+  78.57% {
+    transform: translateX(var(--shake-overshoot));
+    animation-timing-function: var(--shake-ease);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-modal {
+    transition: none !important;
+  }
+  .t-input {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+.auth-page {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 5vw, 48px) clamp(16px, 4vw, 24px);
+  box-sizing: border-box;
+  background: #111;
+}
+
+.auth-page-back {
+  position: absolute;
+  top: clamp(16px, 3vw, 24px);
+  left: clamp(16px, 4vw, 28px);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  transition: color 150ms ease;
+}
+
+.auth-page-back:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.auth-panel {
+  width: min(420px, 100%);
+  padding: clamp(28px, 4vw, 36px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  box-sizing: border-box;
+}
+
+.auth-panel-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.auth-panel-brand .aria-mark {
+  width: 22px;
+  height: 22px;
+}
+
+.auth-panel-brand span {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.auth-panel h1 {
+  margin: 0;
+  font-family: "Saans", var(--font-sans);
+  font-size: clamp(24px, 3vw, 28px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.auth-panel-lead {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.auth-field .t-input {
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.auth-field .t-input.is-error {
+  border-color: rgba(240, 140, 140, 0.75);
+}
+
+.auth-field .t-input input {
+  display: block;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #eee;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.auth-field .t-input input::placeholder {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.auth-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0a0a0a;
+  background: #f2f2f2;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    transform 160ms var(--modal-ease);
+}
+
+.auth-submit:hover {
+  background: #fff;
+}
+
+.auth-submit:active {
+  transform: scale(0.99);
+}
+
+.auth-switch {
+  margin: 20px 0 0;
+  font-size: 12px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.auth-switch a {
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-switch a:hover {
+  color: #fff;
+}
+
+.auth-preview-note {
+  margin: 16px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.t-stagger-line--4 {
+  transition-delay: calc(var(--stagger-stagger) * 3);
+}
+
+.t-stagger-line--5 {
+  transition-delay: calc(var(--stagger-stagger) * 4);
+}
+
+.aria-auth-panel-mark.aria-mark {
+  width: 72px;
+  height: 72px;
+}
+
+.aria-auth-mobile-mark.aria-mark {
+  width: 24px;
+  height: 24px;
+}

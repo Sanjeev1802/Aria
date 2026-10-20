@@ -1,0 +1,211 @@
+/* Site footer — structured brand + columns */
+.aria-tdev-page .aria-footer {
+  position: relative;
+  width: 100%;
+  margin-top: clamp(72px, 12vw, 120px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 48%);
+}
+
+.aria-tdev-page .aria-footer-inner {
+  max-width: min(1060px, calc(100% - clamp(32px, 8vw, 80px)));
+  margin: 0 auto;
+  padding: clamp(40px, 6vw, 56px) 0 clamp(28px, 4vw, 36px);
+  box-sizing: border-box;
+}
+
+.aria-tdev-page .aria-footer-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 64px);
+  align-items: start;
+}
+
+.aria-tdev-page .aria-footer-brand {
+  max-width: 22rem;
+}
+
+.aria-tdev-page .aria-footer-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text, #fff);
+  text-decoration: none;
+  opacity: 0.92;
+  transition: opacity 150ms ease;
+}
+
+.aria-tdev-page .aria-footer-logo:hover {
+  opacity: 1;
+}
+
+.aria-tdev-page .aria-footer-logo .aria-mark {
+  width: 22px;
+  height: 22px;
+}
+
+.aria-tdev-page .aria-footer-logo span {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.aria-tdev-page .aria-footer-tagline {
+  margin: 14px 0 0;
+  font-family: "Saans", var(--font-sans);
+  font-size: clamp(20px, 2.2vw, 24px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--text, #fff);
+}
+
+.aria-tdev-page .aria-footer-blurb {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.aria-tdev-page .aria-footer-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(24px, 4vw, 48px);
+  justify-content: end;
+}
+
+.aria-tdev-page .aria-footer-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.aria-tdev-page .aria-footer-col-title {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.aria-tdev-page .aria-footer-col a,
+.aria-tdev-page .aria-footer-col button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.aria-tdev-page .aria-footer-col a:hover,
+.aria-tdev-page .aria-footer-col button:hover {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.aria-tdev-page .aria-footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: clamp(36px, 5vw, 48px);
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.aria-tdev-page .aria-footer-copy {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.aria-tdev-page .aria-footer-social {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aria-tdev-page .aria-footer-social a {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.42);
+  transition:
+    color 150ms ease,
+    background 150ms ease;
+}
+
+.aria-tdev-page .aria-footer-social a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.aria-tdev-page .aria-footer-social svg {
+  width: 15px;
+  height: 15px;
+}
+
+.aria-tdev-page .aria-footer-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.65);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background 150ms ease;
+}
+
+.aria-tdev-page .aria-footer-top:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.aria-tdev-page .aria-footer-top:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .aria-tdev-page .aria-footer-main {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .aria-tdev-page .aria-footer-brand {
+    max-width: none;
+  }
+
+  .aria-tdev-page .aria-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .aria-tdev-page .aria-footer-social {
+    order: 2;
+  }
+
+  .aria-tdev-page .aria-footer-top {
+    order: 3;
+  }
+}

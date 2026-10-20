@@ -1,0 +1,1626 @@
+@import "@openuidev/react-ui/layered/styles/index.css";
+
+.aria-openui-chat {
+  --background: oklch(0.145 0 0);
+  --openui-agent-sidebar-width: 300px;
+  --aria-sidebar-inset-x: 10px;
+  --aria-sidebar-inset-y: 10px;
+  --aria-sidebar-item-radius: 10px;
+  --aria-sidebar-item-pad-y: 9px;
+  --aria-sidebar-item-pad-x: 10px;
+  --aria-sidebar-section-label-size: 12px;
+  --aria-sidebar-border: color-mix(in oklch, var(--openui-text-neutral-primary) 10%, transparent);
+  --aria-sidebar-hover: var(--openui-highlight-subtle);
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.aria-openui-chat,
+.aria-openui-chat * {
+  box-sizing: border-box;
+}
+
+/* Sidebar brand: one mark + name when expanded; mark only when collapsed */
+.aria-openui-chat .openui-agent-sidebar-header {
+  overflow: hidden;
+  min-width: 0;
+}
+
+.aria-openui-chat .openui-agent-sidebar-header__top-row {
+  display: flex;
+  align-items: center;
+  gap: var(--openui-space-xs);
+  min-width: 0;
+  width: 100%;
+}
+
+.aria-openui-chat
+  .openui-agent-sidebar-header:not(.openui-agent-sidebar-header--collapsed)
+  .aria-openui-sidebar-logo {
+  display: none !important;
+}
+
+.aria-openui-chat .openui-agent-sidebar-header__toggle-button {
+  flex-shrink: 0;
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--aria-sidebar-item-radius, 10px);
+  transition: background 120ms ease;
+}
+
+.aria-openui-chat .openui-agent-sidebar-header__toggle-button:hover {
+  background: var(--aria-sidebar-hover, var(--openui-highlight-subtle));
+}
+
+.aria-openui-chat .openui-agent-sidebar-header__toggle-button:focus,
+.aria-openui-chat .openui-agent-sidebar-header__toggle-button:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.aria-openui-chat .openui-agent-sidebar-resize-edge {
+  display: none;
+}
+
+.aria-openui-chat .openui-agent-sidebar-header--collapsed .aria-openui-sidebar-logo {
+  display: flex !important;
+}
+
+.aria-openui-chat .aria-openui-sidebar-logo--expand {
+  margin: 0;
+  padding: 6px;
+  border: 0;
+  border-radius: var(--aria-sidebar-item-radius);
+  background: transparent;
+  color: var(--openui-text-neutral-primary);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.aria-openui-chat .aria-openui-sidebar-logo--expand:hover {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-sidebar-logo--expand:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--openui-text-neutral-primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-user {
+  position: relative;
+}
+
+/* Collapsed rail: no panel toggle — open via ARIA mark or profile. */
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .openui-agent-sidebar-header__toggle-button {
+  display: none !important;
+}
+
+/* Pass shell children through to OpenUI sidebar flex column */
+.aria-openui-chat .aria-openui-sidebar-shell {
+  display: contents;
+}
+
+.aria-openui-chat .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed) {
+  width: var(--openui-agent-sidebar-width);
+  padding: var(--aria-sidebar-inset-y) var(--aria-sidebar-inset-x) 8px;
+  gap: var(--openui-space-s);
+}
+
+.aria-openui-chat .openui-agent-sidebar-container--collapsed {
+  padding: var(--openui-space-m-l) 18px;
+}
+
+.aria-openui-chat .aria-openui-sidebar-top {
+  flex-shrink: 0;
+  padding: 2px 2px 14px;
+}
+
+.aria-openui-chat .openui-agent-sidebar-content {
+  width: 100% !important;
+  max-width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0;
+}
+
+/* Primary nav lives in SidebarContent (expanded + collapsed icon rail). */
+
+.aria-openui-chat .openui-agent-sidebar-content:not(.openui-agent-sidebar-content--collapsed) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Collapsed desktop: icon rail (New chat, Library, History) + hide projects/recents. */
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .openui-agent-sidebar-content {
+  display: flex !important;
+  flex-direction: column;
+  flex: 0 0 auto;
+  align-items: center;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  overflow: visible;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-main {
+  display: none !important;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-nav {
+  align-items: center;
+  width: 100%;
+  padding: 0 0 8px;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-nav__stack {
+  align-items: center;
+  gap: 4px;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-nav__stack > li {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-nav__item-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: var(--aria-sidebar-item-radius);
+  gap: 0;
+  box-shadow: none;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-nav__stack > li:first-child .aria-openui-sidebar-icon-btn {
+  margin-bottom: 0;
+}
+
+.aria-openui-chat .aria-openui-sidebar-nav__history-item {
+  display: none;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-nav__history-item {
+  display: list-item;
+}
+
+.aria-openui-chat
+  .openui-agent-sidebar-header:not(.openui-agent-sidebar-header--collapsed)
+  .openui-agent-sidebar-header__agent-name {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  padding-left: 0 !important;
+}
+
+.aria-openui-chat .openui-agent-sidebar-header--collapsed .openui-agent-sidebar-header__agent-name {
+  display: none !important;
+  width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aria-openui-chat .openui-agent-sidebar-container--collapsed {
+  overflow: hidden;
+}
+
+.aria-openui-chat .aria-openui-sidebar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--openui-text-neutral-primary);
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.aria-openui-chat .aria-openui-sidebar-brand:hover {
+  opacity: 0.88;
+}
+
+.aria-openui-chat .aria-openui-sidebar-brand__name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  font-variation-settings: var(--openui-font-variation-medium);
+}
+
+.aria-openui-chat .aria-openui-sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--openui-text-neutral-primary);
+}
+
+.aria-openui-chat .aria-openui-sidebar-mark {
+  display: block;
+  width: 14px;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.aria-openui-chat .openui-agent-sidebar-header--collapsed .aria-openui-sidebar-mark {
+  width: 15px;
+}
+
+/* Empty state: hide empty thread header row (workspace toggle, etc.) */
+.aria-openui-chat
+  .openui-agent-thread-container:has(.openui-agent-welcome-screen)
+  .openui-agent-thread-header {
+  display: none !important;
+}
+
+.aria-openui-chat .openui-agent-welcome-screen__header:empty {
+  display: none;
+}
+
+/* Assistant reply: ARIA mark only (no avatar ring) */
+.aria-openui-chat .aria-openui-reply-avatar {
+  display: flex !important;
+  align-items: flex-start;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: auto;
+  margin-top: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--openui-text-neutral-primary);
+}
+
+.aria-openui-chat .aria-openui-reply-avatar__mark {
+  display: block;
+  width: 18px;
+  height: auto;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-reply-avatar__mark {
+  width: 16px;
+}
+
+/* Assistant message: prompt-kit source pills */
+.aria-openui-chat .aria-openui-assistant-message__sources {
+  margin-top: 2px;
+  padding-top: 2px;
+}
+
+.aria-openui-chat .aria-evidence-sources__pill {
+  border: 1px solid color-mix(in oklch, var(--openui-text-neutral-primary) 12%, transparent);
+  background: var(--openui-highlight-subtle);
+  color: var(--openui-text-neutral-secondary);
+}
+
+.aria-openui-chat .aria-evidence-sources__pill:hover {
+  color: var(--openui-text-neutral-primary);
+}
+
+/* New-chat welcome intro */
+.aria-openui-chat .aria-openui-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--openui-space-xl);
+  width: 100%;
+  max-width: 728px;
+  margin: 0 auto;
+  padding: var(--openui-space-xl) var(--openui-space-m-l) var(--openui-space-l);
+}
+
+.aria-openui-chat .aria-openui-welcome__hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  width: 100%;
+  text-align: center;
+}
+
+.aria-openui-chat .aria-openui-welcome__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--openui-text-neutral-primary);
+}
+
+.aria-openui-chat .aria-openui-welcome__mark {
+  display: block;
+  width: auto;
+  height: 30px;
+}
+
+.aria-openui-chat .aria-openui-welcome__title {
+  margin: 0;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  font-size: clamp(1.45rem, 3.2vw, 1.95rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--openui-text-neutral-primary);
+}
+
+.aria-openui-chat .aria-openui-welcome__composer-wrap {
+  width: 100%;
+  align-items: center;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-welcome__hero {
+  flex-direction: column;
+  gap: 10px;
+  padding-inline: 8px;
+  text-align: center;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-welcome__title {
+  font-size: 1.45rem;
+  text-wrap: balance;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .openui-agent-thread-composer,
+.aria-openui-chat .openui-agent-container--mobile .openui-agent-desktop-welcome-composer.aria-openui-composer {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+/* Orphan slot guard (SidebarContent is not a top-level slot — must live under Sidebar) */
+.aria-openui-chat .openui-agent-container > .openui-agent-sidebar-header,
+.aria-openui-chat .openui-agent-container > .openui-agent-sidebar-content,
+.aria-openui-chat .openui-agent-container > .openui-agent-sidebar-footer,
+.aria-openui-chat .openui-agent-container > .aria-openui-projects {
+  display: none !important;
+}
+
+/* No right-side workspace / artifact rail */
+.aria-openui-chat .openui-agent-workspace-sidebar,
+.aria-openui-chat .openui-agent-workspace-sidebar__overlay,
+.aria-openui-chat .openui-agent-thread-header__workspace-toggle-button,
+.aria-openui-chat .openui-agent-sidebar-artifact-nav {
+  display: none !important;
+}
+
+/* Chat panel uses full width (no reserved workspace column) */
+.aria-openui-chat .openui-agent-thread-container {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.aria-openui-chat .openui-agent-thread-container > .openui-agent-thread-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Section labels (Projects, Recents) */
+.aria-openui-chat .aria-openui-sidebar-section-label {
+  margin: 0;
+  padding: 6px var(--aria-sidebar-item-pad-x) 4px;
+  font-size: var(--aria-sidebar-section-label-size);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  color: var(--openui-text-neutral-tertiary);
+  font-variation-settings: var(--openui-font-variation-medium);
+}
+
+.aria-openui-chat .aria-openui-sidebar-section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Primary nav: New chat, Library (+ History on collapsed rail only) */
+.aria-openui-chat .aria-openui-sidebar-nav {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  padding: 0 2px 12px;
+}
+
+.aria-openui-chat .aria-openui-sidebar-nav__stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.aria-openui-chat .aria-openui-sidebar-icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: var(--aria-sidebar-item-pad-y) var(--aria-sidebar-item-pad-x);
+  border: 0;
+  border-radius: var(--aria-sidebar-item-radius);
+  background: transparent;
+  color: var(--openui-text-neutral-primary);
+  font-size: 14px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-align: left;
+  cursor: pointer;
+  font-variation-settings: var(--openui-font-variation-regular);
+  transition: background 120ms ease;
+}
+
+.aria-openui-chat .aria-openui-sidebar-icon-btn:hover {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-sidebar-icon-btn--active {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-sidebar-nav__item-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aria-openui-chat .aria-openui-sidebar-icon-btn svg {
+  flex-shrink: 0;
+  opacity: 0.92;
+}
+
+/* Sidebar scroll: projects + recents */
+.aria-openui-chat .aria-openui-sidebar-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  gap: 18px;
+  padding-top: 8px;
+  margin-top: 0;
+}
+
+.aria-openui-chat .aria-openui-recents {
+  flex: 1;
+  min-height: 0;
+  gap: 2px;
+}
+
+.aria-openui-chat .aria-openui-recents__list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 2px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--openui-text-neutral-primary) 22%, transparent)
+    transparent;
+}
+
+.aria-openui-chat .aria-openui-recents__empty {
+  margin: 0;
+  padding: 4px var(--aria-sidebar-item-pad-x) 6px;
+  color: var(--openui-text-neutral-tertiary);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* Recent chat row + ⋯ menu (matches project rows) */
+.aria-openui-chat .aria-openui-recent-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--aria-sidebar-item-radius);
+}
+
+.aria-openui-chat .aria-openui-recent-row--selected {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-recent-row:hover,
+.aria-openui-chat .aria-openui-recent-row:focus-within {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-recent-row__main {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: var(--aria-sidebar-item-pad-y) var(--aria-sidebar-item-pad-x);
+  padding-right: calc(32px + var(--openui-space-s));
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--openui-text-neutral-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.aria-openui-chat .aria-openui-recent-row:hover .aria-openui-recent-row__main,
+.aria-openui-chat .aria-openui-recent-row--selected .aria-openui-recent-row__main {
+  color: var(--openui-text-neutral-primary);
+}
+
+.aria-openui-chat .aria-openui-recent-row__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aria-openui-chat .aria-openui-recent-row__menu {
+  position: absolute;
+  top: 50%;
+  right: var(--openui-space-2xs);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--openui-radius-s);
+  background: transparent;
+  color: var(--openui-text-neutral-secondary);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.aria-openui-chat .aria-openui-recent-row:hover .aria-openui-recent-row__menu,
+.aria-openui-chat .aria-openui-recent-row:focus-within .aria-openui-recent-row__menu,
+.aria-openui-chat .aria-openui-recent-row__menu[data-state="open"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.aria-openui-chat .aria-openui-recent-row__menu:hover {
+  color: var(--openui-text-neutral-primary);
+  background: var(--openui-highlight);
+}
+
+.aria-openui-chat .aria-openui-recent-row__rename-input {
+  width: 100%;
+  margin: var(--openui-space-2xs) var(--openui-space-xs);
+  padding: var(--openui-space-xs) var(--openui-space-s);
+  border-radius: var(--openui-radius-s);
+  border: 1px solid color-mix(in oklch, var(--openui-text-neutral-primary) 18%, transparent);
+  background: var(--openui-sunk-light);
+  color: var(--openui-text-neutral-primary);
+  font: var(--openui-text-label-sm);
+  outline: none;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-recent-row__menu {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.aria-openui-chat .openui-agent-sidebar-container--collapsed .aria-openui-projects {
+  display: none;
+}
+
+/* Projects */
+.aria-openui-chat .aria-openui-projects {
+  gap: 2px;
+  position: relative;
+  z-index: 2;
+}
+
+.aria-openui-chat .aria-openui-projects__header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px 0 0;
+  min-height: 28px;
+}
+
+.aria-openui-chat .aria-openui-projects__heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 6px var(--aria-sidebar-item-pad-x) 4px;
+  border: 0;
+  background: transparent;
+  color: var(--openui-text-neutral-tertiary);
+  font-size: var(--aria-sidebar-section-label-size);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  font-variation-settings: var(--openui-font-variation-medium);
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--aria-sidebar-item-radius);
+  transition:
+    color 120ms ease,
+    background 120ms ease;
+}
+
+.aria-openui-chat .aria-openui-projects__heading:hover {
+  color: var(--openui-text-neutral-secondary);
+  background: transparent;
+}
+
+.aria-openui-chat .aria-openui-projects__heading span:first-child {
+  color: inherit;
+}
+
+.aria-openui-chat .aria-openui-projects__chevron {
+  flex-shrink: 0;
+  opacity: 0.55;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aria-openui-chat .aria-openui-projects__chevron--open {
+  transform: rotate(90deg);
+}
+
+.aria-openui-chat .aria-openui-projects__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--openui-radius-s);
+  background: transparent;
+  color: var(--openui-text-neutral-secondary);
+  cursor: pointer;
+}
+
+.aria-openui-chat .aria-openui-projects__add:hover {
+  color: var(--openui-text-neutral-primary);
+  background: var(--openui-highlight-subtle);
+}
+
+.aria-openui-chat .aria-openui-projects__add:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--openui-text-neutral-primary) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.aria-openui-chat .aria-openui-projects__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aria-openui-chat .aria-openui-projects__empty {
+  padding: 4px var(--aria-sidebar-item-pad-x) 6px;
+  color: var(--openui-text-neutral-tertiary);
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* Project row + ⋯ menu */
+.aria-openui-chat .aria-openui-project-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  border-radius: var(--aria-sidebar-item-radius);
+}
+
+.aria-openui-chat .aria-openui-project-row--selected {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-project-row:hover,
+.aria-openui-chat .aria-openui-project-row:focus-within {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-project-row--selected:hover {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-project-row__main {
+  display: flex;
+  align-items: center;
+  gap: var(--openui-space-s);
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: var(--aria-sidebar-item-pad-y) var(--aria-sidebar-item-pad-x);
+  padding-right: calc(32px + var(--openui-space-s));
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--openui-text-neutral-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  font-variation-settings: var(--openui-font-variation-regular);
+}
+
+.aria-openui-chat .aria-openui-project-row:hover .aria-openui-project-row__main,
+.aria-openui-chat .aria-openui-project-row--selected .aria-openui-project-row__main {
+  color: var(--openui-text-neutral-primary);
+}
+
+.aria-openui-chat .aria-openui-project-row__icon {
+  display: flex;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.aria-openui-chat .aria-openui-project-row__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aria-openui-chat .aria-openui-project-row__menu {
+  position: absolute;
+  top: 50%;
+  right: var(--openui-space-2xs);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--openui-radius-s);
+  background: transparent;
+  color: var(--openui-text-neutral-secondary);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.aria-openui-chat .aria-openui-project-row:hover .aria-openui-project-row__menu,
+.aria-openui-chat .aria-openui-project-row:focus-within .aria-openui-project-row__menu,
+.aria-openui-chat .aria-openui-project-row__menu[data-state="open"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.aria-openui-chat .aria-openui-project-row__menu:hover {
+  color: var(--openui-text-neutral-primary);
+  background: var(--openui-highlight);
+}
+
+.aria-openui-chat .aria-openui-project-row__rename-input {
+  width: 100%;
+  margin: var(--openui-space-2xs) var(--openui-space-xs);
+  padding: var(--openui-space-xs) var(--openui-space-s);
+  border-radius: var(--openui-radius-s);
+  border: 1px solid color-mix(in oklch, var(--openui-text-neutral-primary) 18%, transparent);
+  background: var(--openui-sunk-light);
+  color: var(--openui-text-neutral-primary);
+  font: var(--openui-text-label-sm);
+  outline: none;
+}
+
+.aria-openui-chat .aria-openui-project-menu {
+  z-index: 1100;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-project-row__menu {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sidebar footer: credits + profile */
+.aria-openui-chat .aria-openui-sidebar-footer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.aria-openui-chat .aria-local-user-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in oklch, var(--openui-text-warning-primary, #f5a524) 55%, var(--aria-sidebar-border));
+  background: color-mix(in oklch, var(--openui-text-warning-primary, #f5a524) 8%, transparent);
+}
+
+.aria-openui-chat .aria-local-user-switcher__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--openui-text-neutral-secondary);
+}
+
+.aria-openui-chat .aria-local-user-switcher__buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.aria-openui-chat .aria-local-user-switcher__btn {
+  flex: 1;
+  border-radius: 8px;
+  border: 1px solid var(--aria-sidebar-border);
+  background: transparent;
+  color: var(--openui-text-neutral-primary);
+  font-size: 12px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.aria-openui-chat .aria-local-user-switcher__btn.is-active {
+  border-color: color-mix(in oklch, var(--openui-text-warning-primary, #f5a524) 70%, var(--aria-sidebar-border));
+  background: color-mix(in oklch, var(--openui-text-warning-primary, #f5a524) 12%, transparent);
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--aria-sidebar-border);
+  background: color-mix(in oklch, var(--openui-text-neutral-primary) 4%, transparent);
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__title {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--openui-text-neutral-primary);
+  font-variation-settings: var(--openui-font-variation-medium);
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__values {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--openui-text-neutral-secondary);
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__used {
+  color: var(--openui-text-neutral-primary);
+  font-weight: 600;
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__sep {
+  margin: 0 2px;
+  opacity: 0.55;
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__track {
+  height: 4px;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--openui-text-neutral-primary) 10%, transparent);
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: oklch(0.62 0.16 250);
+  transition: width 280ms ease;
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--openui-text-neutral-tertiary);
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__dot {
+  opacity: 0.7;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-credits {
+  display: none;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-sidebar-credits {
+  padding: 10px 12px;
+}
+
+/* Sidebar profile */
+.aria-openui-chat .openui-agent-sidebar-footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding: 10px 2px 2px;
+  border-top: 1px solid var(--aria-sidebar-border);
+}
+
+.aria-openui-chat .openui-agent-sidebar-container--collapsed .openui-agent-sidebar-footer {
+  border-top: none;
+  padding: 8px 0 4px;
+}
+
+.aria-openui-chat .aria-openui-sidebar-user {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border-radius: var(--aria-sidebar-item-radius);
+  transition: background 120ms ease;
+}
+
+.aria-openui-chat .aria-openui-sidebar-user__trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.aria-openui-chat .aria-openui-sidebar-user[data-menu-open="true"] {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-sidebar-user__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(145deg, oklch(0.68 0.17 45), oklch(0.58 0.19 38));
+  color: oklch(0.99 0 0);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  user-select: none;
+}
+
+.aria-openui-sidebar-user__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.aria-openui-sidebar-user__avatar-initials {
+  transform: translateY(0.5px);
+}
+
+.aria-openui-sidebar-user__avatar-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.aria-openui-chat .aria-openui-sidebar-user:hover {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat .aria-openui-sidebar-user[data-settings-active="true"] {
+  background: oklch(0.22 0.02 260 / 0.55);
+}
+
+.aria-openui-chat .aria-openui-sidebar-user__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.aria-openui-chat .aria-openui-sidebar-user__name {
+  font: var(--openui-text-label-sm);
+  letter-spacing: var(--openui-text-label-sm-letter-spacing);
+  color: var(--openui-text-neutral-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aria-openui-chat .aria-openui-sidebar-user__email {
+  font-size: 12px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: var(--openui-text-neutral-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aria-openui-chat .openui-agent-sidebar-container--collapsed .aria-openui-sidebar-user__text {
+  display: none;
+}
+
+.aria-openui-chat .openui-agent-sidebar-container--collapsed .aria-openui-sidebar-user {
+  justify-content: center;
+  width: 36px;
+  margin: 0 auto;
+  padding: 4px;
+  background: transparent;
+}
+
+.aria-openui-chat .openui-agent-sidebar-container--collapsed .aria-openui-sidebar-user:hover {
+  background: var(--aria-sidebar-hover);
+}
+
+.aria-openui-chat
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-user__avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 10px;
+}
+
+.aria-openui-sidebar-user__avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 10px;
+}
+
+.aria-openui-sidebar-user-menu {
+  /* Above OpenUI sidebar (z-index 999) so the menu is not covered by credits/footer. */
+  z-index: 1101 !important;
+  width: min(280px, calc(100vw - 24px)) !important;
+  min-width: 260px !important;
+  padding: 6px !important;
+  border-radius: 14px !important;
+  background: #2f2f2f !important;
+  border: 1px solid #ffffff14;
+  box-shadow: 0 12px 40px oklch(0 0 0 / 0.45);
+  color: #ececec;
+}
+
+.aria-openui-chat
+  .aria-openui-sidebar-footer-stack:has(.aria-openui-sidebar-user[data-menu-open="true"])
+  .aria-openui-sidebar-credits {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.aria-openui-sidebar-user-menu__sep {
+  margin: 6px 4px !important;
+  background: #ffffff14 !important;
+}
+
+.aria-openui-sidebar-user-menu__header,
+.aria-openui-sidebar-user-menu__item {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  line-height: 1.25;
+  color: #ececec !important;
+  cursor: pointer;
+}
+
+.aria-openui-sidebar-user-menu__header:focus,
+.aria-openui-sidebar-user-menu__item:focus,
+.aria-openui-sidebar-user-menu__header[data-highlighted],
+.aria-openui-sidebar-user-menu__item[data-highlighted] {
+  background: #424242 !important;
+  color: #fff !important;
+}
+
+.aria-openui-sidebar-user-menu__header-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+  text-align: left;
+}
+
+.aria-openui-sidebar-user-menu__header-name {
+  font-weight: 500;
+  color: #ececec;
+}
+
+.aria-openui-sidebar-user-menu__header-meta {
+  font-size: 12px;
+  color: #b4b4b4;
+}
+
+.aria-openui-sidebar-user-menu__chevron {
+  margin-left: auto;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #8e8e8e;
+}
+
+.aria-openui-sidebar-user-menu__item a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ——— Mobile: drawer + top bar ——— */
+.aria-openui-chat .openui-agent-container--mobile .openui-agent-sidebar-container {
+  width: min(var(--openui-agent-sidebar-width), 88vw);
+  max-width: 100%;
+  padding: var(--openui-space-l) var(--aria-sidebar-inset-x);
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  gap: var(--openui-space-s);
+  background-color: var(--openui-foreground);
+  box-shadow: 4px 0 24px color-mix(in oklch, black 35%, transparent);
+}
+
+.aria-openui-chat .openui-agent-container--mobile .openui-agent-sidebar-container__overlay {
+  z-index: 999;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .openui-agent-sidebar-content {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-sidebar-nav__item-label {
+  display: inline;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-sidebar-nav__icon-actions {
+  display: none !important;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .openui-agent-sidebar-container--collapsed {
+  left: calc(-1 * min(var(--openui-agent-sidebar-width), 88vw));
+}
+
+.aria-openui-chat .openui-agent-container--mobile .openui-agent-sidebar-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-sidebar-main {
+  padding-top: 4px;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .aria-openui-sidebar-nav {
+  padding-bottom: 8px;
+}
+
+.aria-openui-chat .openui-agent-container--mobile .openui-agent-mobile-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--aria-sidebar-border);
+  background: var(--openui-foreground);
+}
+
+.aria-openui-chat .aria-openui-mobile-header-brand {
+  display: inline-flex;
+  color: var(--openui-text-neutral-primary);
+  text-decoration: none;
+}
+
+.aria-openui-chat .aria-openui-mobile-header-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+@media (min-width: 768px) {
+  .aria-openui-chat .openui-agent-mobile-header {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .aria-openui-chat .openui-agent-thread-container {
+    padding-top: 0;
+  }
+
+  .aria-openui-chat .aria-openui-sidebar-user {
+    padding: 10px 12px;
+  }
+
+  .aria-openui-chat .aria-openui-sidebar-user__avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+}
+
+/* Composer: attach (+) + file chips */
+.aria-openui-chat .aria-openui-composer-field {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--openui-space-s);
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.aria-openui-chat .openui-agent-desktop-welcome-composer.aria-openui-composer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--openui-space-xs);
+}
+
+.aria-openui-chat .aria-openui-composer-attach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin: 0 0 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--openui-text-neutral-secondary);
+  cursor: pointer;
+}
+
+.aria-openui-chat .aria-openui-composer-attach:hover:not(:disabled) {
+  color: var(--openui-text-neutral-primary);
+  background: var(--openui-highlight-subtle);
+}
+
+.aria-openui-chat .aria-openui-composer-attach:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.aria-openui-chat .aria-openui-composer-field .openui-agent-thread-composer__input,
+.aria-openui-chat .aria-openui-composer-field .openui-agent-desktop-welcome-composer__input,
+.aria-openui-chat .openui-agent-desktop-welcome-composer.aria-openui-composer .openui-agent-desktop-welcome-composer__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.aria-openui-chat .openui-agent-desktop-welcome-composer.aria-openui-composer {
+  padding-left: var(--openui-space-m);
+}
+
+.aria-openui-chat .aria-openui-composer-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  padding: 0 var(--openui-space-xs);
+}
+
+.aria-openui-chat .aria-openui-composer-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 6px 4px 8px;
+  border-radius: var(--openui-radius-s);
+  background: var(--openui-sunk);
+  color: var(--openui-text-neutral-primary);
+  font: var(--openui-text-label-xs);
+}
+
+.aria-openui-chat .aria-openui-composer-file__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.aria-openui-chat .aria-openui-composer-file__remove {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--openui-radius-xs);
+  background: transparent;
+  color: var(--openui-text-neutral-secondary);
+  cursor: pointer;
+}
+
+.aria-openui-chat .aria-openui-composer-file__remove:hover {
+  color: var(--openui-text-neutral-primary);
+  background: var(--openui-highlight-subtle);
+}
+
+.aria-openui-chat .aria-openui-composer-error {
+  margin: 0;
+  padding: 0 var(--openui-space-xs);
+  font: var(--openui-text-label-xs);
+  color: var(--openui-text-danger-default, oklch(0.65 0.2 25));
+}
+
+/* Composer: no focus ring / glow box */
+.aria-openui-chat .openui-agent-thread-composer__input-wrapper,
+.aria-openui-chat .openui-agent-desktop-welcome-composer {
+  box-shadow: none !important;
+  outline: none !important;
+  border: 1px solid color-mix(in oklch, var(--openui-text-neutral-primary) 10%, transparent) !important;
+}
+
+.aria-openui-chat .openui-agent-thread-composer__input-wrapper:focus-within,
+.aria-openui-chat .openui-agent-desktop-welcome-composer:focus-within,
+.aria-openui-chat .openui-agent-thread-composer[data-drafting] .openui-agent-thread-composer__input-wrapper,
+.aria-openui-chat .openui-agent-desktop-welcome-composer[data-drafting] {
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: color-mix(in oklch, var(--openui-text-neutral-primary) 10%, transparent) !important;
+}
+
+.aria-openui-chat .openui-agent-thread-composer__input:focus,
+.aria-openui-chat .openui-agent-desktop-welcome-composer__input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.aria-openui-chat .openui-agent-welcome-glow__dither {
+  display: none !important;
+}
+
+/* OpenUI mascot / dog branding */
+.aria-openui-chat .openui-agent-welcome-mascot,
+.aria-openui-chat .openui-agent-mascot,
+.aria-openui-chat .openui-agent-mascot-loader,
+.aria-openui-chat .openui-agent-welcome-screen__image-container {
+  display: none !important;
+}
+
+/* OpenUI Inspect / devtools (also mounted on body) */
+[data-openui-devtools-auto-mount],
+[aria-label="Open OpenUI Inspect"],
+[aria-label="OpenUI Inspect"],
+[title="OpenUI Inspect"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Create project modal (ChatGPT-style card) */
+body:has(.aria-create-project-dialog__card) [data-slot="dialog-overlay"] {
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.aria-create-project-dialog[data-slot="dialog-content"] {
+  z-index: 1200;
+}
+
+.aria-create-project-dialog[data-slot="dialog-content"] > [data-slot="dialog-close"] {
+  top: 14px;
+  right: 14px;
+  color: oklch(0.85 0 0);
+  opacity: 0.85;
+}
+
+.aria-create-project-dialog[data-slot="dialog-content"] > [data-slot="dialog-close"]:hover {
+  opacity: 1;
+  background: oklch(1 0 0 / 0.08);
+}
+
+.aria-create-project-dialog__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  padding: 20px 20px 18px;
+  border-radius: 20px;
+  background: oklch(0.22 0 0);
+  color: oklch(0.95 0 0);
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 0.06),
+    0 24px 48px -12px oklch(0 0 0 / 0.65);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+}
+
+.aria-create-project-dialog__title {
+  margin: 0;
+  padding-right: 28px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: oklch(0.98 0 0);
+}
+
+.aria-create-project-dialog__label {
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  color: oklch(0.72 0 0);
+}
+
+.aria-create-project-dialog__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid oklch(1 0 0 / 0.1);
+  background: oklch(0.17 0 0);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.aria-create-project-dialog__input-wrap:focus-within {
+  border-color: oklch(0.62 0.16 250);
+  box-shadow: 0 0 0 1px oklch(0.62 0.16 250);
+}
+
+.aria-create-project-dialog__input-icon {
+  flex-shrink: 0;
+  color: oklch(0.62 0 0);
+}
+
+.aria-create-project-dialog__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: oklch(0.96 0 0);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  outline: none;
+}
+
+.aria-create-project-dialog__input::placeholder {
+  color: oklch(0.55 0 0);
+}
+
+.aria-create-project-dialog__info {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: oklch(0.28 0 0);
+}
+
+.aria-create-project-dialog__info-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: oklch(0.78 0 0);
+}
+
+.aria-create-project-dialog__info-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: oklch(0.78 0 0);
+}
+
+.aria-create-project-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.aria-create-project-dialog__submit {
+  margin: 0;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: oklch(0.78 0 0);
+  color: oklch(0.18 0 0);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.aria-create-project-dialog__submit:hover {
+  opacity: 0.92;
+}
+
+.aria-create-project-dialog__submit:active {
+  transform: scale(0.98);
+}

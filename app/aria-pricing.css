@@ -1,0 +1,299 @@
+/* Pricing — open column layout (no cards) */
+.aria-tdev-page .aria-pricing {
+  padding-top: clamp(64px, 10vw, 108px);
+  padding-bottom: clamp(8px, 2vw, 16px);
+}
+
+.aria-tdev-page .aria-pricing .section-heading {
+  max-width: 36rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.aria-tdev-page .aria-pricing .section-heading h2 {
+  font-size: clamp(28px, 3.6vw, 40px);
+  letter-spacing: clamp(-0.9px, -0.12vw, -1.5px);
+}
+
+.aria-tdev-page .aria-pricing .section-heading > p {
+  font-size: clamp(13px, 1.5vw, 15px);
+  margin-top: 10px;
+}
+
+.aria-tdev-page .aria-pricing .section-kicker {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+
+.aria-tdev-page .aria-pricing-compare {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  max-width: min(1040px, 100%);
+  margin: clamp(32px, 5vw, 44px) auto 0;
+  padding-top: clamp(28px, 4vw, 36px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aria-tdev-page .aria-pricing-tier {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 clamp(18px, 3vw, 28px);
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.aria-tdev-page .aria-pricing-tier + .aria-pricing-tier {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.aria-tdev-page .aria-pricing-tier-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.aria-tdev-page .aria-pricing-tier-name {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text, #fff);
+}
+
+.aria-tdev-page .aria-pricing-new {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6ee7a8;
+}
+
+.aria-tdev-page .aria-pricing-price {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.aria-tdev-page .aria-pricing-price-value {
+  font-family: "Saans", var(--font-sans);
+  font-size: clamp(32px, 3.5vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text, #fff);
+}
+
+.aria-tdev-page .aria-pricing-price-suffix {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.aria-tdev-page .aria-pricing-highlights {
+  margin: 0 0 18px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.aria-tdev-page .aria-pricing-features {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aria-tdev-page .aria-pricing-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.aria-tdev-page .aria-pricing-check {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.aria-tdev-page .aria-pricing-feature-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.aria-tdev-page .aria-pricing-feature-hint {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* Plan CTA — bar + trailing arrow chip */
+.aria-tdev-page .aria-pricing-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  margin-top: 24px;
+  padding: 0 6px 0 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aria-tdev-page .aria-pricing-cta-label {
+  text-align: left;
+}
+
+.aria-tdev-page .aria-pricing-cta-icon-wrap {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  transition:
+    background 160ms ease,
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aria-tdev-page .aria-pricing-cta-icon {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aria-tdev-page .aria-pricing-cta:hover .aria-pricing-cta-icon {
+  transform: translateX(1px);
+}
+
+.aria-tdev-page .aria-pricing-cta:active {
+  transform: scale(0.99);
+}
+
+.aria-tdev-page .aria-pricing-cta:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+
+.aria-tdev-page .aria-pricing-cta--free {
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.aria-tdev-page .aria-pricing-cta--free .aria-pricing-cta-icon-wrap {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.aria-tdev-page .aria-pricing-cta--free:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.aria-tdev-page .aria-pricing-cta--free:hover .aria-pricing-cta-icon-wrap {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.aria-tdev-page .aria-pricing-cta--pro {
+  color: #101010;
+  background: #ececec;
+  border-color: #ececec;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+.aria-tdev-page .aria-pricing-cta--pro .aria-pricing-cta-icon-wrap {
+  background: rgba(0, 0, 0, 0.08);
+  color: #101010;
+}
+
+.aria-tdev-page .aria-pricing-cta--pro:hover {
+  background: #fff;
+  border-color: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.aria-tdev-page .aria-pricing-cta--pro:hover .aria-pricing-cta-icon-wrap {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.aria-tdev-page .aria-pricing-cta--team {
+  color: #eef1ff;
+  background: rgba(72, 92, 220, 0.14);
+  border-color: rgba(130, 150, 255, 0.35);
+}
+
+.aria-tdev-page .aria-pricing-cta--team .aria-pricing-cta-icon-wrap {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.aria-tdev-page .aria-pricing-cta--team:hover {
+  background: rgba(72, 92, 220, 0.24);
+  border-color: rgba(150, 168, 255, 0.5);
+}
+
+.aria-tdev-page .aria-pricing-cta--team:hover .aria-pricing-cta-icon-wrap {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.aria-tdev-page .aria-pricing-note {
+  max-width: 42rem;
+  margin: clamp(28px, 4vw, 36px) auto 0;
+  padding-top: clamp(20px, 3vw, 26px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+@media (max-width: 860px) {
+  .aria-tdev-page .aria-pricing-compare {
+    grid-template-columns: 1fr;
+    max-width: 440px;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .aria-tdev-page .aria-pricing-tier {
+    padding: 24px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .aria-tdev-page .aria-pricing-tier + .aria-pricing-tier {
+    border-left: none;
+  }
+
+  .aria-tdev-page .aria-pricing-tier:first-child {
+    border-top: none;
+    padding-top: 12px;
+  }
+}
+
+@media (max-width: 700px) {
+  .aria-tdev-page .aria-pricing {
+    padding-top: 64px;
+  }
+}

@@ -1,0 +1,263 @@
+/* transitions.dev — chat workspace motion (streaming, thinking, tabs, composer) */
+
+.chat-page.dark {
+  --stream-gap: 60ms;
+  --stream-fade: 350ms;
+  --stream-blur: 1px;
+  --stream-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --think-hold: 1800ms;
+  --tabs-dur: 250ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tabs-text-muted: rgba(255, 255, 255, 0.55);
+  --tabs-text-active: #f5f5f5;
+  --tabs-bar-bg: rgba(255, 255, 255, 0.06);
+  --tabs-pill-bg: rgba(255, 255, 255, 0.12);
+  --panel-open-dur: 400ms;
+  --panel-close-dur: 350ms;
+  --panel-translate-x: 24px;
+  --panel-blur: 2px;
+  --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --cm-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.t-stream-w {
+  opacity: 0;
+  filter: blur(var(--stream-blur));
+  transition:
+    opacity var(--stream-fade) var(--stream-ease),
+    filter var(--stream-fade) var(--stream-ease);
+}
+.t-stream-w.is-in {
+  opacity: 1;
+  filter: blur(0);
+}
+
+.chat-page .t-think {
+  text-align: left;
+  font-size: 13px;
+}
+
+.t-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 48px;
+  background: var(--tabs-bar-bg);
+  border: 1px solid var(--border);
+}
+.t-tab {
+  position: relative;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  height: 30px;
+  padding: 4px 12px;
+  color: var(--tabs-text-muted);
+  cursor: pointer;
+  border-radius: 48px;
+  z-index: 1;
+  font-size: 11px;
+  transition: color var(--tabs-dur) var(--tabs-ease);
+}
+.t-tab:not([aria-selected="true"]):hover,
+.t-tab[aria-selected="true"] {
+  color: var(--tabs-text-active);
+}
+.t-tabs-pill {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: 30px;
+  width: 0;
+  background: var(--tabs-pill-bg);
+  border-radius: 48px;
+  transform: translateX(0);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width var(--tabs-dur) var(--tabs-ease);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.chat-evidence.t-panel-slide {
+  transform: translateX(var(--panel-translate-x));
+  opacity: 0;
+  filter: blur(var(--panel-blur));
+  pointer-events: none;
+  transition:
+    transform var(--panel-close-dur) var(--panel-ease),
+    opacity var(--panel-close-dur) var(--panel-ease),
+    filter var(--panel-close-dur) var(--panel-ease);
+}
+.chat-shell.evidence-open .chat-evidence.t-panel-slide {
+  transform: translateX(0);
+  opacity: 1;
+  filter: blur(0);
+  pointer-events: auto;
+  transition:
+    transform var(--panel-open-dur) var(--panel-ease),
+    opacity var(--panel-open-dur) var(--panel-ease),
+    filter var(--panel-open-dur) var(--panel-ease);
+}
+
+/* transitions.dev community composer (Figma 1696:36087), dark chat */
+.chat-cm-beam {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 482px;
+  margin-inline: auto;
+  border-radius: 20px;
+}
+.chat-cm-beam::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 21px;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 77, 148, 0.35),
+    rgba(112, 88, 255, 0.35),
+    rgba(56, 132, 255, 0.35)
+  );
+  opacity: 0;
+  transition: opacity 300ms var(--cm-ease);
+  z-index: -1;
+}
+.chat-cm-beam:focus-within::before {
+  opacity: 0.85;
+}
+
+.chat-cm-composer {
+  --cmp-edge: 0 0 0 0 transparent;
+  --cmp-ring: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --cmp-drop: 0 2px 6px 0 rgba(0, 0, 0, 0.05), 0 4px 42px 0 rgba(0, 0, 0, 0.24);
+  --cmp-ink: #e3e3e3;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 104px;
+  box-sizing: border-box;
+  border-radius: 20px;
+  background: #1b1b1b;
+  box-shadow: var(--cmp-edge), var(--cmp-ring), var(--cmp-drop);
+  text-align: left;
+  transition: box-shadow 200ms var(--cm-ease);
+}
+.chat-cm-composer:focus-within {
+  --cmp-ring: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.chat-cm-composer textarea {
+  display: block;
+  width: 100%;
+  min-height: 35px;
+  max-height: 200px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 13px 15px 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: transparent;
+  color: var(--cmp-ink);
+  font: 400 14px/20px var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+}
+.chat-cm-composer textarea::placeholder {
+  color: rgba(151, 151, 151, 0.7);
+}
+.chat-cm-composer-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 14px 12px 12px;
+  margin-top: auto;
+}
+.chat-cm-grow {
+  flex: 1;
+}
+.chat-cm-round {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cmp-ink);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 200ms var(--cm-ease), transform 160ms var(--cm-ease);
+}
+.chat-cm-round:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.chat-cm-round:active {
+  transform: scale(0.95);
+}
+.chat-cm-round svg {
+  width: 16px;
+  height: 16px;
+}
+.chat-cm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cmp-ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+.chat-cm-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.chat-cm-send {
+  position: relative;
+  background: rgba(198, 198, 198, 0.3);
+  color: rgba(255, 255, 255, 0.4);
+}
+.chat-cm-send:not(:disabled) {
+  background: #fff;
+  color: #0d0d0d;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+.chat-cm-send:not(:disabled):hover {
+  background: #e8e8e8;
+}
+.chat-cm-send:not(:disabled):active {
+  background: #d8d8d8;
+}
+
+.chat-thread-list .chat-thread {
+  transition: background var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-stream-w,
+  .t-think-text,
+  .t-tabs-pill,
+  .t-tab,
+  .chat-evidence.t-panel-slide,
+  .chat-cm-beam::before {
+    transition: none !important;
+    animation: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .t-think-text::before {
+    display: none !important;
+  }
+  .t-stream-w {
+    opacity: 1 !important;
+  }
+}

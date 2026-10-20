@@ -1,0 +1,287 @@
+/* Pricing workspace panel (landing pricing content, in-chat shell) */
+.aria-openui-chat .openui-agent-thread-container:has(.aria-workspace-panel--pricing) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: oklch(0.1 0 0);
+}
+
+.aria-openui-chat .openui-agent-thread-container:has(.aria-workspace-panel--pricing) > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.aria-workspace-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  color: var(--openui-text-neutral-primary, oklch(0.94 0 0));
+  background: oklch(0.1 0 0);
+}
+
+.aria-openui-chat:has(.aria-workspace-panel) .openui-agent-composer-slot {
+  display: none;
+}
+
+.aria-workspace-panel__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.aria-workspace-panel--pricing .aria-pricing__scroll {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+  width: 100%;
+}
+
+.aria-pricing-dialog .aria-pricing__page-head {
+  margin-bottom: 20px;
+  padding-right: 36px;
+  text-align: left;
+}
+
+.aria-pricing-dialog .aria-pricing__headline {
+  font-size: 1.15rem;
+}
+
+.aria-pricing-dialog .aria-pricing__description {
+  min-height: 0;
+}
+
+.aria-pricing__page-head {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.aria-pricing__page-title {
+  margin: 0 0 8px;
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.aria-pricing__page-sub {
+  margin: 0;
+  font-size: 14px;
+  color: oklch(0.58 0.02 260);
+}
+
+.aria-pricing__page-footnote {
+  margin: 24px auto 0;
+  max-width: 52ch;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.55;
+  color: oklch(0.52 0.02 260);
+}
+
+.aria-pricing__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.aria-pricing__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 100%;
+  padding: 20px 18px 18px;
+  border-radius: 18px;
+  background: oklch(0.145 0.006 260);
+  border: 1px solid oklch(0.26 0.01 260 / 0.9);
+}
+
+.aria-pricing__card--current {
+  border-color: oklch(0.32 0.01 260);
+}
+
+.aria-pricing__card--featured {
+  background: oklch(0.13 0.03 250);
+  border: 2px solid oklch(0.58 0.17 250);
+  box-shadow: 0 0 0 1px oklch(0.58 0.17 250 / 0.15);
+}
+
+.aria-pricing__card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 32px;
+}
+
+.aria-pricing__plan-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: oklch(0.92 0 0);
+}
+
+.aria-pricing__badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: oklch(0.28 0.06 250);
+  color: oklch(0.88 0.04 250);
+}
+
+.aria-pricing__headline {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.2vw, 1.65rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: oklch(0.97 0 0);
+}
+
+.aria-pricing__description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: oklch(0.58 0.02 260);
+  min-height: 3.9em;
+}
+
+.aria-pricing__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.aria-pricing__cta--current {
+  background: transparent;
+  border-color: oklch(0.38 0.01 260);
+  color: oklch(0.58 0.02 260);
+  cursor: default;
+}
+
+.aria-pricing__cta--primary {
+  background: oklch(0.98 0 0);
+  color: oklch(0.14 0 0);
+}
+
+.aria-pricing__cta--primary:hover {
+  background: oklch(0.92 0 0);
+}
+
+.aria-pricing__cta--featured {
+  background: oklch(0.58 0.17 250);
+  color: oklch(0.99 0 0);
+}
+
+.aria-pricing__cta--featured:hover {
+  background: oklch(0.54 0.17 250);
+}
+
+.aria-pricing__price-line {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.35;
+  color: oklch(0.88 0 0);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.aria-pricing__price-currency {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.aria-pricing__price-amount {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.aria-pricing__price-suffix {
+  color: oklch(0.58 0.02 260);
+  font-size: 13px;
+}
+
+.aria-pricing__features {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.35;
+  color: oklch(0.86 0 0);
+}
+
+.aria-pricing__features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.aria-pricing__feature-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: oklch(0.78 0 0);
+}
+
+.aria-pricing__features--featured {
+  color: oklch(0.82 0.04 250);
+}
+
+.aria-pricing__features--featured .aria-pricing__feature-icon {
+  color: oklch(0.62 0.14 250);
+}
+
+.aria-pricing__feature-hint {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-left: 4px;
+  color: oklch(0.52 0.02 260);
+  vertical-align: middle;
+}
+
+@media (max-width: 1024px) {
+  .aria-pricing__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .aria-pricing__description {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .aria-pricing-dialog .aria-pricing__page-head {
+    padding-right: 28px;
+  }
+
+  .aria-pricing__card {
+    padding: 16px 14px 14px;
+    gap: 12px;
+  }
+
+  .aria-pricing__headline {
+    font-size: 1.2rem;
+  }
+
+  .aria-pricing__price-amount {
+    font-size: 1.15rem;
+  }
+}
