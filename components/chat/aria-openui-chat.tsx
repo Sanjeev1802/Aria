@@ -23,6 +23,7 @@ import { AriaOpenUISidebarCredits } from "@/components/chat/aria-openui-sidebar-
 import { AriaOpenUISidebarUser } from "@/components/chat/aria-openui-sidebar-user";
 import { ariaOpenUIDarkTheme } from "@/lib/aria-openui-theme";
 import { getAriaChatLLM } from "@/lib/aria-openui-llm";
+import { ariaThreadStorage } from "@/lib/aria-thread-storage";
 import { watchAndRemoveOpenUIDevtools } from "@/lib/remove-openui-devtools-dom";
 
 // These workspaces are not needed to begin a conversation.
@@ -78,7 +79,9 @@ export function AriaOpenUIChat({ initialPath }: AriaOpenUIChatProps = {}) {
         </div>
       ) : null}
       <AgentInterface
+        key={profile.session.workspace?.id ?? sessionStatus}
         llm={llm}
+        storage={process.env.NEXT_PUBLIC_ARIA_PREVIEW === "true" ? undefined : ariaThreadStorage}
         componentLibrary={openuiChatLibrary}
         components={{ AssistantMessage: AriaOpenUIAssistantMessage }}
         agentName="ARIA"

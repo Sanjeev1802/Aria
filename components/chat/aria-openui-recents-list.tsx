@@ -11,6 +11,7 @@ import { useThreadList } from "@openuidev/react-headless";
 import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAriaSession } from "@/lib/aria-session";
 
 function RecentRow({
   title,
@@ -130,6 +131,7 @@ export type AriaOpenUIRecentsListProps = {
 };
 
 export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps) {
+  const session = useAriaSession();
   const threads = useThreadList((s) => s.threads);
   const isLoadingThreads = useThreadList((s) => s.isLoadingThreads);
   const loadThreads = useThreadList((s) => s.loadThreads);
@@ -143,8 +145,8 @@ export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps)
   const [renameDraft, setRenameDraft] = useState("");
 
   useEffect(() => {
-    loadThreads();
-  }, [loadThreads]);
+    if (session.status === "authenticated" || session.status === "preview") loadThreads();
+  }, [loadThreads, session.status, session.workspace?.id]);
 
   const selectRecent = useCallback(
     (id: string) => {

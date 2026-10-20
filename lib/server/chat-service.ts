@@ -11,6 +11,7 @@ export type StreamProvider = (input: ChatInput, model: string, signal: AbortSign
 export async function createChatResponse(input: ChatInput, options: {
   ledger: CreditLedger; account: Account; modelId: string; rates: Rates;
   provider: StreamProvider; signal: AbortSignal; maxOutputTokens: number;
+  onComplete?: (text: string) => Promise<void>;
 }): Promise<Response> {
   const { ledger, account, modelId, rates } = options;
   const workspaceId = account.workspaceId;
@@ -39,6 +40,7 @@ export async function createChatResponse(input: ChatInput, options: {
       emit({ type: "TEXT_MESSAGE_START", messageId, role: "assistant" });
       content('root = TextContent("');
       if (existing) {
+        await options.onComplete?.(String(existing.response ?? "")).catch(() => logLedgerIssue("thread_save_deferred", account, input.id));
         content(JSON.stringify(String(existing.response ?? "")).slice(1, -1));
         finish();
         if (!cancelled) controller.close();
@@ -70,6 +72,7 @@ export async function createChatResponse(input: ChatInput, options: {
         // The answer was delivered; leave the hold for reconciliation rather than releasing it for free.
         logLedgerIssue("settlement_deferred", account, input.id);
       }
+      await options.onComplete?.(text).catch(() => logLedgerIssue("thread_save_deferred", account, input.id));
       finish();
       if (!cancelled) controller.close();
     },

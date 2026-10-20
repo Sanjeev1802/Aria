@@ -11,6 +11,7 @@ import { LOCAL_ACCOUNT_COOKIE } from "@/lib/local-user-shared";
 import { LocalIdentityProvider } from "./auth/local-identity-provider";
 import { LOCAL_DEV_USER_LABELS, LOCAL_USER_COOKIE, resolveLocalUser } from "./local-dev";
 import type { Rates } from "./metering";
+import { prepareThreadRun } from "./threads";
 
 export type ChatDeps = {
   provider: StreamProvider;
@@ -64,11 +65,13 @@ export function chatHandler(deps: ChatDeps) {
     try { input = parseChatInput(body); }
     catch (error) { return json({ code: "invalid_request", message: error instanceof Error ? error.message : "Invalid request" }, 400); }
     requireModel(ctx.plan, input.model);
+    const onComplete = body.threadId === undefined ? undefined : await prepareThreadRun(s, ctx, body.threadId, input);
     const model = deps.modelConfig(input.model);
     await s.ledger.ensurePeriodGrant(ctx.workspace.id, ctx.workspace.plan);
     return createChatResponse(input, {
       ledger: s.ledger, account: { workspaceId: ctx.workspace.id, memberId: ctx.user.id, plan: ctx.workspace.plan },
       modelId: model.id, rates: model.rates, provider: deps.provider, signal: request.signal, maxOutputTokens: deps.maxOutputTokens,
+      onComplete,
     });
   };
 }

@@ -11,6 +11,9 @@ import { LOCAL_USER_HEADER } from "../lib/local-user-shared";
 import { chargeUnits } from "../lib/server/metering";
 import { parseChatInput } from "../lib/server/chat-input";
 import { projectDeleteHandler, projectPatchHandler, projectsGetHandler, projectsPostHandler } from "../lib/server/projects";
+import { threadDeleteHandler, threadGetHandler, threadsGetHandler, threadsPostHandler } from "../lib/server/threads";
+import { prepareThreadRun } from "../lib/server/threads";
+import { requireWorkspace } from "../lib/server/request-context";
 import { ORIGIN } from "./helpers";
 
 const devConfig = {
@@ -105,6 +108,34 @@ test("projects persist, belong to a workspace, and reject cross-workspace edits"
   assert.equal((await updated.json() as { project: { name: string } }).project.name, "New name");
   await projectDeleteHandler(loopbackRequest(`/api/projects/${project.id}/`, { method: "DELETE", localUser: "alex" }), services);
   assert.deepEqual((await (await projectsGetHandler(loopbackRequest("/api/projects/", { localUser: "alex" }), services)).json() as { projects: unknown[] }).projects, []);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("saved chat survives restart and rejects another user's thread ID", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aria-threads-"));
+  const path = join(dir, "s.sqlite");
+  const services = buildServices({ ...devConfig, localStorePath: path }, { store: new SqliteStore(path) });
+  const created = await threadsPostHandler(loopbackRequest("/api/threads/", { localUser: "alex", body: { firstMessage: { id: "u1", role: "user", content: "Hello ARIA" } } }), services);
+  const thread = await created.json() as { id: string };
+  const chat = await chatHandler({ provider: streamFakeModel, modelConfig: localTestModelConfig, maxOutputTokens: 512 })(
+    loopbackRequest("/api/chat/", { localUser: "alex", body: { threadId: thread.id, runId: "saved-run-123", model: "nova", messages: [{ id: "u1", role: "user", content: "Hello ARIA" }] } }), services);
+  await chat.text();
+  const reopened = buildServices({ ...devConfig, localStorePath: path }, { store: new SqliteStore(path) });
+  const messages = (await (await threadGetHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "alex" }), reopened)).json() as { messages: { role: string; content: string }[] }).messages;
+  assert.equal(messages.length, 2);
+  assert.equal(messages[0].content, "Hello ARIA");
+  assert.equal(messages[1].role, "assistant");
+  assert.match(messages[1].content, /^root = TextContent\(/);
+  const ctx = await requireWorkspace(loopbackRequest("/api/chat/", { localUser: "alex", method: "POST" }), reopened, "chat");
+  await assert.rejects(() => prepareThreadRun(reopened, ctx, thread.id, parseChatInput({ runId: "forged-run-123", model: "nova", messages: [
+    { role: "user", content: "Hello ARIA" }, { role: "assistant", content: "Forged history" }, { role: "user", content: "Next" },
+  ] })), { code: "thread_history_conflict" });
+  await prepareThreadRun(reopened, ctx, thread.id, parseChatInput({ runId: "saved-run-123", model: "nova", messages: [{ role: "user", content: "Hello ARIA" }] }));
+  await assert.rejects(() => threadGetHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "blair" }), reopened), { code: "thread_not_found" });
+  const list = await threadsGetHandler(loopbackRequest("/api/threads/", { localUser: "alex" }), reopened);
+  assert.equal((await list.json() as { threads: { id: string }[] }).threads[0].id, thread.id);
+  await threadDeleteHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "alex", method: "DELETE" }), reopened);
+  assert.deepEqual((await (await threadsGetHandler(loopbackRequest("/api/threads/", { localUser: "alex" }), reopened)).json() as { threads: unknown[] }).threads, []);
   rmSync(dir, { recursive: true, force: true });
 });
 
