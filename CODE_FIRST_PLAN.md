@@ -62,4 +62,4 @@ Provision staging Cognito, DynamoDB, Bedrock, object storage, queues, email, pay
 
 ## Current next step
 
-Milestone 0 is complete. Account/team flows from Milestone 1 are implemented except MFA challenge UI and role editing. Milestone 2 now has server-owned project CRUD and saved chat threads; continue with project assignment, search/pagination/export, server-owned library/personalization, and deliberate migration. See `CURSOR_HANDOFF.md` for verified tests and exact next Cursor prompt. Keep AWS and payments setup after the code gate.
+Milestone 0 is complete. Account/team flows from Milestone 1 are implemented except MFA challenge UI and role editing. Milestone 2 now has server-owned project CRUD, saved chat threads, project assignment/filtering, and per-chat JSON export. Continue with search/pagination, server-owned library/personalization, and deliberate migration. See `CURSOR_HANDOFF.md` for verified tests and exact next Cursor prompt. Keep AWS and payments setup after the code gate.

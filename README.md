@@ -17,7 +17,7 @@ ARIA is a Next.js application that pairs an OpenUI chat interface with **server-
 | **Entitlements** | Free, Pro, and Team rules enforced on the server (models, credits, seats); Pro/Team API access is planned, not implemented |
 | **Ledger** | DynamoDB single-table design, atomic reservations, idempotent retries, crash reconciliation |
 | **Chat** | AG-UI streaming, conservative holds, settlement on provider token usage |
-| **Saved work** | Per-user, per-workspace chat history with JSON export; workspace project create, rename, and delete |
+| **Saved work** | Per-user, per-workspace chat history with JSON export; workspace projects with chat assignment and filtering |
 | **Local dev** | Persistent SQLite store, two loopback users, deterministic fake model — no AWS required |
 
 ---
@@ -100,7 +100,7 @@ npm run dev
 
 Open [http://127.0.0.1:3000/sign-in/](http://127.0.0.1:3000/sign-in/). In local mode you can sign in with a test email and password. Use the **Local user** control in the chat sidebar to switch between **Alex** and **Blair** (separate workspaces). Chat uses a **deterministic test model** and the real ledger path — not Bedrock.
 
-Accounts, credits, projects, and completed chats persist under `.aria/local-dev.sqlite` (gitignored) across restarts. The **Recents** menu can export a saved chat as JSON. Projects can be created, renamed, and deleted; assigning chats or files to a project is still to be built.
+Accounts, credits, projects, and completed chats persist under `.aria/local-dev.sqlite` (gitignored) across restarts. The **Recents** menu can export a saved chat as JSON or move it into and out of a project. Select a project before starting a chat to assign it there. File assignment is still to be built.
 
 ### Design preview (no server)
 
@@ -159,7 +159,7 @@ The `apiAccess` entitlement flag does **not** yet issue API keys or provide a pu
 
 Local development covers sign-in, password recovery, workspace and team flows, credit accounting, projects, and saved chats. Automated tests cover cross-workspace access, concurrent spending, retries, crash reconciliation, and persistence. A real Cognito, DynamoDB, or Bedrock journey has not been run.
 
-Before a public launch, the application still needs project-to-chat assignment, search and pagination, server-owned library and personalization, authorized-source retrieval and citations, Pro/Team API keys and endpoints, payment checkout and webhooks, and release-level browser, load, and security checks. Follow [`CODE_FIRST_PLAN.md`](CODE_FIRST_PLAN.md) and the exact [Cursor handoff](CURSOR_HANDOFF.md) for the work order. AWS and payments setup come after the local code gate.
+Before a public launch, the application still needs search and pagination, server-owned library and personalization, authorized-source retrieval and citations, Pro/Team API keys and endpoints, payment checkout and webhooks, and release-level browser, load, and security checks. Follow [`CODE_FIRST_PLAN.md`](CODE_FIRST_PLAN.md) and the exact [Cursor handoff](CURSOR_HANDOFF.md) for the work order. AWS and payments setup come after the local code gate.
 
 ---
 

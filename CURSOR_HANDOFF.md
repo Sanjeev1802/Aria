@@ -2,21 +2,22 @@
 
 > **Current user direction:** finish the application code and local journeys before AWS or other external setup. Follow `CODE_FIRST_PLAN.md` Milestones 0–7. The AWS staging checklist later in this file is a release gate, not the next task.
 
-Updated: 2026-10-20 (local accounts, projects, and saved chat; branch Aria-new-setup).
+Updated: 2026-10-20 (local accounts, projects, chat assignment, and response quality; branch Aria-new-setup).
 
 ## Start here
 
 Read `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, this file, and `PROMPT_EVALUATION.md`, then the relevant source. Preserve the existing UI. The repository is committed and pushed to `origin/Aria-new-setup`. Do not reset or clean the directory.
 
-**State:** Follow `CODE_FIRST_PLAN.md` Milestones 0–7 before AWS. Milestone 0 is complete. Milestone 1 account and team journeys have working routes and UI; MFA challenge UI and role editing remain. Milestone 2 now has server-owned project CRUD and per-user, per-workspace saved chat threads with per-thread JSON export; project assignment, pagination/search, library, and personalization remain. Milestones 3–7 remain open. Production identity, workspace authorization, entitlements, and the DynamoDB ledger driver from the prior pass remain in place. **No real AWS yet.** Production chat stays off without Cognito + DynamoDB + `ARIA_APP_ORIGIN` + `ARIA_LIVE_CHAT=enabled`. Local dev chat works with `ARIA_LOCAL_DEV=true` and uses the fake model (not Bedrock).
+**State:** Follow `CODE_FIRST_PLAN.md` Milestones 0–7 before AWS. Milestone 0 is complete. Milestone 1 account and team journeys have working routes and UI; MFA challenge UI and role editing remain. Milestone 2 has server-owned project CRUD, per-user/per-workspace saved chats, project assignment/filtering, and per-thread JSON export; pagination/search, library, and personalization remain. Milestones 3–7 remain open. Production identity, workspace authorization, entitlements, and the DynamoDB ledger driver remain in place. **No real AWS yet.** Production chat stays off without Cognito + DynamoDB + `ARIA_APP_ORIGIN` + `ARIA_LIVE_CHAT=enabled`. Local dev chat works with `ARIA_LOCAL_DEV=true` and uses the fake model (not Bedrock).
 
 ### Current code verification (2026-10-20)
 
-- `npm test`: **53/53 pass**. `npm run typecheck` and `npm run build` pass. New tests cover SQLite transaction rollback and cross-instance consistency, expired local confirmation codes, project isolation and persistence, chat persistence across restart, forged chat history, and cross-user thread access.
-- Current commits: `7fc124f` (SQLite), `26a154b` (code expiry), `759f6a7` (projects), `0da6b3a` (chat threads). The branch is pushed.
-- Browser smoke on the standalone production build rendered `/chat/` with the expected unconfigured-service banner. An authenticated local browser smoke was not run: another dev server already held Next's development lock and the standalone build correctly disables `ARIA_LOCAL_DEV`. The route-level local tests exercise the new flows.
+- `npm test`: **55/55 pass**. `npm run typecheck` and `npm run build` pass. New tests cover project assignment persistence and cross-workspace rejection, plus a token-limited response notice that survives replay. Earlier tests cover SQLite consistency, identity, project isolation, chat persistence, forged chat history, and cross-user thread access.
+- Recent commits: `c6a579b` (project assignment and responsive controls), `ef80748` (system prompt and truncated-answer notice), preceded by `0da6b3a` (saved threads). Verify `git status` and push status before further work.
+- Browser smoke in an isolated local-dev copy verified project creation, a chat started inside that project and persisted with its project ID, moving the chat out of a project, and the mobile sidebar drawer. Viewports 320×700, 375×812, 390×844, 768×1024, 844×390, 1024×768, and 1440×900 had no horizontal overflow or page errors. The final production build passed.
 - `SqliteStore` reads the latest disk state before transactions and rolls back failed writes. This is safe for the local demo, but rewrites the full item table on each write and is not the production data store.
-- Authenticated projects use `/api/projects/` and are scoped to the selected workspace. Preview mode retains browser projects. Chat threads use `/api/threads/`; completed responses are saved after ledger settlement, and a user cannot load another user's thread. The Recents menu can export a user's chat as JSON. A persistence failure is logged as `thread_save_deferred`; there is not yet a repair job for that event.
+- Authenticated projects use `/api/projects/` and are scoped to the selected workspace. Preview mode retains browser projects. Chat threads use `/api/threads/`; completed responses are saved after ledger settlement, and a user cannot load another user's thread. Selected project assignment is checked by the server, and Recents can filter or move chats and export JSON. A persistence failure is logged as `thread_save_deferred`; there is not yet a repair job for that event.
+- The system prompt is versioned as `aria-2026-10-20.2` and explicitly constrains source claims, current data claims, company-data access, tool claims, secrets, and output format. Bedrock `max_tokens` responses display and save a continuation notice. `PROMPT_EVALUATION.md` lists staging answer-quality checks; no real model evaluation has run.
 - The existing forgot/reset pages were already implemented; no duplicate auth UI was added. Local confirmation codes now expire after 15 minutes and a resend renews the expiry.
 
 ### Milestone 0 — verified (2026-10-20)
@@ -104,11 +105,11 @@ Also fixed: `showInputError` parsed the minified CSS value `3s` as 3 ms, so auth
 
 - Conservative byte-based reservations can hold more credits than needed. Replace with Bedrock CountTokens or a tested tokenizer bound.
 - The client creates a new request ID per send. A session-refresh retry reuses it, but there is no general automatic-retry UI.
-- Profile personalization and library still contain prototype data. Projects and conversations now use server storage in authenticated mode; the project UI does not yet assign chats or files. Existing browser-only conversations are not migrated.
+- Profile personalization and library still contain prototype data. Projects and conversations use server storage in authenticated mode; chats can be assigned to projects, but files cannot. Existing browser-only conversations are not migrated.
 - Sign-out ends every session for the user, not just the current device.
 - The reconciliation index uses one `RESERVED` partition key. That's fine for launch scale; shard it if reservation volume grows large.
 - No authorized-source retrieval, developer API keys, payment integration, or email delivery yet (see `CODE_FIRST_PLAN.md`, Milestones 3–6).
 
 ## Next Cursor task
 
-> Stay on `Aria-new-setup`. Read `AGENTS.md`, `CODE_FIRST_PLAN.md`, and this handoff. Verify the current 53 tests and production build. Continue Milestone 2: add project assignment for saved threads, server-owned library/personalization, deliberate migration of preview/browser data, and chat search/pagination/export. Then implement Milestones 3–7 in order. Keep authenticated data scoped to verified user and workspace, use the local identity/fake model for tests, and preserve production fail-closed behavior. Make one tested commit per coherent change and push to `origin/Aria-new-setup`. Do not provision AWS or payment providers yet.
+> Stay on `Aria-new-setup`. Read `AGENTS.md`, `CODE_FIRST_PLAN.md`, and this handoff. Verify the current 55 tests and production build. Continue Milestone 2 with server-owned library/personalization, deliberate migration of preview/browser data, and chat search/pagination. Then implement Milestones 3–7 in order. Keep authenticated data scoped to verified user and workspace, use the local identity/fake model for tests, and preserve production fail-closed behavior. Make one tested commit per coherent change and push to `origin/Aria-new-setup`. Do not provision AWS or payment providers yet.
