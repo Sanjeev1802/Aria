@@ -44,3 +44,17 @@ test("local identity supports sign-up, confirmation, password reset, and sign-in
   const again = await signInHandler(post("/api/auth/sign-in/", { email, password: next }), services);
   assert.equal(again.status, 200);
 });
+
+test("expired local confirmation code requires a resend", async () => {
+  const store = new MemoryStore();
+  const services = buildServices(dev, { store, idp: new LocalIdentityProvider(store) });
+  const email = "expiry@localhost.test";
+  await signUpHandler(post("/api/auth/sign-up/", { email, password: "safe password 123", name: "Expiry" }), services);
+  await store.transact([{ kind: "update", key: { pk: `AUTH#${email}`, sk: "CRED" },
+    set: { confirmExpiresAt: Date.now() - 1 } }]);
+  await assert.rejects(() => confirmHandler(post("/api/auth/confirm/", { email, code: "424242" }), services),
+    { code: "invalid_code" });
+  await confirmHandler(post("/api/auth/confirm/", { email, resend: true }), services);
+  const response = await confirmHandler(post("/api/auth/confirm/", { email, code: "424242" }), services);
+  assert.equal(response.status, 200);
+});

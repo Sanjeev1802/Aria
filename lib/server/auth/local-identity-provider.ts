@@ -67,6 +67,7 @@ export class LocalIdentityProvider implements IdentityProvider {
         pk: this.key(normalized).pk, sk: this.key(normalized).sk,
         sub: this.newId(), email: normalized, name: name.trim().slice(0, 100) || normalized.split("@")[0],
         status: "pending", passwordHash: hashPassword(password), confirmCode: code,
+        confirmExpiresAt: Date.now() + 15 * 60_000,
       }, when: [{ field: "pk", op: "notExists" }],
     }]);
     return { confirmationRequired: true };
@@ -77,8 +78,9 @@ export class LocalIdentityProvider implements IdentityProvider {
     const row = await this.read(normalized);
     if (!row || row.status !== "pending") throw new ServiceError("invalid_code", 400);
     if (String(row.confirmCode) !== code.trim()) throw new ServiceError("invalid_code", 400);
+    if (typeof row.confirmExpiresAt !== "number" || row.confirmExpiresAt < Date.now()) throw new ServiceError("invalid_code", 400);
     await this.store.transact([{
-      kind: "update", key: this.key(normalized), set: { status: "active" }, remove: ["confirmCode"],
+      kind: "update", key: this.key(normalized), set: { status: "active" }, remove: ["confirmCode", "confirmExpiresAt"],
       when: [{ field: "status", op: "=", value: "pending" }],
     }]);
   }
@@ -89,7 +91,7 @@ export class LocalIdentityProvider implements IdentityProvider {
     if (!row || row.status !== "pending") return;
     const code = devCode(normalized);
     await this.store.transact([{
-      kind: "update", key: this.key(normalized), set: { confirmCode: code },
+      kind: "update", key: this.key(normalized), set: { confirmCode: code, confirmExpiresAt: Date.now() + 15 * 60_000 },
       when: [{ field: "status", op: "=", value: "pending" }],
     }]);
   }
