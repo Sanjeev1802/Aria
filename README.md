@@ -131,4 +131,4 @@ Use the [code-first plan](CODE_FIRST_PLAN.md) for milestone order and the [Curso
 | `infra/` | DynamoDB table definition |
 | `scripts/` | Build and operator tooling |
 
-ARIA is maintained by [The Binary Holdings](https://github.com/The-Binary-Holdings). Primary author: **Gokulakrishnan96** ([`author.json`](author.json)). Proprietary; all rights reserved unless the repository policy states otherwise.
+ARIA is maintained by [The Binary Holdings](https://github.com/The-Binary-Holdings). Proprietary; all rights reserved unless the repository policy states otherwise.
