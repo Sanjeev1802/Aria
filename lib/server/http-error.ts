@@ -1,0 +1,52 @@
+import { ServiceError } from "./errors";
+
+const messages: Record<string,string> = {
+  live_service_not_configured: "Live AI is not configured. Use explicit preview mode, or configure identity, the shared ledger, and Bedrock on the server.",
+  model_or_rates_not_configured: "This model is not configured yet. Set its Bedrock model ID and verified token rates on the server.",
+  insufficient_credits: "There are not enough available credits for this request. Try a shorter conversation or the lower-cost model.",
+  request_in_progress: "A response is already running. Wait for it to finish before sending another message.",
+  rate_limited: "You have reached the request limit. Please wait a minute and try again.",
+  request_already_processed_or_pending: "This request is already pending or failed. Check its status before starting a new request.",
+  idempotency_conflict: "This request ID was already used for different content. Start a new request.",
+  not_signed_in: "Sign in to continue.",
+  session_expired: "Your session expired. Sign in again.",
+  session_revoked: "You were signed out. Sign in again.",
+  invalid_session: "Your session is not valid. Sign in again.",
+  account_disabled: "This account is disabled. Contact your workspace administrator.",
+  invalid_origin: "This request did not come from the ARIA app.",
+  local_development_only: "Local development identity only works on localhost.",
+  workspace_not_found: "That workspace was not found.",
+  access_revoked: "Your access to this workspace was removed.",
+  permission_denied: "Your workspace role does not allow this action.",
+  entitlement_changed: "Your plan changed while this request was starting. Try again.",
+  model_not_in_plan: "This model is not included in your plan. Choose Amazon Nova or upgrade.",
+  plan_required: "Team management requires the Team plan.",
+  seats_exhausted: "All seats are in use. Remove a member or cancel an invite first.",
+  already_invited_or_member: "This person is already on the team or has a pending invite.",
+  invalid_email: "Enter a valid email address.",
+  invite_not_found: "This invitation is not valid or was cancelled.",
+  invite_expired: "This invitation expired. Ask an admin for a new one.",
+  invite_email_mismatch: "Sign in with the verified email address the invitation was sent to.",
+  already_member: "You are already a member of this workspace.",
+  member_not_found: "That member was not found.",
+  cannot_remove_owner: "The workspace owner cannot be removed.",
+  cannot_remove_self: "You cannot remove yourself.",
+  invalid_credentials: "Email or password is incorrect.",
+  account_not_confirmed: "Confirm your email address before signing in.",
+  account_exists: "An account with this email already exists. Sign in instead.",
+  weak_password: "Choose a stronger password that meets the account policy.",
+  invalid_code: "That confirmation code is not valid or has expired.",
+  auth_rate_limited: "Too many attempts. Wait a moment and try again.",
+  auth_challenge_unsupported: "This account needs an additional sign-in step that is not available yet.",
+  password_reset_required: "This account needs a password reset before signing in.",
+  identity_unavailable: "Sign-in is temporarily unavailable. Try again shortly.",
+};
+
+export function errorResponse(error: unknown, extraHeaders: Record<string, string> = {}) {
+  const code = error instanceof ServiceError ? error.code : "service_unavailable";
+  if (!(error instanceof ServiceError)) {
+    console.error(JSON.stringify({ level: "error", event: "unhandled_error", name: (error as Error)?.name }));
+  }
+  return Response.json({ code, message: messages[code] ?? "The request could not be processed." },
+    { status: error instanceof ServiceError ? error.status : 503, headers: { "Cache-Control": "no-store", ...extraHeaders } });
+}
