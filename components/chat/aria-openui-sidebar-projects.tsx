@@ -16,6 +16,7 @@ import {
   saveAriaProjects,
   type AriaProject,
 } from "@/lib/aria-projects-storage";
+import { ARIA_IS_PREVIEW, ariaFetch, useAriaSession } from "@/lib/aria-session";
 import { cn } from "@/lib/utils";
 
 function ProjectRow({
@@ -135,6 +136,7 @@ function ProjectRow({
 }
 
 export function AriaOpenUISidebarProjects() {
+  const session = useAriaSession();
   const listId = useId();
   const [expanded, setExpanded] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
@@ -143,15 +145,29 @@ export function AriaOpenUISidebarProjects() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setProjects(loadAriaProjects());
-  }, []);
+    if (ARIA_IS_PREVIEW) { setProjects(loadAriaProjects()); return; }
+    setProjects([]);
+    setActiveId(null);
+    if (session.status !== "authenticated" || !session.workspace) return;
+    let cancelled = false;
+    ariaFetch("/api/projects/").then(async response => {
+      const result = await response.json();
+      if (!cancelled) {
+        if (response.ok) { setProjects(result.projects); setError(""); }
+        else setError(result.message ?? "Could not load projects.");
+      }
+    }).catch(() => { if (!cancelled) setError("Could not load projects."); });
+    return () => { cancelled = true; };
+  }, [session.status, session.workspace?.id]);
 
   const persist = useCallback((next: AriaProject[] | ((prev: AriaProject[]) => AriaProject[])) => {
     setProjects((prev) => {
       const resolved = typeof next === "function" ? next(prev) : next;
-      saveAriaProjects(resolved);
+      if (ARIA_IS_PREVIEW) saveAriaProjects(resolved);
       return resolved;
     });
   }, []);
@@ -161,7 +177,23 @@ export function AriaOpenUISidebarProjects() {
     setDraftName("");
   };
 
-  const submitCreate = () => {
+  const submitCreate = async () => {
+    if (busy) return;
+    setError("");
+    if (!ARIA_IS_PREVIEW) {
+      setBusy(true);
+      try {
+        const response = await ariaFetch("/api/projects/", { method: "POST", body: JSON.stringify({ name: createAriaProjectName(projects, draftName) }) });
+        const result = await response.json();
+        if (!response.ok) { setError(result.message ?? "Could not create project."); return; }
+        setProjects(prev => [result.project, ...prev]);
+        setActiveId(result.project.id);
+        setExpanded(true);
+        closeCreate();
+      } catch { setError("Could not create project."); }
+      finally { setBusy(false); }
+      return;
+    }
     let createdId = "";
     persist((prev) => {
       const name = createAriaProjectName(prev, draftName);
@@ -185,20 +217,41 @@ export function AriaOpenUISidebarProjects() {
     setRenameDraft(project.name);
   };
 
-  const commitRename = (projectId: string) => {
+  const commitRename = async (projectId: string) => {
     const trimmed = renameDraft.trim();
     if (!trimmed) {
       setRenamingId(null);
       return;
     }
-    persist((prev) =>
-      prev.map((p) => (p.id === projectId ? { ...p, name: trimmed } : p)),
-    );
+    if (!ARIA_IS_PREVIEW) {
+      if (busy) return;
+      setBusy(true);
+      try {
+        const response = await ariaFetch(`/api/projects/${projectId}/`, { method: "PATCH", body: JSON.stringify({ name: trimmed }) });
+        const result = await response.json();
+        if (!response.ok) { setError(result.message ?? "Could not rename project."); return; }
+        setProjects(prev => prev.map(p => p.id === projectId ? { ...p, name: trimmed } : p));
+        setError("");
+      } catch { setError("Could not rename project."); }
+      finally { setBusy(false); setRenamingId(null); }
+      return;
+    }
+    persist((prev) => prev.map((p) => (p.id === projectId ? { ...p, name: trimmed } : p)));
     setRenamingId(null);
   };
 
-  const deleteProject = (projectId: string) => {
-    persist((prev) => deleteAriaProject(prev, projectId));
+  const deleteProject = async (projectId: string) => {
+    if (!ARIA_IS_PREVIEW) {
+      if (busy) return;
+      setBusy(true);
+      try {
+        const response = await ariaFetch(`/api/projects/${projectId}/`, { method: "DELETE" });
+        if (!response.ok) { setError((await response.json()).message ?? "Could not delete project."); return; }
+        setProjects(prev => prev.filter(p => p.id !== projectId));
+        setError("");
+      } catch { setError("Could not delete project."); }
+      finally { setBusy(false); }
+    } else persist((prev) => deleteAriaProject(prev, projectId));
     setActiveId((id) => (id === projectId ? null : id));
     setRenamingId((id) => (id === projectId ? null : id));
   };
@@ -270,6 +323,7 @@ export function AriaOpenUISidebarProjects() {
           {!projects.length && !createOpen ? (
             <li className="aria-openui-projects__empty">No projects</li>
           ) : null}
+          {error ? <li className="aria-openui-projects__empty" role="alert">{error}</li> : null}
         </ul>
       ) : null}
     </section>

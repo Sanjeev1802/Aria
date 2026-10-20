@@ -68,8 +68,7 @@ export function AriaCreateProjectDialog({
           <div className="aria-create-project-dialog__info">
             <Lightbulb className="aria-create-project-dialog__info-icon" size={18} strokeWidth={1.75} aria-hidden />
             <p className="aria-create-project-dialog__info-text">
-              Projects keep chats, files, and custom instructions in one place. Use them for ongoing
-              work, or just to keep things tidy.
+              Create a workspace for organizing your work. Chat and file assignment will be added soon.
             </p>
           </div>
 

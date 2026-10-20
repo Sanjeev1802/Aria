@@ -10,6 +10,7 @@ import { localTestModelConfig, streamFakeModel } from "../lib/server/fake-model"
 import { LOCAL_USER_HEADER } from "../lib/local-user-shared";
 import { chargeUnits } from "../lib/server/metering";
 import { parseChatInput } from "../lib/server/chat-input";
+import { projectDeleteHandler, projectPatchHandler, projectsGetHandler, projectsPostHandler } from "../lib/server/projects";
 import { ORIGIN } from "./helpers";
 
 const devConfig = {
@@ -84,6 +85,26 @@ test("local users cannot read each other's workspace usage", async () => {
     () => usageHandler(loopbackRequest("/api/usage/", { localUser: "blair", workspace: alexBody.workspace.id }), services),
     { code: "workspace_not_found" },
   );
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("projects persist, belong to a workspace, and reject cross-workspace edits", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aria-projects-"));
+  const path = join(dir, "s.sqlite");
+  const services = buildServices({ ...devConfig, localStorePath: path }, { store: new SqliteStore(path) });
+  const alex = await (await sessionHandler(loopbackRequest("/api/auth/session/", { localUser: "alex" }), services)).json() as { workspace: { id: string } };
+  const created = await projectsPostHandler(loopbackRequest("/api/projects/", { localUser: "alex", body: { name: "Research" } }), services);
+  assert.equal(created.status, 201);
+  const project = (await created.json() as { project: { id: string; name: string } }).project;
+  const reopened = buildServices({ ...devConfig, localStorePath: path }, { store: new SqliteStore(path) });
+  const list = await projectsGetHandler(loopbackRequest("/api/projects/", { localUser: "alex" }), reopened);
+  assert.equal((await list.json() as { projects: { id: string }[] }).projects[0].id, project.id);
+  await assert.rejects(() => projectPatchHandler(loopbackRequest(`/api/projects/${project.id}/`, { method: "PATCH", localUser: "blair", body: { name: "Stolen" } }), services), { code: "project_not_found" });
+  await assert.rejects(() => projectsGetHandler(loopbackRequest("/api/projects/", { localUser: "blair", workspace: alex.workspace.id }), services), { code: "workspace_not_found" });
+  const updated = await projectPatchHandler(loopbackRequest(`/api/projects/${project.id}/`, { method: "PATCH", localUser: "alex", body: { name: "New name" } }), services);
+  assert.equal((await updated.json() as { project: { name: string } }).project.name, "New name");
+  await projectDeleteHandler(loopbackRequest(`/api/projects/${project.id}/`, { method: "DELETE", localUser: "alex" }), services);
+  assert.deepEqual((await (await projectsGetHandler(loopbackRequest("/api/projects/", { localUser: "alex" }), services)).json() as { projects: unknown[] }).projects, []);
   rmSync(dir, { recursive: true, force: true });
 });
 

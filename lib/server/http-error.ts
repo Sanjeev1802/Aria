@@ -29,6 +29,8 @@ const messages: Record<string,string> = {
   invite_email_mismatch: "Sign in with the verified email address the invitation was sent to.",
   already_member: "You are already a member of this workspace.",
   member_not_found: "That member was not found.",
+  invalid_project_name: "Enter a project name of 1 to 80 characters.",
+  project_not_found: "That project was not found.",
   cannot_remove_owner: "The workspace owner cannot be removed.",
   cannot_remove_self: "You cannot remove yourself.",
   invalid_credentials: "Email or password is incorrect.",
