@@ -6,7 +6,7 @@ import { ServiceError } from "./errors";
 import type { Account, CreditLedger } from "./accounting/credit-ledger";
 
 export type StreamProvider = (input: ChatInput, model: string, signal: AbortSignal) =>
-  AsyncIterable<{ text: string } | { usage: Usage }>;
+  AsyncIterable<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence" }>;
 
 export async function createChatResponse(input: ChatInput, options: {
   ledger: CreditLedger; account: Account; modelId: string; rates: Rates;
@@ -48,6 +48,7 @@ export async function createChatResponse(input: ChatInput, options: {
       }
       let text = "";
       let usage: Usage | undefined;
+      let finishReason: "end_turn" | "max_tokens" | "stop_sequence" | undefined;
       try {
         await ledger.markProviderStarted(workspaceId, input.id);
         for await (const event of options.provider(input, modelId, signal)) {
@@ -56,10 +57,15 @@ export async function createChatResponse(input: ChatInput, options: {
             text += event.text;
             if (text.length > 100_000) throw new Error("Output limit exceeded");
             content(JSON.stringify(event.text).slice(1, -1));
-          } else usage = event.usage;
+          } else { usage = event.usage; finishReason = event.finishReason; }
         }
         signal.throwIfAborted();
         if (!usage || !text.trim()) throw new Error("Response or usage missing");
+        if (finishReason === "max_tokens") {
+          const notice = "\n\nResponse reached the model's length limit. Ask ARIA to continue if you need the rest.";
+          text += notice;
+          content(JSON.stringify(notice).slice(1, -1));
+        }
       } catch {
         // Incomplete/cancelled responses are not customer-billed; AWS may still bill us.
         await ledger.fail(workspaceId, input.id).catch(() => logLedgerIssue("release_deferred", account, input.id));
