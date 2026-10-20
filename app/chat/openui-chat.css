@@ -641,7 +641,6 @@
   color: var(--openui-text-neutral-secondary);
   cursor: pointer;
   opacity: 0;
-  pointer-events: none;
   z-index: 1;
 }
 
@@ -857,7 +856,7 @@
   color: var(--openui-text-neutral-secondary);
   cursor: pointer;
   opacity: 0;
-  pointer-events: none;
+  z-index: 1;
 }
 
 .aria-openui-chat .aria-openui-project-row:hover .aria-openui-project-row__menu,
@@ -910,6 +909,10 @@
   border-radius: 10px;
   border: 1px dashed color-mix(in oklch, var(--openui-text-warning-primary, #f5a524) 55%, var(--aria-sidebar-border));
   background: color-mix(in oklch, var(--openui-text-warning-primary, #f5a524) 8%, transparent);
+}
+
+.aria-openui-chat .openui-agent-sidebar-container--collapsed .aria-local-user-switcher {
+  display: none;
 }
 
 .aria-openui-chat .aria-local-user-switcher__label {

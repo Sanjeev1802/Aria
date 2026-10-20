@@ -17,6 +17,7 @@ import {
   type AriaProject,
 } from "@/lib/aria-projects-storage";
 import { ARIA_IS_PREVIEW, ariaFetch, useAriaSession } from "@/lib/aria-session";
+import { useAriaProjects } from "@/lib/aria-project-context";
 import { cn } from "@/lib/utils";
 
 function ProjectRow({
@@ -137,12 +138,11 @@ function ProjectRow({
 
 export function AriaOpenUISidebarProjects() {
   const session = useAriaSession();
+  const { projects, setProjects, activeProjectId, setActiveProjectId } = useAriaProjects();
   const listId = useId();
   const [expanded, setExpanded] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [draftName, setDraftName] = useState("");
-  const [projects, setProjects] = useState<AriaProject[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [error, setError] = useState("");
@@ -151,7 +151,7 @@ export function AriaOpenUISidebarProjects() {
   useEffect(() => {
     if (ARIA_IS_PREVIEW) { setProjects(loadAriaProjects()); return; }
     setProjects([]);
-    setActiveId(null);
+    setActiveProjectId(null);
     if (session.status !== "authenticated" || !session.workspace) return;
     let cancelled = false;
     ariaFetch("/api/projects/").then(async response => {
@@ -162,7 +162,7 @@ export function AriaOpenUISidebarProjects() {
       }
     }).catch(() => { if (!cancelled) setError("Could not load projects."); });
     return () => { cancelled = true; };
-  }, [session.status, session.workspace?.id]);
+  }, [session.status, session.workspace?.id, setProjects, setActiveProjectId]);
 
   const persist = useCallback((next: AriaProject[] | ((prev: AriaProject[]) => AriaProject[])) => {
     setProjects((prev) => {
@@ -187,7 +187,7 @@ export function AriaOpenUISidebarProjects() {
         const result = await response.json();
         if (!response.ok) { setError(result.message ?? "Could not create project."); return; }
         setProjects(prev => [result.project, ...prev]);
-        setActiveId(result.project.id);
+        setActiveProjectId(result.project.id);
         setExpanded(true);
         closeCreate();
       } catch { setError("Could not create project."); }
@@ -201,7 +201,7 @@ export function AriaOpenUISidebarProjects() {
       createdId = project.id;
       return [project, ...prev];
     });
-    setActiveId(createdId);
+    setActiveProjectId(createdId);
     setExpanded(true);
     closeCreate();
   };
@@ -252,7 +252,7 @@ export function AriaOpenUISidebarProjects() {
       } catch { setError("Could not delete project."); }
       finally { setBusy(false); }
     } else persist((prev) => deleteAriaProject(prev, projectId));
-    setActiveId((id) => (id === projectId ? null : id));
+    setActiveProjectId((id) => (id === projectId ? null : id));
     setRenamingId((id) => (id === projectId ? null : id));
   };
 
@@ -304,14 +304,19 @@ export function AriaOpenUISidebarProjects() {
 
       {expanded ? (
         <ul id={`${listId}-list`} className="aria-openui-projects__list">
+          {!ARIA_IS_PREVIEW ? <li>
+            <button type="button" className={cn("aria-openui-project-row__main", "w-full", activeProjectId === null && "font-semibold")}
+              aria-current={activeProjectId === null ? "page" : undefined}
+              onClick={() => setActiveProjectId(null)}>All chats</button>
+          </li> : null}
           {projects.map((project) => (
             <li key={project.id}>
               <ProjectRow
                 project={project}
-                selected={activeId === project.id}
+                selected={activeProjectId === project.id}
                 renaming={renamingId === project.id}
                 renameValue={renameDraft}
-                onSelect={() => setActiveId(project.id)}
+                onSelect={() => setActiveProjectId(id => id === project.id ? null : project.id)}
                 onRenameChange={setRenameDraft}
                 onRenameCommit={() => commitRename(project.id)}
                 onRenameCancel={() => setRenamingId(null)}

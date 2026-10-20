@@ -68,7 +68,7 @@ export function AriaCreateProjectDialog({
           <div className="aria-create-project-dialog__info">
             <Lightbulb className="aria-create-project-dialog__info-icon" size={18} strokeWidth={1.75} aria-hidden />
             <p className="aria-create-project-dialog__info-text">
-              Create a workspace for organizing your work. Chat and file assignment will be added soon.
+              Keep related chats together. Start a chat in this project or move an existing chat here from its menu.
             </p>
           </div>
 

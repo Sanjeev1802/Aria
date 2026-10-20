@@ -11,7 +11,7 @@ import { LOCAL_USER_HEADER } from "../lib/local-user-shared";
 import { chargeUnits } from "../lib/server/metering";
 import { parseChatInput } from "../lib/server/chat-input";
 import { projectDeleteHandler, projectPatchHandler, projectsGetHandler, projectsPostHandler } from "../lib/server/projects";
-import { threadDeleteHandler, threadGetHandler, threadsGetHandler, threadsPostHandler } from "../lib/server/threads";
+import { threadDeleteHandler, threadGetHandler, threadPatchHandler, threadsGetHandler, threadsPostHandler } from "../lib/server/threads";
 import { prepareThreadRun } from "../lib/server/threads";
 import { requireWorkspace } from "../lib/server/request-context";
 import { ORIGIN } from "./helpers";
@@ -142,6 +142,36 @@ test("saved chat survives restart and rejects another user's thread ID", async (
   assert.equal((await list.json() as { threads: { id: string }[] }).threads[0].id, thread.id);
   await threadDeleteHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "alex", method: "DELETE" }), reopened);
   assert.deepEqual((await (await threadsGetHandler(loopbackRequest("/api/threads/", { localUser: "alex" }), reopened)).json() as { threads: unknown[] }).threads, []);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("chat project assignment persists and cannot use another workspace's project", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aria-project-assignment-"));
+  const path = join(dir, "s.sqlite");
+  const services = buildServices({ ...devConfig, localStorePath: path }, { store: new SqliteStore(path) });
+  const project = (await (await projectsPostHandler(loopbackRequest("/api/projects/", { localUser: "alex", body: { name: "Launch" } }), services)).json() as { project: { id: string } }).project;
+  const otherProject = (await (await projectsPostHandler(loopbackRequest("/api/projects/", { localUser: "blair", body: { name: "Private" } }), services)).json() as { project: { id: string } }).project;
+  await assert.rejects(() => threadsPostHandler(loopbackRequest("/api/threads/", { localUser: "alex", body: {
+    firstMessage: { role: "user", content: "Plan the launch" }, projectId: otherProject.id,
+  } }), services), { code: "project_not_found" });
+  const thread = await (await threadsPostHandler(loopbackRequest("/api/threads/", { localUser: "alex", body: {
+    firstMessage: { role: "user", content: "Plan the launch" }, projectId: project.id,
+  } }), services)).json() as { id: string; projectId: string | null };
+  assert.equal(thread.projectId, project.id);
+  const reopened = buildServices({ ...devConfig, localStorePath: path }, { store: new SqliteStore(path) });
+  const list = await (await threadsGetHandler(loopbackRequest("/api/threads/", { localUser: "alex" }), reopened)).json() as { threads: { id: string; projectId: string | null }[] };
+  assert.equal(list.threads[0].projectId, project.id);
+  await assert.rejects(() => threadPatchHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "alex", method: "PATCH", body: { projectId: otherProject.id } }), reopened), { code: "project_not_found" });
+  await assert.rejects(() => threadPatchHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "blair", method: "PATCH", body: { projectId: otherProject.id } }), reopened), { code: "thread_not_found" });
+  const moved = await (await threadPatchHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "alex", method: "PATCH", body: { projectId: null } }), reopened)).json() as { projectId: string | null };
+  assert.equal(moved.projectId, null);
+  const renamed = await (await threadPatchHandler(loopbackRequest(`/api/threads/${thread.id}/`, { localUser: "alex", method: "PATCH", body: { title: "Launch plan", projectId: project.id } }), reopened)).json() as { title: string; projectId: string | null };
+  assert.equal(renamed.title, "Launch plan");
+  assert.equal(renamed.projectId, project.id);
+  await projectDeleteHandler(loopbackRequest(`/api/projects/${project.id}/`, { localUser: "alex", method: "DELETE" }), reopened);
+  const afterProjectDelete = await (await threadsGetHandler(loopbackRequest("/api/threads/", { localUser: "alex" }), reopened)).json() as { threads: { id: string; projectId: string | null }[] };
+  assert.equal(afterProjectDelete.threads[0].id, thread.id);
+  assert.equal(afterProjectDelete.threads[0].projectId, null);
   rmSync(dir, { recursive: true, force: true });
 });
 

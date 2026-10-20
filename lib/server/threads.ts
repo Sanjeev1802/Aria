@@ -7,14 +7,16 @@ import type { Services } from "./services";
 import { ConditionFailed, notExists, type Item, type Key } from "./store/types";
 
 type SavedMessage = { id: string; role: "user" | "assistant"; content: string };
-type SavedThread = { id: string; title: string; createdAt: string; messages: SavedMessage[]; version: number; lastRunId?: string };
+type SavedThread = { id: string; title: string; createdAt: string; messages: SavedMessage[]; version: number; lastRunId?: string; projectId?: string };
 const noStore = { "Cache-Control": "no-store" };
+const validId = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value);
 const pk = (ctx: WorkspaceContext) => `CHAT#${ctx.workspace.id}#${ctx.user.id}`;
 const key = (ctx: WorkspaceContext, id: string): Key => ({ pk: pk(ctx), sk: `THREAD#${id}` });
 const memberKey = (ctx: WorkspaceContext): Key => ({ pk: `WS#${ctx.workspace.id}`, sk: `MEMBER#${ctx.user.id}` });
+const projectKey = (ctx: WorkspaceContext, id: string): Key => ({ pk: `WS#${ctx.workspace.id}`, sk: `PROJECT#${id}` });
 const threadId = (request: Request) => {
   const id = new URL(request.url).pathname.split("/").filter(Boolean).at(-1);
-  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new ServiceError("thread_not_found", 404);
+  if (!validId(id)) throw new ServiceError("thread_not_found", 404);
   return id;
 };
 
@@ -30,12 +32,19 @@ function decode(row: Item | undefined): SavedThread {
     const messages = JSON.parse(String(row.messages));
     if (!Array.isArray(messages)) throw new Error();
     return { id: String(row.id), title: String(row.title), createdAt: String(row.createdAt), messages,
-      version: Number(row.version ?? 0), lastRunId: typeof row.lastRunId === "string" ? row.lastRunId : undefined };
+      version: Number(row.version ?? 0), lastRunId: typeof row.lastRunId === "string" ? row.lastRunId : undefined,
+      projectId: validId(row.projectId) ? row.projectId : undefined };
   } catch { throw new ServiceError("thread_unavailable", 503); }
 }
 
-function exposed(thread: SavedThread) {
-  return { id: thread.id, title: thread.title, createdAt: thread.createdAt };
+function exposed(thread: SavedThread, availableProjects?: ReadonlySet<string>) {
+  const projectId = thread.projectId && (!availableProjects || availableProjects.has(thread.projectId)) ? thread.projectId : null;
+  return { id: thread.id, title: thread.title, createdAt: thread.createdAt, projectId };
+}
+
+async function projectIds(services: Services, ctx: WorkspaceContext) {
+  const rows = await services.store.query(`WS#${ctx.workspace.id}`, "PROJECT#");
+  return new Set(rows.map(row => String(row.id)));
 }
 
 function exposedMessages(thread: SavedThread) {
@@ -46,34 +55,42 @@ function exposedMessages(thread: SavedThread) {
 export async function threadsGetHandler(request: Request, services: Services) {
   const ctx = await requireWorkspace(request, services, "chat");
   const rows = await services.store.query(pk(ctx), "THREAD#");
-  const threads = rows.map(row => exposed(decode(row))).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const availableProjects = await projectIds(services, ctx);
+  const threads = rows.map(row => exposed(decode(row), availableProjects)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return Response.json({ threads }, { headers: noStore });
 }
 
 export async function threadsPostHandler(request: Request, services: Services) {
   const ctx = await requireWorkspace(request, services, "chat");
-  const first = (await readJson(request, 16_000)).firstMessage;
+  const body = await readJson(request, 16_000);
+  const first = body.firstMessage;
   if (!first || typeof first !== "object" || Array.isArray(first)) throw new ServiceError("invalid_message", 400);
   const message = first as Record<string, unknown>;
   const content = textOf(message.content);
   if (message.role !== "user" || !content.trim() || Buffer.byteLength(content, "utf8") > 8000) throw new ServiceError("invalid_message", 400);
   const id = randomUUID(), createdAt = new Date().toISOString();
   const title = content.trim().slice(0, 80);
+  const projectId = body.projectId === undefined ? undefined : body.projectId;
+  if (projectId !== undefined && !validId(projectId)) throw new ServiceError("project_not_found", 404);
   const messages: SavedMessage[] = [{ id: typeof message.id === "string" && message.id.length <= 100 ? message.id : randomUUID(), role: "user", content }];
   try {
     await services.store.transact([
       { kind: "check", key: memberKey(ctx), when: [{ field: "status", op: "=", value: "active" }] },
-      { kind: "put", when: [notExists], item: { ...key(ctx, id), id, title, createdAt, messages: JSON.stringify(messages), version: 0 } },
+      ...(projectId ? [{ kind: "check" as const, key: projectKey(ctx, projectId), when: [{ field: "pk" as const, op: "exists" as const }] }] : []),
+      { kind: "put", when: [notExists], item: { ...key(ctx, id), id, title, createdAt, messages: JSON.stringify(messages), version: 0, projectId } },
     ]);
-  } catch (error) { if (error instanceof ConditionFailed) throw new ServiceError("access_revoked", 403); throw error; }
-  return Response.json(exposed({ id, title, createdAt, messages, version: 0 }), { status: 201, headers: noStore });
+  } catch (error) {
+    if (error instanceof ConditionFailed) throw new ServiceError(error.failedIndexes.includes(0) ? "access_revoked" : "project_not_found", error.failedIndexes.includes(0) ? 403 : 404);
+    throw error;
+  }
+  return Response.json(exposed({ id, title, createdAt, messages, version: 0, projectId }), { status: 201, headers: noStore });
 }
 
 export async function threadGetHandler(request: Request, services: Services) {
   const ctx = await requireWorkspace(request, services, "chat");
   const thread = decode(await services.store.get(key(ctx, threadId(request))));
   if (new URL(request.url).searchParams.get("export") === "1") {
-    return Response.json({ version: 1, thread: exposed(thread), messages: thread.messages }, {
+    return Response.json({ version: 1, thread: exposed(thread, await projectIds(services, ctx)), messages: thread.messages }, {
       headers: { ...noStore, "Content-Disposition": `attachment; filename="aria-chat-${thread.id}.json"` },
     });
   }
@@ -83,18 +100,32 @@ export async function threadGetHandler(request: Request, services: Services) {
 export async function threadPatchHandler(request: Request, services: Services) {
   const ctx = await requireWorkspace(request, services, "chat");
   const id = threadId(request);
-  const value = (await readJson(request)).title;
-  if (typeof value !== "string" || !value.trim() || value.trim().length > 120) throw new ServiceError("invalid_thread_title", 400);
+  const body = await readJson(request);
+  const hasTitle = Object.hasOwn(body, "title");
+  const hasProject = Object.hasOwn(body, "projectId");
+  if (!hasTitle && !hasProject) throw new ServiceError("invalid_request", 400);
+  if (hasTitle && (typeof body.title !== "string" || !body.title.trim() || body.title.trim().length > 120))
+    throw new ServiceError("invalid_thread_title", 400);
+  if (hasProject && body.projectId !== null && !validId(body.projectId)) throw new ServiceError("project_not_found", 404);
+  const projectId = hasProject && body.projectId !== null ? body.projectId as string : undefined;
   try {
     await services.store.transact([
       { kind: "check", key: memberKey(ctx), when: [{ field: "status", op: "=", value: "active" }] },
-      { kind: "update", key: key(ctx, id), set: { title: value.trim() }, when: [{ field: "pk", op: "exists" }] },
+      ...(projectId ? [{ kind: "check" as const, key: projectKey(ctx, projectId), when: [{ field: "pk" as const, op: "exists" as const }] }] : []),
+      { kind: "update", key: key(ctx, id), set: {
+        ...(hasTitle ? { title: (body.title as string).trim() } : {}),
+        ...(projectId ? { projectId } : {}),
+      }, remove: hasProject && !projectId ? ["projectId"] : undefined, when: [{ field: "pk", op: "exists" }] },
     ]);
   } catch (error) {
-    if (error instanceof ConditionFailed) throw new ServiceError(error.failedIndexes.includes(0) ? "access_revoked" : "thread_not_found", error.failedIndexes.includes(0) ? 403 : 404);
+    if (error instanceof ConditionFailed) {
+      if (error.failedIndexes.includes(0)) throw new ServiceError("access_revoked", 403);
+      if (projectId && error.failedIndexes.includes(1)) throw new ServiceError("project_not_found", 404);
+      throw new ServiceError("thread_not_found", 404);
+    }
     throw error;
   }
-  return Response.json(exposed(decode(await services.store.get(key(ctx, id)))), { headers: noStore });
+  return Response.json(exposed(decode(await services.store.get(key(ctx, id))), await projectIds(services, ctx)), { headers: noStore });
 }
 
 export async function threadDeleteHandler(request: Request, services: Services) {

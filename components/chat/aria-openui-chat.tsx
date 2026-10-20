@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AriaWorkspacePath } from "@/lib/aria-workspace-paths";
 import { useRouter } from "next/navigation";
-import { refreshAriaSession, useAriaProfile } from "@/lib/aria-session";
+import { refreshAriaSession, useAriaProfile, useAriaSession } from "@/lib/aria-session";
 import { AriaAuthNotice } from "@/components/auth/aria-auth-notice";
 import { AriaLocalUserSwitcher } from "@/components/dev/aria-local-user-switcher";
 import { AriaMark } from "@/components/aria-mark";
@@ -23,7 +23,8 @@ import { AriaOpenUISidebarCredits } from "@/components/chat/aria-openui-sidebar-
 import { AriaOpenUISidebarUser } from "@/components/chat/aria-openui-sidebar-user";
 import { ariaOpenUIDarkTheme } from "@/lib/aria-openui-theme";
 import { getAriaChatLLM } from "@/lib/aria-openui-llm";
-import { ariaThreadStorage } from "@/lib/aria-thread-storage";
+import { createAriaThreadStorage } from "@/lib/aria-thread-storage";
+import { AriaProjectProvider, useAriaProjects } from "@/lib/aria-project-context";
 import { watchAndRemoveOpenUIDevtools } from "@/lib/remove-openui-devtools-dom";
 
 // These workspaces are not needed to begin a conversation.
@@ -37,8 +38,17 @@ export type AriaOpenUIChatProps = {
   initialPath?: string;
 };
 
-export function AriaOpenUIChat({ initialPath }: AriaOpenUIChatProps = {}) {
+export function AriaOpenUIChat(props: AriaOpenUIChatProps = {}) {
+  const session = useAriaSession();
+  return <AriaProjectProvider key={session.workspace?.id ?? session.status}>
+    <AriaOpenUIChatContent {...props} />
+  </AriaProjectProvider>;
+}
+
+function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   const llm = useMemo(() => getAriaChatLLM(), []);
+  const { activeProjectRef } = useAriaProjects();
+  const threadStorage = useMemo(() => createAriaThreadStorage(() => activeProjectRef.current), [activeProjectRef]);
   const router = useRouter();
   const profile = useAriaProfile();
   const sessionStatus = profile.session.status;
@@ -81,7 +91,7 @@ export function AriaOpenUIChat({ initialPath }: AriaOpenUIChatProps = {}) {
       <AgentInterface
         key={profile.session.workspace?.id ?? sessionStatus}
         llm={llm}
-        storage={process.env.NEXT_PUBLIC_ARIA_PREVIEW === "true" ? undefined : ariaThreadStorage}
+        storage={process.env.NEXT_PUBLIC_ARIA_PREVIEW === "true" ? undefined : threadStorage}
         componentLibrary={openuiChatLibrary}
         components={{ AssistantMessage: AriaOpenUIAssistantMessage }}
         agentName="ARIA"

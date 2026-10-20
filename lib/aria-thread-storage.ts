@@ -9,11 +9,12 @@ async function request(path: string, init?: RequestInit) {
 }
 
 /** OpenUI's default storage is memory-only; this adapter stores the selected user's threads on ARIA. */
-export const ariaThreadStorage: ChatStorage = {
+export function createAriaThreadStorage(selectedProjectId: () => string | null): ChatStorage {
+  return {
   thread: {
     async listThreads() { return request("/api/threads/"); },
     async createThread(firstMessage) {
-      return request("/api/threads/", { method: "POST", body: JSON.stringify({ firstMessage }) });
+      return request("/api/threads/", { method: "POST", body: JSON.stringify({ firstMessage, projectId: selectedProjectId() ?? undefined }) });
     },
     async getMessages(id) {
       const result = await request(`/api/threads/${id}/`);
@@ -26,4 +27,5 @@ export const ariaThreadStorage: ChatStorage = {
       await request(`/api/threads/${id}/`, { method: "DELETE" });
     },
   },
-};
+  };
+}
