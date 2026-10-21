@@ -3,6 +3,9 @@ import {
   CognitoIdentityProviderClient, ConfirmForgotPasswordCommand, ConfirmSignUpCommand, ForgotPasswordCommand,
   InitiateAuthCommand, ResendConfirmationCodeCommand, RevokeTokenCommand, SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
+import {
+  AuthenticationDetails, CognitoUser, CognitoUserPool, type CognitoUserSession,
+} from "amazon-cognito-identity-js";
 import { ServiceError } from "../errors";
 
 export type AuthTokens = { accessToken: string; idToken: string; refreshToken?: string };
@@ -35,15 +38,28 @@ const ERROR_MAP: Record<string, [string, number]> = {
 };
 
 function mapError(error: unknown): never {
-  const mapped = ERROR_MAP[(error as Error)?.name];
+  const code = (error as { name?: string; code?: string })?.name
+    || (error as { code?: string })?.code
+    || "";
+  const mapped = ERROR_MAP[code];
   if (mapped) throw new ServiceError(mapped[0], mapped[1]);
   throw new ServiceError("identity_unavailable", 503);
 }
 
+function isPasswordAuthDisabled(error: unknown) {
+  return (error as { name?: string })?.name === "InvalidParameterException"
+    && /USER_PASSWORD_AUTH/.test(String((error as Error).message));
+}
+
 export class CognitoIdentityProvider implements IdentityProvider {
   private client: CognitoIdentityProviderClient;
-  constructor(private options: { region: string; clientId: string; clientSecret?: string }) {
-    this.client = new CognitoIdentityProviderClient({ region: options.region });
+  constructor(private options: { region: string; userPoolId: string; clientId: string; clientSecret?: string }) {
+    // User-pool auth APIs (sign-up, sign-in, refresh) use the app client id, not IAM.
+    // Provide inert credentials so the SDK does not fail when no AWS profile is present.
+    this.client = new CognitoIdentityProviderClient({
+      region: options.region,
+      credentials: { accessKeyId: "ARIA_COGNITO", secretAccessKey: "ARIA_COGNITO" },
+    });
   }
 
   private secretHash(username: string) {
@@ -51,26 +67,70 @@ export class CognitoIdentityProvider implements IdentityProvider {
     return createHmac("sha256", this.options.clientSecret).update(username + this.options.clientId).digest("base64");
   }
 
-  async signIn(email: string, password: string) {
-    const username = email.trim().toLowerCase();
+  private async passwordAuth(username: string, password: string): Promise<AuthTokens> {
     const secret = this.secretHash(username);
     const result = await this.client.send(new InitiateAuthCommand({
       AuthFlow: "USER_PASSWORD_AUTH", ClientId: this.options.clientId,
       AuthParameters: { USERNAME: username, PASSWORD: password, ...(secret ? { SECRET_HASH: secret } : {}) },
-    })).catch(mapError);
-    // MFA / forced password change need dedicated UI before they can be enabled on the pool.
+    }));
     if (result.ChallengeName) throw new ServiceError("auth_challenge_unsupported", 501);
     const tokens = result.AuthenticationResult;
     if (!tokens?.AccessToken || !tokens.IdToken) throw new ServiceError("identity_unavailable", 503);
     return { accessToken: tokens.AccessToken, idToken: tokens.IdToken, refreshToken: tokens.RefreshToken };
   }
 
+  private srpAuth(username: string, password: string): Promise<AuthTokens> {
+    const user = new CognitoUser({
+      Username: username,
+      Pool: new CognitoUserPool({ UserPoolId: this.options.userPoolId, ClientId: this.options.clientId }),
+    });
+    const details = new AuthenticationDetails({ Username: username, Password: password });
+    return new Promise((resolve, reject) => {
+      user.authenticateUser(details, {
+        onSuccess(session: CognitoUserSession) {
+          resolve({
+            accessToken: session.getAccessToken().getJwtToken(),
+            idToken: session.getIdToken().getJwtToken(),
+            refreshToken: session.getRefreshToken().getToken(),
+          });
+        },
+        onFailure: reject,
+        mfaRequired: () => reject(new ServiceError("auth_challenge_unsupported", 501)),
+        totpRequired: () => reject(new ServiceError("auth_challenge_unsupported", 501)),
+        newPasswordRequired: () => reject(new ServiceError("auth_challenge_unsupported", 501)),
+        mfaSetup: () => reject(new ServiceError("auth_challenge_unsupported", 501)),
+        selectMFAType: () => reject(new ServiceError("auth_challenge_unsupported", 501)),
+      });
+    });
+  }
+
+  async signIn(email: string, password: string) {
+    const username = email.trim().toLowerCase();
+    try {
+      return await this.passwordAuth(username, password);
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+      if (!isPasswordAuthDisabled(error)) mapError(error);
+      try {
+        return await this.srpAuth(username, password);
+      } catch (srpError) {
+        if (srpError instanceof ServiceError) throw srpError;
+        mapError(srpError);
+      }
+    }
+  }
+
   async signUp(email: string, password: string, name: string) {
     const username = email.trim().toLowerCase();
     const secret = this.secretHash(username);
+    const display = name.trim().slice(0, 100) || username;
     const result = await this.client.send(new SignUpCommand({
       ClientId: this.options.clientId, Username: username, Password: password, SecretHash: secret,
-      UserAttributes: [{ Name: "email", Value: username }, ...(name.trim() ? [{ Name: "name", Value: name.trim().slice(0, 100) }] : [])],
+      UserAttributes: [
+        { Name: "email", Value: username },
+        { Name: "name", Value: display },
+        { Name: "name.formatted", Value: display },
+      ],
     })).catch(mapError);
     return { confirmationRequired: !result.UserConfirmed };
   }

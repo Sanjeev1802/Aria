@@ -4,6 +4,10 @@ import type { ChatInput } from "./chat-input";
 import type { Rates, Usage } from "./metering";
 import { ServiceError } from "./errors";
 
+if (!process.env.AWS_BEARER_TOKEN_BEDROCK?.trim() && process.env.BEDROCK_API_KEY?.trim()) {
+  process.env.AWS_BEARER_TOKEN_BEDROCK = process.env.BEDROCK_API_KEY.trim();
+}
+
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || "us-east-1", maxAttempts: 1 });
 export const MAX_OUTPUT_TOKENS = 1024;
 
