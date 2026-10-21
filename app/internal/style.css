@@ -7,7 +7,7 @@
 
 .internal-sidebar{width:248px;flex:0 0 248px;min-height:100dvh;display:flex;flex-direction:column;border-right:1px solid var(--internal-line);background:#151618;padding:26px 14px 18px}
 .internal-brand{display:flex;align-items:center;gap:12px;padding:3px 12px 42px}
-.internal-brand-mark{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid #eceeef;border-radius:10px;color:white;font-size:22px;font-weight:600;line-height:1;font-style:italic}
+.internal-brand-mark{display:block;width:29px;height:34px;color:white;flex:none}
 .internal-brand strong{display:block;font-size:18px;letter-spacing:.02em}
 .internal-brand span:not(.internal-brand-mark){display:block;color:#7d8189;font-size:9px;letter-spacing:.22em;margin-top:2px}
 .internal-nav-label{color:#636871;font-size:10px;letter-spacing:.16em;font-weight:700;padding:0 14px 11px}
@@ -46,6 +46,14 @@
 .internal-stat-top svg{color:#777d86}
 .internal-stat strong{display:block;font-size:31px;line-height:1.1;letter-spacing:-.05em;font-weight:600;margin:16px 0 7px;font-variant-numeric:tabular-nums}
 .internal-stat small{color:#80858e;font-size:11px}
+.internal-stat-value{font-size:31px!important;line-height:1.1;letter-spacing:-.05em;font-weight:600;margin:16px 0 7px;font-variant-numeric:tabular-nums}
+.internal-shell [data-slot=card]{background:var(--internal-panel);border-color:var(--internal-line);color:var(--internal-text)}
+.internal-shell [data-slot=card-description]{color:var(--internal-muted)}
+.internal-operations{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.internal-operations code{font-size:11px;color:#b8cfff;overflow-wrap:anywhere}
+.internal-workspace-id{display:block;color:#777d86;margin-top:4px;font-family:ui-monospace,monospace;font-size:10px}
+.internal-owner-link{border:0;background:transparent;color:#bad1fa;text-align:left;padding:0;font-size:inherit}
+.internal-owner-link:hover{text-decoration:underline}
 .internal-grid-two{display:grid;grid-template-columns:1.12fr .88fr;gap:18px;margin-bottom:20px}
 .internal-panel{min-width:0}
 .internal-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;padding:23px 24px 17px;gap:12px}
@@ -134,6 +142,7 @@
 .internal-error{min-height:420px}
 
 @media(max-width:1100px){.internal-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.internal-operations{grid-template-columns:1fr}
 .internal-grid-two{grid-template-columns:1fr}
 .internal-main{padding:32px 26px 70px}
 .internal-topbar{padding:0 26px}

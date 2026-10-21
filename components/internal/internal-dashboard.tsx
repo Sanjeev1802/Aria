@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, ArrowRight, BarChart3, ExternalLink,
   LayoutDashboard, LockKeyhole, Menu, Search, ShieldCheck, Users, Wallet, X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
+import { AriaMark } from "@/components/aria-mark";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type Credits = { period: string; included: number; used: number; reserved: number; available: number };
 type User = { id: string; email: string; name: string; status: "active" | "disabled"; personalWorkspaceId: string };
@@ -26,14 +30,10 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
   return body as T;
 }
 
-function AriaMark() {
-  return <span className="internal-brand-mark" aria-hidden="true">A</span>;
-}
-
 function Stat({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string;
   icon: typeof Users }) {
-  return <article className="internal-stat"><div className="internal-stat-top"><span>{label}</span><Icon size={18} aria-hidden="true" /></div>
-    <strong>{value}</strong><small>{detail}</small></article>;
+  return <Card className="internal-stat"><CardHeader className="pb-0"><CardDescription className="internal-stat-top"><span>{label}</span><Icon size={18} aria-hidden="true" /></CardDescription>
+    <CardTitle className="internal-stat-value">{value}</CardTitle></CardHeader><CardContent className="pt-0"><small>{detail}</small></CardContent></Card>;
 }
 
 export function InternalDashboard() {
@@ -41,7 +41,7 @@ export function InternalDashboard() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [section, setSection] = useState<"overview" | "customers" | "activity">("overview");
+  const [section, setSection] = useState<"overview" | "customers" | "workspaces" | "plans" | "activity" | "operations">("overview");
   const [mobileNav, setMobileNav] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -88,12 +88,15 @@ export function InternalDashboard() {
   const nav = [
     { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
     { id: "customers" as const, label: "Customers", icon: Users },
+    { id: "workspaces" as const, label: "Workspaces", icon: LayoutDashboard },
+    { id: "plans" as const, label: "Plans & credits", icon: Wallet },
     { id: "activity" as const, label: "Audit activity", icon: Activity },
+    { id: "operations" as const, label: "Operations", icon: ShieldCheck },
   ];
 
   return <div className="internal-shell">
     <aside className={`internal-sidebar ${mobileNav ? "is-open" : ""}`}>
-      <div className="internal-brand"><AriaMark /><div><strong>ARIA</strong><span>INTERNAL</span></div>
+      <div className="internal-brand"><AriaMark className="internal-brand-mark" /><div><strong>ARIA</strong><span>INTERNAL</span></div>
         <button className="internal-mobile-close" onClick={() => setMobileNav(false)} aria-label="Close navigation"><X size={19} /></button></div>
       <div className="internal-nav-label">WORKSPACE</div>
       <nav aria-label="Internal navigation">{nav.map(item => <button key={item.id} className={`internal-nav-item ${section === item.id ? "active" : ""}`}
@@ -106,14 +109,14 @@ export function InternalDashboard() {
     <div className="internal-content">
       <header className="internal-topbar"><button className="internal-menu" aria-label="Open navigation" onClick={() => setMobileNav(true)}><Menu size={21} /></button>
         <div className="internal-crumb">ARIA <span>/</span> Internal <span>/</span> <strong>{nav.find(item => item.id === section)?.label}</strong></div>
-        <div className="internal-top-actions"><span className="internal-env"><span />Restricted access</span><ShieldCheck size={17} aria-label="Restricted access" /></div></header>
+        <div className="internal-top-actions"><Badge variant="outline" className="internal-env"><span />Restricted access</Badge><ShieldCheck size={17} aria-label="Restricted access" /></div></header>
       <main className="internal-main">
         {loading ? <div className="internal-state">Loading ARIA operations…</div> : error && !overview
           ? <div className="internal-state internal-error"><LockKeyhole size={26} /><h1>Internal access unavailable</h1><p>{error}</p><a href="/sign-in/?next=%2Finternal%2F">Sign in</a></div>
           : overview && <>
-            <div className="internal-heading"><div><span className="internal-eyebrow">PLATFORM OPERATIONS</span><h1>{section === "overview" ? "Overview" : section === "customers" ? "Customers" : "Audit activity"}</h1>
-              <p>{section === "overview" ? "A clear view of your customers, workspaces, and usage." : section === "customers" ? "Find an account and review its access and usage." : "Recent changes made through the internal console."}</p></div>
-              <button className="internal-refresh" onClick={() => void refresh()}>Refresh data <ArrowRight size={16} /></button></div>
+            <div className="internal-heading"><div><span className="internal-eyebrow">PLATFORM OPERATIONS</span><h1>{nav.find(item => item.id === section)?.label}</h1>
+              <p>{section === "overview" ? "Customers, workspaces, and usage at a glance." : section === "customers" ? "Find an account and review its access and usage." : section === "workspaces" ? "Plans, seats, and members across ARIA." : section === "plans" ? "Current entitlements and credit balances." : section === "operations" ? "Live configuration and operator guidance." : "Recent changes made through the internal console."}</p></div>
+              <Button variant="outline" onClick={() => void refresh()}>Refresh data <ArrowRight size={16} /></Button></div>
             {error && <div className="internal-alert" role="alert">{error}<button onClick={() => setError("")} aria-label="Dismiss error"><X size={16} /></button></div>}
             {overview.limited && <div className="internal-alert">Showing the first 500 customers or workspaces. Narrow the scope before using totals for reporting.</div>}
 
@@ -137,8 +140,18 @@ export function InternalDashboard() {
             </>}
             {section === "customers" && <CustomerTable users={filteredUsers} query={query} setQuery={setQuery} openCustomer={openCustomer}
               title="All customers" count={overview.users.length} />}
+            {section === "workspaces" && <WorkspaceTable workspaces={overview.workspaces} users={overview.users} openCustomer={openCustomer} />}
+            {section === "plans" && <><div className="internal-stats">
+              <Stat label="Free" value={fmt.format(planCounts.free)} detail="Personal workspaces" icon={Users} />
+              <Stat label="Pro" value={fmt.format(planCounts.pro)} detail="Individual paid workspaces" icon={Wallet} />
+              <Stat label="Team" value={fmt.format(planCounts.team)} detail="Shared workspaces" icon={ShieldCheck} />
+              <Stat label="Credits used" value={fmt.format(overview.summary.creditsUsed)} detail="Current UTC billing period" icon={Activity} />
+              </div><WorkspaceTable workspaces={overview.workspaces} users={overview.users} openCustomer={openCustomer} credits /></>}
             {section === "activity" && <section className="internal-panel"><div className="internal-panel-heading"><div><h2>Operator actions</h2><p>Who changed what, and why</p></div><Activity size={18} /></div>
               <AuditList activity={overview.activity} /></section>}
+            {section === "operations" && <div className="internal-operations"><Card><CardHeader><CardTitle>Operator access</CardTitle><CardDescription>Admin access is checked on every request against verified Cognito subjects.</CardDescription></CardHeader><CardContent><Badge variant="outline">Server enforced</Badge></CardContent></Card>
+              <Card><CardHeader><CardTitle>Credit recovery</CardTitle><CardDescription>Pending reservations are reconciled by the scheduled job. Review the job logs for failed settlements.</CardDescription></CardHeader><CardContent><code>npm run admin -- reconcile</code></CardContent></Card>
+              <Card><CardHeader><CardTitle>Production setup</CardTitle><CardDescription>AWS resources, quotas, and payment provider state require live verification before launch.</CardDescription></CardHeader><CardContent><span className="text-sm text-muted-foreground">See INTERNAL_ADMIN_SETUP.md in the repository.</span></CardContent></Card></div>}
           </>}
       </main>
     </div>
@@ -186,6 +199,19 @@ function AuditList({ activity }: { activity: Audit[] }) {
   return activity.length ? <ol className="internal-audit-list">{activity.map(entry => <li key={entry.id}><div className="internal-event-icon"><Activity size={16} /></div>
     <div><strong>{entry.action.replaceAll("_", " ")}</strong><p>{entry.reason}</p><small>{dateFmt.format(entry.at)} · by {entry.actorId}</small></div></li>)}</ol>
     : <div className="internal-empty">No operator actions yet.</div>;
+}
+
+function WorkspaceTable({ workspaces, users, openCustomer, credits = false }: { workspaces: Workspace[]; users: User[];
+  openCustomer: (id: string) => void; credits?: boolean }) {
+  const ownerName = (id: string) => users.find(user => user.id === id)?.name || id;
+  return <section className="internal-panel internal-customers"><div className="internal-panel-heading"><div><h2>{credits ? "Credit balances" : "All workspaces"}</h2>
+    <p>{workspaces.length} workspaces in this view</p></div></div>
+    <div className="internal-table-wrap"><table><thead><tr><th>Workspace</th><th>Owner</th><th>Plan</th><th>Seats</th><th>{credits ? "Available credits" : "Credits used"}</th></tr></thead><tbody>
+    {workspaces.map(workspace => <tr key={workspace.id}><td><strong>{workspace.name}</strong><small className="internal-workspace-id">{workspace.id}</small></td>
+      <td><button className="internal-owner-link" onClick={() => void openCustomer(workspace.ownerId)}>{ownerName(workspace.ownerId)}</button></td>
+      <td><Badge variant="outline">{planName[workspace.plan]}</Badge></td><td>{workspace.seatsUsed} / {workspace.seatLimit}</td>
+      <td>{fmt.format(credits ? workspace.credits.available : workspace.credits.used)}</td></tr>)}
+    </tbody></table>{workspaces.length === 0 && <div className="internal-empty">No workspaces found.</div>}</div></section>;
 }
 
 function CustomerTable({ users, query, setQuery, openCustomer, title, count, viewAll }: { users: User[]; query: string;
