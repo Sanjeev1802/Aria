@@ -31,6 +31,10 @@ export type ServerConfig = {
   /** OneWave transactional email, configured only on the server. */
   emailService?: { url: string; apiKey: string };
   secureCookies: boolean;
+  /** Verified Cognito subjects allowed into the internal operator console. */
+  adminSubjects?: string[];
+  /** Loopback-only preview for local development; grants Alex the operator role. */
+  adminLocalDev?: boolean;
 };
 
 export type Services = {
@@ -64,6 +68,8 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     emailService: env.EMAIL_SERVICE_URL?.trim() && env.EMAIL_SERVICE_API_KEY?.trim()
       ? { url: env.EMAIL_SERVICE_URL.trim(), apiKey: env.EMAIL_SERVICE_API_KEY.trim() } : undefined,
     secureCookies: environment === "production",
+    adminSubjects: (env.ARIA_ADMIN_SUBS || "").split(",").map(value => value.trim()).filter(Boolean),
+    adminLocalDev: environment === "development" && env.ARIA_ADMIN_LOCAL_DEV === "true",
   };
 }
 

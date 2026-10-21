@@ -1,6 +1,13 @@
 import { ServiceError } from "./errors";
 
 const messages: Record<string,string> = {
+  admin_access_denied: "This account is not authorized for ARIA Internal.",
+  admin_invalid_target: "Choose a valid customer account.",
+  admin_customer_not_found: "That customer account was not found.",
+  admin_invalid_action: "Check the requested action and provide a reason of at least eight characters.",
+  admin_action_conflict: "This action was already submitted with different details. Refresh and try again.",
+  admin_self_action: "Use another internal administrator to change your own access.",
+  admin_plan_seats_exceeded: "This workspace has more occupied seats than the selected plan allows.",
   live_service_not_configured: "Live AI is not configured. Use explicit preview mode, or configure identity, the shared ledger, and Bedrock on the server.",
   model_or_rates_not_configured: "This model is not configured yet. Set its Bedrock model ID and verified token rates on the server.",
   insufficient_credits: "There are not enough available credits for this request. Try a shorter conversation or check your plan's remaining credits.",

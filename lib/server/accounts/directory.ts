@@ -45,9 +45,11 @@ export class AccountDirectory {
     try {
       await this.store.transact([
         { kind: "put", when: [notExists], item: { ...k.user(identity.sub), email, name, status: "active",
-          personalWorkspaceId: workspaceId, defaultWorkspaceId: workspaceId, sessionsRevokedAfter: 0, createdAt: now } },
+          personalWorkspaceId: workspaceId, defaultWorkspaceId: workspaceId, sessionsRevokedAfter: 0, createdAt: now,
+          gsi2pk: "ADMIN#USERS", gsi2sk: `${String(now).padStart(13, "0")}#${identity.sub}` } },
         { kind: "put", when: [notExists], item: { ...k.workspace(workspaceId), workspaceId, name: `${name}'s workspace`,
-          plan: "free", seatLimit: PLANS.free.seats, seatsUsed: 1, ownerId: identity.sub, createdAt: now } },
+          plan: "free", seatLimit: PLANS.free.seats, seatsUsed: 1, ownerId: identity.sub, createdAt: now,
+          gsi2pk: "ADMIN#WORKSPACES", gsi2sk: `${String(now).padStart(13, "0")}#${workspaceId}` } },
         { kind: "put", when: [notExists], item: { ...this.memberItem(workspaceId, identity.sub, "owner", email, name, now) } },
         { kind: "put", when: [notExists], item: { ...k.email(workspaceId, email), userId: identity.sub } },
       ]);

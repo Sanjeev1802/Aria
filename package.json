@@ -10,7 +10,8 @@
     "test": "tsx --test tests/*.test.ts",
     "start": "node scripts/start.mjs",
     "postbuild": "node scripts/prepare-standalone.mjs",
-    "admin": "tsx scripts/aria-admin.ts"
+    "admin": "tsx scripts/aria-admin.ts",
+    "admin:backfill": "tsx scripts/backfill-admin-index.ts"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.30",
