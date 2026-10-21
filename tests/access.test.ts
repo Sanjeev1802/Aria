@@ -48,6 +48,50 @@ async function inviteAndJoin(w: Awaited<ReturnType<typeof world>>, sub: string) 
   return { tokens, token };
 }
 
+test("Team invitation email uses the existing verified invite token and does not reveal it in the response", async () => {
+  const w = await world();
+  const sent: { to: string; inviteLink: string; inviteId: string }[] = [];
+  w.s.inviteEmail = async input => { sent.push(input); };
+  const invited = await call(w.s, membersPostHandler, request("/api/workspace/members/", {
+    tokens: w.alice, body: { email: "casey@example.com" },
+  }));
+  assert.equal(invited.status, 201);
+  assert.equal(invited.body?.delivery, "email");
+  assert.equal(invited.body?.inviteUrl, undefined);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].to, "casey@example.com");
+  assert.equal(new URL(sent[0].inviteLink).origin, "https://aria.test");
+  assert.ok(sent[0].inviteId);
+  const token = new URL(sent[0].inviteLink).searchParams.get("token");
+  const accepted = await call(w.s, acceptInviteHandler, request("/api/workspace/invitations/accept/", {
+    tokens: tokensFor("casey"), body: { token },
+  }));
+  assert.equal(accepted.status, 200);
+});
+
+test("failed Team invitation email releases the pending seat and invalidates the link", async () => {
+  const w = await world();
+  let failedLink = "";
+  w.s.inviteEmail = async input => { failedLink = input.inviteLink; throw new Error("provider secret"); };
+  const before = await w.s.directory.getWorkspace(w.teamWs);
+  const invited = await call(w.s, membersPostHandler, request("/api/workspace/members/", {
+    tokens: w.alice, body: { email: "casey@example.com" },
+  }));
+  assert.equal(invited.status, 502);
+  assert.equal(invited.body?.code, "invite_email_failed");
+  assert.equal(JSON.stringify(invited.body).includes("provider secret"), false);
+  const after = await w.s.directory.getWorkspace(w.teamWs);
+  assert.equal(after?.seatsUsed, before?.seatsUsed);
+  const retry = await call(w.s, membersPostHandler, request("/api/workspace/members/", {
+    tokens: w.alice, body: { email: "casey@example.com" },
+  }));
+  assert.equal(retry.status, 502);
+  const accept = await call(w.s, acceptInviteHandler, request("/api/workspace/invitations/accept/", {
+    tokens: tokensFor("casey"), body: { token: new URL(failedLink).searchParams.get("token") },
+  }));
+  assert.equal(accept.status, 404);
+});
+
 test("token verification rejects forged, expired, wrong-client, wrong-issuer, and swapped tokens", async () => {
   const verifier = cognitoVerifier({ userPoolId: POOL, clientId: CLIENT, jwks: JWKS });
   const ok = await verifier.verify(tokensFor("alice"));

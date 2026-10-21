@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { DynamoStore } from "./store/dynamo-store";
 import { SqliteStore } from "./store/sqlite-store";
 import type { Store } from "./store/types";
+import { createOneWaveInviteSender, type TeamInviteSender } from "./email/onewave";
 
 export type ServerConfig = {
   environment: "development" | "production";
@@ -25,6 +26,8 @@ export type ServerConfig = {
   liveChat: boolean;
   /** Optional server-side SearXNG endpoint for explicit public-web searches. */
   searxngUrl?: string;
+  /** OneWave transactional email, configured only on the server. */
+  emailService?: { url: string; apiKey: string };
   secureCookies: boolean;
 };
 
@@ -35,6 +38,7 @@ export type Services = {
   ledger: CreditLedger;
   verifier?: IdentityVerifier;
   idp?: IdentityProvider;
+  inviteEmail?: TeamInviteSender;
 };
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -54,6 +58,8 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       : undefined,
     liveChat: env.ARIA_LIVE_CHAT === "enabled",
     searxngUrl: env.ARIA_SEARXNG_URL?.trim() || undefined,
+    emailService: env.EMAIL_SERVICE_URL?.trim() && env.EMAIL_SERVICE_API_KEY?.trim()
+      ? { url: env.EMAIL_SERVICE_URL.trim(), apiKey: env.EMAIL_SERVICE_API_KEY.trim() } : undefined,
     secureCookies: environment === "production",
   };
 }
@@ -93,6 +99,9 @@ export function buildServices(config: ServerConfig, overrides: Partial<Services>
       : config.localIdentity
         ? new LocalIdentityProvider(store)
         : undefined),
+    inviteEmail: overrides.inviteEmail ?? (config.emailService
+      ? createOneWaveInviteSender(config.emailService.url, config.emailService.apiKey)
+      : undefined),
   };
 }
 

@@ -20,11 +20,11 @@ export async function fetchAriaTeam(): Promise<AriaTeamApiWorkspace> {
     selfId: body.selfId, role: body.role, members: body.members };
 }
 
-/** Returns the one-time invite link; the server stores only its hash. */
-export async function inviteAriaTeamMemberApi(email: string): Promise<string> {
+/** Email delivery when configured; local development can return a one-time link. */
+export async function inviteAriaTeamMemberApi(email: string): Promise<{ delivery: "email" | "link"; inviteUrl?: string }> {
   const response = await ariaFetch("/api/workspace/members/", { method: "POST", body: JSON.stringify({ email }) });
   if (!response.ok) throw await failure(response);
-  return (await response.json()).inviteUrl;
+  return await response.json();
 }
 
 export async function removeAriaTeamMemberApi(id: string) {

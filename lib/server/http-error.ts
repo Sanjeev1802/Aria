@@ -26,6 +26,7 @@ const messages: Record<string,string> = {
   invalid_email: "Enter a valid email address.",
   invite_not_found: "This invitation is not valid or was cancelled.",
   invite_expired: "This invitation expired. Ask an admin for a new one.",
+  invite_email_failed: "The invitation email could not be sent. No seat was used; please try again.",
   invite_email_mismatch: "Sign in with the verified email address the invitation was sent to.",
   already_member: "You are already a member of this workspace.",
   member_not_found: "That member was not found.",

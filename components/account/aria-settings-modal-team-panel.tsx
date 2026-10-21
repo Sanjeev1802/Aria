@@ -110,6 +110,7 @@ export function SettingsModalTeamPanel() {
   const [email, setEmail] = useState("");
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -138,6 +139,7 @@ export function SettingsModalTeamPanel() {
   const handleInvite = async () => {
     setInviteError(null);
     setInviteUrl(null);
+    setInviteSentTo(null);
     const trimmed = email.trim();
     if (!trimmed.includes("@")) {
       setInviteError("Enter a valid email address.");
@@ -159,7 +161,9 @@ export function SettingsModalTeamPanel() {
     }
     setBusy(true);
     try {
-      setInviteUrl(await inviteAriaTeamMemberApi(trimmed));
+      const result = await inviteAriaTeamMemberApi(trimmed);
+      if (result.delivery === "email") setInviteSentTo(trimmed);
+      else setInviteUrl(result.inviteUrl ?? null);
       setEmail("");
       await refresh();
     } catch (error) {
@@ -228,6 +232,10 @@ export function SettingsModalTeamPanel() {
                   <p className="text-xs text-destructive" role="alert">
                     {inviteError}
                   </p>
+                ) : inviteSentTo ? (
+                  <p className="text-xs text-emerald-500" role="status">
+                    Invitation emailed to {inviteSentTo}. It expires in 7 days.
+                  </p>
                 ) : inviteUrl ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="min-w-0 flex-1 truncate" title={inviteUrl}>
@@ -247,7 +255,7 @@ export function SettingsModalTeamPanel() {
                   <p className="text-xs text-muted-foreground">
                     {ARIA_IS_PREVIEW
                       ? "Invites are preview-only — no email is sent yet."
-                      : "You will get a one-time invite link to share. Email delivery is not set up yet."}
+                      : "ARIA will email the invitation when delivery is configured. Otherwise, you will get a one-time link to share."}
                   </p>
                 )}
               </div>

@@ -132,8 +132,20 @@ export async function membersPostHandler(request: Request, s: Services) {
   const role = isRole(body.role) ? body.role : "member";
   const invite = await s.directory.invite(ctx.membership, str(body.email), role);
   const origin = s.config.appOrigin ?? new URL(request.url).origin;
-  // Shown once to the inviting admin; only a hash is stored. Email delivery is not configured.
-  return json({ inviteUrl: `${origin}/invite/?token=${invite.token}`, expiresAt: invite.expiresAt }, 201);
+  const inviteUrl = `${origin}/invite/?token=${invite.token}`;
+  if (s.inviteEmail) {
+    try {
+      const email = str(body.email).trim().toLowerCase();
+      await s.inviteEmail({ to: email, inviteeName: email.split("@")[0], inviteLink: inviteUrl, inviteId: invite.inviteId });
+    } catch {
+      // A failed delivery must not occupy a seat or leave an unusable pending invitation.
+      await s.directory.revokeInvite(ctx.membership, invite.inviteId);
+      throw new ServiceError("invite_email_failed", 502);
+    }
+    return json({ delivery: "email", expiresAt: invite.expiresAt }, 201);
+  }
+  // Local/manual fallback: shown once to the inviting admin; only a hash is stored.
+  return json({ delivery: "link", inviteUrl, expiresAt: invite.expiresAt }, 201);
 }
 
 export async function membersDeleteHandler(request: Request, s: Services) {
