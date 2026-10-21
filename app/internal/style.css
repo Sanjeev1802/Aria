@@ -36,6 +36,9 @@
 .internal-heading p{color:var(--internal-muted);font-size:13px;margin:0}
 .internal-refresh,.internal-view-all{display:inline-flex;align-items:center;gap:8px;color:#b8cfff;background:transparent;border:0;font-size:12px;white-space:nowrap}
 .internal-refresh:hover,.internal-view-all:hover{color:white}
+.internal-shell .internal-heading>button{background:#22252a;color:#e9edf5;border:1px solid #3a3d44;box-shadow:none}
+.internal-shell .internal-heading>button:hover{background:#2c3036;color:white}
+.internal-shell .internal-env{background:#1d2523;color:#b8dfcb;border-color:#395347}
 .internal-alert{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#ffd6a3;background:#3b2c1b;border:1px solid #6a4d2a;padding:11px 14px;border-radius:8px;font-size:12px;margin-bottom:18px}
 .internal-alert button{border:0;background:transparent;color:inherit}
 
@@ -47,6 +50,7 @@
 .internal-stat strong{display:block;font-size:31px;line-height:1.1;letter-spacing:-.05em;font-weight:600;margin:16px 0 7px;font-variant-numeric:tabular-nums}
 .internal-stat small{color:#80858e;font-size:11px}
 .internal-stat-value{font-size:31px!important;line-height:1.1;letter-spacing:-.05em;font-weight:600;margin:16px 0 7px;font-variant-numeric:tabular-nums}
+.internal-stat-top{gap:8px}.internal-stat-top svg{flex:none}
 .internal-shell [data-slot=card]{background:var(--internal-panel);border-color:var(--internal-line);color:var(--internal-text)}
 .internal-shell [data-slot=card-description]{color:var(--internal-muted)}
 .internal-operations{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
