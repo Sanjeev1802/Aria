@@ -14,7 +14,7 @@ ARIA is a Next.js application from The Binary Labs. It presents a single chat ex
 | Workspaces | Personal and Team workspaces, owner/admin/member roles, invitations, seat limits, per-member monthly Team credit limits, and immediate access removal. Team invites are emailed through OneWave when configured, with a one-time link fallback for local setup. |
 | Plans | Server-enforced Free, Pro, and Team entitlements for credits, seats, and features. All plans use Bedrock Nova. Billing is not connected. |
 | Chat | Streaming responses through Bedrock when configured, a versioned server-owned system prompt, saved conversations, and an explicit notice when a response reaches the model's output limit. |
-| Public web search | Optional, explicit SearXNG search from the chat composer. ARIA sends a short public query to the configured self-hosted instance, passes bounded snippets to the model, and saves linked search results with the answer. |
+| Public web search | Optional, explicit SearXNG search from the chat composer. ARIA sends a short public query to the configured self-hosted instance, passes bounded snippets to the model, and saves linked search results with the answer. An optional ElastiCache integration caches public results briefly. |
 | Projects | Create, rename, and delete projects; start a chat inside a project; move chats between projects; filter the chat list by project. |
 | Credits | A shared workspace ledger reserves credits before a request, settles using reported token usage, refunds failed requests, and replays completed retries without charging again. |
 | Local development | Persistent SQLite data, two test users in separate workspaces, and a deterministic test model that exercises the normal chat and credit path. |
@@ -129,6 +129,8 @@ Set `EMAIL_SERVICE_URL` and `EMAIL_SERVICE_API_KEY` on the ARIA server to use th
 ## Production requirements
 
 Production accounts and saved work require a Cognito user pool and app client, a DynamoDB table, and a canonical application origin for cross-site request checks. Live model calls also require Bedrock model IDs, verified token rates, AWS permissions, and the explicit `ARIA_LIVE_CHAT=enabled` switch. See [`.env.example`](.env.example), the [DynamoDB table definition](infra/dynamodb-table.json), and the [staging checklist](CURSOR_HANDOFF.md) for the exact configuration.
+
+ElastiCache is optional for public web search and does not affect accounts, credits, or model access. See [ElastiCache setup](ELASTICACHE_SETUP.md) for the private TLS/RBAC configuration, cost consideration, and fallback behavior.
 
 Without the required configuration, the production chat API returns `503` by design. Do not put AWS credentials or Cognito secrets in `NEXT_PUBLIC_*` variables. AWS provisioning and real-service staging tests have not been completed.
 

@@ -26,6 +26,8 @@ export type ServerConfig = {
   liveChat: boolean;
   /** Optional server-side SearXNG endpoint for explicit public-web searches. */
   searxngUrl?: string;
+  /** Optional TLS ElastiCache endpoint for short-lived public search results. */
+  elasticacheUrl?: string;
   /** OneWave transactional email, configured only on the server. */
   emailService?: { url: string; apiKey: string };
   secureCookies: boolean;
@@ -58,6 +60,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       : undefined,
     liveChat: env.ARIA_LIVE_CHAT === "enabled",
     searxngUrl: env.ARIA_SEARXNG_URL?.trim() || undefined,
+    elasticacheUrl: env.ARIA_ELASTICACHE_URL?.trim() || undefined,
     emailService: env.EMAIL_SERVICE_URL?.trim() && env.EMAIL_SERVICE_API_KEY?.trim()
       ? { url: env.EMAIL_SERVICE_URL.trim(), apiKey: env.EMAIL_SERVICE_API_KEY.trim() } : undefined,
     secureCookies: environment === "production",
