@@ -194,3 +194,22 @@
 
 @media(prefers-reduced-motion:reduce){.internal-sidebar{transition:none}
 }
+
+/* dashboard-01 shell: shadcn inset sidebar and header, with ARIA's dark palette. */
+.internal-dashboard{--background:#111214;--foreground:#f4f5f7;--card:#1a1b1e;--card-foreground:#f4f5f7;--popover:#222428;--popover-foreground:#f4f5f7;--primary:#e9edf5;--primary-foreground:#111214;--secondary:#272a2f;--secondary-foreground:#f4f5f7;--muted:#272a2f;--muted-foreground:#92969e;--accent:#272a2f;--accent-foreground:#f4f5f7;--border:#303238;--input:#34363b;--ring:#9abaf2;--sidebar:#151618;--sidebar-foreground:#e8eaee;--sidebar-accent:#25282e;--sidebar-accent-foreground:#fff;--sidebar-border:#2b2d31;--sidebar-ring:#9abaf2;background:var(--sidebar)}
+.internal-dashboard [data-slot=sidebar-inset]{margin:8px 8px 8px 0;min-height:calc(100dvh - 16px);border:1px solid var(--internal-line);border-radius:13px;background:var(--background);overflow:hidden}
+.internal-dashboard [data-slot=sidebar-menu-button][data-active=true]{background:#25282e;color:#fff}
+.internal-dashboard [data-slot=sidebar-menu-button]:hover{background:#25282e;color:#fff}
+.internal-dashboard [data-slot=sidebar-trigger]{color:#c7cbd2}
+.internal-dashboard .internal-topbar{height:var(--header-height);padding:0 24px;justify-content:flex-start;background:var(--background)}
+.internal-dashboard .internal-top-actions{margin-left:auto}
+.internal-dashboard .internal-main{width:100%;max-width:none;padding:28px 24px 70px}
+.internal-dashboard .internal-heading{margin-bottom:24px}
+.internal-dashboard .internal-stats{gap:16px;margin-bottom:22px}
+.internal-dashboard .internal-stat{min-height:145px}
+.internal-dashboard .internal-chart-card{margin-bottom:22px}
+.internal-dashboard .internal-chart-card [data-slot=card-action]{align-self:center}
+.internal-dashboard .internal-chart-card [data-slot=card-action] [data-slot=badge]{color:#bdc8da;border-color:#3b414c}
+.internal-dashboard [data-slot=sidebar-group-label]{color:#858a93}
+.internal-dashboard [data-slot=sidebar-footer]{border-top:1px solid var(--sidebar-border)}
+@media(max-width:767px){.internal-dashboard [data-slot=sidebar-inset]{margin:0;min-height:100dvh;border:0;border-radius:0}.internal-dashboard .internal-topbar{padding:0 16px}.internal-dashboard .internal-main{padding:24px 16px 56px}.internal-dashboard .internal-crumb{gap:7px}}

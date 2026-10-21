@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, ArrowRight, BarChart3, ExternalLink,
-  LayoutDashboard, LockKeyhole, Menu, Search, ShieldCheck, Users, Wallet, X } from "lucide-react";
+import { Activity, ArrowRight, LockKeyhole, Search, ShieldCheck, Users, Wallet, X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { AriaMark } from "@/components/aria-mark";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { InternalSidebar, sections, type InternalSection } from "./internal-sidebar";
+import { PlanChart } from "./plan-chart";
 
 type Credits = { period: string; included: number; used: number; reserved: number; available: number };
 type User = { id: string; email: string; name: string; status: "active" | "disabled"; personalWorkspaceId: string };
@@ -42,8 +45,7 @@ export function InternalDashboard() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [section, setSection] = useState<"overview" | "customers" | "workspaces" | "plans" | "activity" | "operations">("overview");
-  const [mobileNav, setMobileNav] = useState(false);
+  const [section, setSection] = useState<InternalSection>("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [action, setAction] = useState<{ type: ActionType; targetId: string; label: string; plan?: Workspace["plan"] } | null>(null);
@@ -87,38 +89,20 @@ export function InternalDashboard() {
   const planCounts = useMemo(() => ({ free: overview?.workspaces.filter(w => w.plan === "free").length ?? 0,
     pro: overview?.workspaces.filter(w => w.plan === "pro").length ?? 0,
     team: overview?.workspaces.filter(w => w.plan === "team").length ?? 0 }), [overview]);
-  const maxPlanCount = Math.max(1, ...Object.values(planCounts));
-
-  const nav = [
-    { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
-    { id: "customers" as const, label: "Customers", icon: Users },
-    { id: "workspaces" as const, label: "Workspaces", icon: LayoutDashboard },
-    { id: "plans" as const, label: "Plans & credits", icon: Wallet },
-    { id: "activity" as const, label: "Audit activity", icon: Activity },
-    { id: "operations" as const, label: "Operations", icon: ShieldCheck },
-  ];
-
-  return <div className="internal-shell">
-    <aside className={`internal-sidebar ${mobileNav ? "is-open" : ""}`}>
-      <div className="internal-brand"><AriaMark className="internal-brand-mark" /><div><strong>ARIA</strong><span>INTERNAL</span></div>
-        <button className="internal-mobile-close" onClick={() => setMobileNav(false)} aria-label="Close navigation"><X size={19} /></button></div>
-      <div className="internal-nav-label">WORKSPACE</div>
-      <nav aria-label="Internal navigation">{nav.map(item => <button key={item.id} className={`internal-nav-item ${section === item.id ? "active" : ""}`}
-        onClick={() => { setSection(item.id); setMobileNav(false); setActiveUserId(null); setCustomer(null); }}>
-        <item.icon size={18} aria-hidden="true" />{item.label}{section === item.id && <span className="internal-active-dot" />}</button>)}</nav>
-      <div className="internal-side-bottom"><div className="internal-guard"><ShieldCheck size={17} /> Restricted operator access</div>
-        <a href="/chat/" className="internal-back">Return to ARIA <ExternalLink size={14} /></a></div>
-    </aside>
-    {mobileNav && <button className="internal-backdrop" aria-label="Dismiss navigation" onClick={() => setMobileNav(false)} />}
-    <div className="internal-content">
-      <header className="internal-topbar"><button className="internal-menu" aria-label="Open navigation" onClick={() => setMobileNav(true)}><Menu size={21} /></button>
-        <div className="internal-crumb">ARIA <span>/</span> Internal <span>/</span> <strong>{nav.find(item => item.id === section)?.label}</strong></div>
+  return <SidebarProvider className="internal-shell internal-dashboard dark" style={{
+    "--sidebar-width": "calc(var(--spacing) * 72)", "--header-height": "calc(var(--spacing) * 12)",
+  } as React.CSSProperties}>
+    <InternalSidebar section={section} onSectionChange={next => { setSection(next); setActiveUserId(null); setCustomer(null); }} />
+    <SidebarInset className="internal-content">
+      <header className="internal-topbar"><SidebarTrigger aria-label="Toggle navigation" className="-ml-1" />
+        <Separator orientation="vertical" className="mx-2 h-4" />
+        <div className="internal-crumb">ARIA <span>/</span> Internal <span>/</span> <strong>{sections.find(item => item.id === section)?.label}</strong></div>
         <div className="internal-top-actions"><Badge variant="outline" className="internal-env"><span />{overview?.internalRole.replaceAll("_", " ") || "Restricted access"}</Badge><ShieldCheck size={17} aria-label="Restricted access" /></div></header>
       <main className="internal-main">
         {loading ? <div className="internal-state">Loading ARIA operations…</div> : error && !overview
           ? <div className="internal-state internal-error"><LockKeyhole size={26} /><h1>Internal access unavailable</h1><p>{error}</p><a href="/sign-in/?next=%2Finternal%2F">Sign in</a></div>
           : overview && <>
-            <div className="internal-heading"><div><span className="internal-eyebrow">PLATFORM OPERATIONS</span><h1>{nav.find(item => item.id === section)?.label}</h1>
+            <div className="internal-heading"><div><span className="internal-eyebrow">PLATFORM OPERATIONS</span><h1>{sections.find(item => item.id === section)?.label}</h1>
               <p>{section === "overview" ? "Customers, workspaces, and usage at a glance." : section === "customers" ? "Find an account and review its access and usage." : section === "workspaces" ? "Plans, seats, and members across ARIA." : section === "plans" ? "Current entitlements and credit balances." : section === "operations" ? "Live configuration and operator guidance." : "Recent changes made through the internal console."}</p></div>
               <Button variant="outline" onClick={() => void refresh()}>Refresh data <ArrowRight size={16} /></Button></div>
             {error && <div className="internal-alert" role="alert">{error}<button onClick={() => setError("")} aria-label="Dismiss error"><X size={16} /></button></div>}
@@ -127,18 +111,11 @@ export function InternalDashboard() {
             {section === "overview" && <>
               <div className="internal-stats">
                 <Stat label="Customers" value={fmt.format(overview.summary.users)} detail={`${fmt.format(overview.summary.activeUsers)} active accounts`} icon={Users} />
-                <Stat label="Workspaces" value={fmt.format(overview.summary.workspaces)} detail="Across every plan" icon={LayoutDashboard} />
+                <Stat label="Workspaces" value={fmt.format(overview.summary.workspaces)} detail="Across every plan" icon={Wallet} />
                 <Stat label="Team workspaces" value={fmt.format(overview.summary.teamWorkspaces)} detail="Shared plans" icon={ShieldCheck} />
                 <Stat label="Credits used" value={fmt.format(overview.summary.creditsUsed)} detail="Current UTC billing period" icon={Wallet} />
               </div>
-              <div className="internal-grid-two">
-                <section className="internal-panel"><div className="internal-panel-heading"><div><h2>Plan distribution</h2><p>Workspaces by current plan</p></div><BarChart3 size={18} /></div>
-                  <div className="internal-bars">{(["free", "pro", "team"] as const).map(plan => <div className="internal-bar-row" key={plan}>
-                    <span>{planName[plan]}</span><div className="internal-bar-track"><div className={`internal-bar-fill ${plan}`} style={{ width: `${planCounts[plan] / maxPlanCount * 100}%` }} /></div>
-                    <strong>{planCounts[plan]}</strong></div>)}</div></section>
-                <section className="internal-panel"><div className="internal-panel-heading"><div><h2>Recent activity</h2><p>Account actions with an audit trail</p></div><Activity size={18} /></div>
-                  <AuditList activity={overview.activity.slice(0, 4)} /></section>
-              </div>
+              <PlanChart counts={planCounts} creditsUsed={overview.summary.creditsUsed} />
               <CustomerTable users={filteredUsers.slice(0, 8)} query={query} setQuery={setQuery} openCustomer={openCustomer}
                 title="Customers" count={overview.users.length} viewAll={() => setSection("customers")} />
             </>}
@@ -158,7 +135,7 @@ export function InternalDashboard() {
               <Card><CardHeader><CardTitle>Production setup</CardTitle><CardDescription>AWS resources, quotas, and payment provider state require live verification before launch.</CardDescription></CardHeader><CardContent><span className="text-sm text-muted-foreground">See INTERNAL_ADMIN_SETUP.md in the repository.</span></CardContent></Card></div>}
           </>}
       </main>
-    </div>
+    </SidebarInset>
     {activeUserId && <div className="internal-drawer-backdrop" onClick={() => { setActiveUserId(null); setCustomer(null); }}>
       <aside className="internal-drawer" onClick={event => event.stopPropagation()} aria-label="Customer details">
         <div className="internal-drawer-header"><span>Customer profile</span><button onClick={() => { setActiveUserId(null); setCustomer(null); }} aria-label="Close customer details"><X size={20} /></button></div>
@@ -202,7 +179,7 @@ export function InternalDashboard() {
         </DialogPrimitive.Content>}
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
-  </div>;
+  </SidebarProvider>;
 }
 
 function AuditList({ activity }: { activity: Audit[] }) {
@@ -216,12 +193,12 @@ function WorkspaceTable({ workspaces, users, openCustomer, credits = false }: { 
   const ownerName = (id: string) => users.find(user => user.id === id)?.name || id;
   return <section className="internal-panel internal-customers"><div className="internal-panel-heading"><div><h2>{credits ? "Credit balances" : "All workspaces"}</h2>
     <p>{workspaces.length} workspaces in this view</p></div></div>
-    <div className="internal-table-wrap"><table><thead><tr><th>Workspace</th><th>Owner</th><th>Plan</th><th>Seats</th><th>{credits ? "Available credits" : "Credits used"}</th></tr></thead><tbody>
-    {workspaces.map(workspace => <tr key={workspace.id}><td><strong>{workspace.name}</strong><small className="internal-workspace-id">{workspace.id}</small></td>
-      <td><button className="internal-owner-link" onClick={() => void openCustomer(workspace.ownerId)}>{ownerName(workspace.ownerId)}</button></td>
-      <td><Badge variant="outline">{planName[workspace.plan]}</Badge></td><td>{workspace.seatsUsed} / {workspace.seatLimit}</td>
-      <td>{fmt.format(credits ? workspace.credits.available : workspace.credits.used)}</td></tr>)}
-    </tbody></table>{workspaces.length === 0 && <div className="internal-empty">No workspaces found.</div>}</div></section>;
+    <div className="internal-table-wrap"><Table><TableHeader><TableRow><TableHead>Workspace</TableHead><TableHead>Owner</TableHead><TableHead>Plan</TableHead><TableHead>Seats</TableHead><TableHead>{credits ? "Available credits" : "Credits used"}</TableHead></TableRow></TableHeader><TableBody>
+    {workspaces.map(workspace => <TableRow key={workspace.id}><TableCell><strong>{workspace.name}</strong><small className="internal-workspace-id">{workspace.id}</small></TableCell>
+      <TableCell><button className="internal-owner-link" onClick={() => void openCustomer(workspace.ownerId)}>{ownerName(workspace.ownerId)}</button></TableCell>
+      <TableCell><Badge variant="outline">{planName[workspace.plan]}</Badge></TableCell><TableCell>{workspace.seatsUsed} / {workspace.seatLimit}</TableCell>
+      <TableCell>{fmt.format(credits ? workspace.credits.available : workspace.credits.used)}</TableCell></TableRow>)}
+    </TableBody></Table>{workspaces.length === 0 && <div className="internal-empty">No workspaces found.</div>}</div></section>;
 }
 
 function CustomerTable({ users, query, setQuery, openCustomer, title, count, viewAll }: { users: User[]; query: string;
@@ -229,9 +206,9 @@ function CustomerTable({ users, query, setQuery, openCustomer, title, count, vie
   return <section className="internal-panel internal-customers"><div className="internal-panel-heading"><div><h2>{title}</h2><p>{count} accounts in this view</p></div>
     {viewAll && <button className="internal-view-all" onClick={viewAll}>View all <ArrowRight size={15} /></button>}</div>
     <div className="internal-table-toolbar"><Search size={17} /><input aria-label="Search customers" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search name, email, or user ID" /></div>
-    <div className="internal-table-wrap"><table><thead><tr><th>Customer</th><th>Account status</th><th>User ID</th><th aria-label="Open" /></tr></thead><tbody>
-      {users.map(user => <tr key={user.id} onClick={() => void openCustomer(user.id)}><td><div className="internal-customer-cell"><span className="internal-avatar small">{(user.name || user.email).slice(0, 1).toUpperCase()}</span>
-        <div><strong>{user.name}</strong><small>{user.email}</small></div></div></td><td><span className={`internal-pill ${user.status}`}>{user.status}</span></td>
-        <td className="internal-id">{user.id}</td><td><button className="internal-row-open" aria-label={`Open ${user.name}`} onClick={event => { event.stopPropagation(); void openCustomer(user.id); }}><ArrowRight size={17} /></button></td></tr>)}
-    </tbody></table>{users.length === 0 && <div className="internal-empty">No customers match this search.</div>}</div></section>;
+    <div className="internal-table-wrap"><Table><TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Account status</TableHead><TableHead>User ID</TableHead><TableHead aria-label="Open" /></TableRow></TableHeader><TableBody>
+      {users.map(user => <TableRow key={user.id} onClick={() => void openCustomer(user.id)}><TableCell><div className="internal-customer-cell"><span className="internal-avatar small">{(user.name || user.email).slice(0, 1).toUpperCase()}</span>
+        <div><strong>{user.name}</strong><small>{user.email}</small></div></div></TableCell><TableCell><span className={`internal-pill ${user.status}`}>{user.status}</span></TableCell>
+        <TableCell className="internal-id">{user.id}</TableCell><TableCell><button className="internal-row-open" aria-label={`Open ${user.name}`} onClick={event => { event.stopPropagation(); void openCustomer(user.id); }}><ArrowRight size={17} /></button></TableCell></TableRow>)}
+    </TableBody></Table>{users.length === 0 && <div className="internal-empty">No customers match this search.</div>}</div></section>;
 }

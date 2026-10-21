@@ -1,6 +1,6 @@
 # ARIA Internal dashboard
 
-`/internal/` is a restricted operations dashboard for ARIA staff. It uses the existing Next.js app, the installed `dashboard-01` shadcn component block, verified customer sessions, DynamoDB account records, and credit ledger. ARIA uses its own mark, dark theme, and live admin data; the block's example revenue, projects, avatars, and sample table are not shown in the internal console.
+`/internal/` is a restricted operations dashboard for ARIA staff. Its layout now uses the actual shadcn `dashboard-01` pattern: an inset, collapsible sidebar, compact header, four metric cards, a chart card, and a data table. The sidebar, cards, chart container, badges, and table come from the installed shadcn components. ARIA supplies its own mark, dark theme, and live admin data; the block's example revenue, projects, avatars, and sample rows are not shown.
 
 ## Access
 
