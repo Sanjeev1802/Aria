@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  SettingsBlock,
-  SettingsBlockInset,
   SettingsPanel,
 } from "@/components/account/aria-settings-panel-layout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -20,7 +18,7 @@ import {
 } from "@/lib/aria-team-api";
 import { ARIA_IS_PREVIEW } from "@/lib/aria-session";
 import { cn } from "@/lib/utils";
-import { Copy, Mail, UserPlus, X } from "lucide-react";
+import { Check, Copy, Mail, ShieldCheck, UserPlus, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 function initialsFromMember(member: AriaTeamApiMember) {
@@ -62,78 +60,73 @@ function TeamMemberRow({
   const isInvite = member.status !== "active";
   const canSetLimit = canManage && !ARIA_IS_PREVIEW && !isInvite && member.role !== "owner" &&
     (actorRole === "owner" || member.role === "member");
+  const limit = member.budget?.limit ?? null;
+  const used = member.budget?.used ?? 0;
+  const reserved = member.budget?.reserved ?? 0;
+  const percentage = limit === null || limit === 0 ? 0 : Math.min(100, ((used + reserved) / limit) * 100);
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <Avatar className="size-9 shrink-0 text-xs">
-        <AvatarFallback className="bg-muted font-medium">{initialsFromMember(member)}</AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{member.name}</p>
-        <p className="truncate text-xs text-muted-foreground">{member.email}</p>
-        {!isInvite && member.budget ? <p className="mt-1 text-xs text-muted-foreground">
-          {member.budget.used.toLocaleString()} used · {member.budget.limit === null
-            ? "No individual limit" : `${member.budget.limit.toLocaleString()} credit monthly limit`}
-          {member.budget.reserved > 0 ? ` · ${member.budget.reserved.toLocaleString()} reserved` : ""}
-        </p> : null}
+    <div className="rounded-xl border border-border/70 bg-background/65 p-3.5 sm:p-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <Avatar className="size-10 shrink-0 border border-border/70 text-xs">
+          <AvatarFallback className="bg-muted font-semibold">{initialsFromMember(member)}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="truncate text-sm font-semibold">{member.name}</p>
+            {isSelf ? <span className="text-[11px] text-muted-foreground">You</span> : null}
+            <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
+              isInvite ? "border-amber-500/20 bg-amber-500/10 text-amber-500" :
+                member.role === "owner" ? "border-primary/20 bg-primary/10 text-primary" :
+                  "border-border/70 bg-muted/60 text-muted-foreground")}>{isInvite
+                ? member.status === "expired" ? "Expired" : "Invited" : member.role}</span>
+          </div>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground" title={member.email}>{member.email}</p>
+        </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {isInvite ? (
-          <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-            {member.status === "expired" ? "Invite expired" : "Invite sent"}
-          </span>
-        ) : (
-          <span
-            className={cn(
-              "rounded-md px-2 py-0.5 text-[11px] font-medium capitalize",
-              member.role !== "member"
-                ? "bg-primary/15 text-primary"
-                : "bg-muted text-muted-foreground",
-            )}
-          >
-            {member.role}
-          </span>
-        )}
-        {isInvite && canManage ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground"
-            aria-label={`Cancel invite for ${member.email}`}
-            onClick={() => onRemove(member.id)}
-          >
-            <X className="size-3.5" />
-          </Button>
-        ) : canRemove ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="text-muted-foreground"
-            aria-label={`Remove ${member.name}`}
-            onClick={() => onRemove(member.id)}
-          >
-            <X className="size-3.5" />
-          </Button>
-        ) : null}
-        {canSetLimit ? <Button type="button" variant="outline" size="sm" onClick={() => {
-          setLimitDraft(member.budget?.limit?.toString() ?? ""); setEditingLimit(value => !value);
-        }}>Set limit</Button> : null}
-      </div>
-      {editingLimit && canSetLimit ? <div className="flex w-full flex-wrap items-center gap-2 pl-12">
-        <label className="sr-only" htmlFor={`limit-${member.id}`}>Monthly credit limit for {member.name}</label>
-        <Input id={`limit-${member.id}`} inputMode="numeric" type="number" min={0} max={20000} step={1}
-          placeholder="No individual limit" value={limitDraft} onChange={event => setLimitDraft(event.target.value)}
-          className="h-8 w-44" />
-        <Button type="button" size="sm" disabled={savingLimit || (limitDraft !== "" &&
-          (!/^\d+$/.test(limitDraft) || Number(limitDraft) > 20000))} onClick={() => {
-          onLimit(member.id, limitDraft === "" ? null : Number(limitDraft)); setEditingLimit(false);
-        }}>Save</Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setEditingLimit(false)}>Cancel</Button>
-        <span className="text-xs text-muted-foreground">Blank removes the individual limit.</span>
+
+      {!isInvite && member.budget ? <div className="mt-4 rounded-lg bg-muted/35 px-3 py-2.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs">
+          <span className="font-medium text-foreground">Monthly credits</span>
+          <span className="tabular-nums text-muted-foreground">{used.toLocaleString()} used
+            {limit === null ? " · No individual limit" : ` / ${limit.toLocaleString()} limit`}</span>
+        </div>
+        {limit !== null ? <div role="progressbar" aria-label={`${member.name} monthly credit usage`}
+          aria-valuemin={0} aria-valuemax={Math.max(limit, 1)} aria-valuenow={Math.min(used + reserved, Math.max(limit, 1))}
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/70">
+          <div className={cn("h-full rounded-full transition-[width] duration-300", percentage >= 100 ? "bg-destructive" : "bg-primary")}
+            style={{ width: `${percentage}%` }} />
+        </div> : null}
+        {reserved > 0 ? <p className="mt-1.5 text-[11px] text-muted-foreground">{reserved.toLocaleString()} credits reserved for an active request</p> : null}
       </div> : null}
-      {limitError ? <p className="w-full pl-12 text-xs text-destructive" role="alert">{limitError}</p> : null}
+
+      {canSetLimit || canRemove || (isInvite && canManage) ? <div className="mt-3 flex flex-wrap items-center gap-2">
+        {canSetLimit ? <Button type="button" variant="outline" size="sm" aria-expanded={editingLimit}
+          onClick={() => { setLimitDraft(limit?.toString() ?? ""); setEditingLimit(value => !value); }}>
+          {limit === null ? "Set credit limit" : "Edit credit limit"}</Button> : null}
+        {isInvite && canManage ? <Button type="button" variant="ghost" size="sm" className="text-muted-foreground"
+          onClick={() => onRemove(member.id)}><X className="size-3.5" />Cancel invite</Button> : null}
+        {canRemove ? <Button type="button" variant="ghost" size="sm" className="text-muted-foreground"
+          onClick={() => onRemove(member.id)}><X className="size-3.5" />Remove member</Button> : null}
+      </div> : null}
+
+      {editingLimit && canSetLimit ? <div className="mt-3 rounded-lg border border-border/70 bg-muted/25 p-3">
+        <label className="mb-1.5 block text-xs font-medium" htmlFor={`limit-${member.id}`}>Monthly credit limit</label>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Input id={`limit-${member.id}`} inputMode="numeric" type="text" pattern="[0-9]*"
+            placeholder="No individual limit" value={limitDraft} onChange={event => setLimitDraft(event.target.value)}
+            className="h-9 w-full min-w-0 sm:max-w-56" />
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" disabled={savingLimit || (limitDraft !== "" &&
+              (!/^\d+$/.test(limitDraft) || Number(limitDraft) > 20000))} onClick={() => {
+                onLimit(member.id, limitDraft === "" ? null : Number(limitDraft)); setEditingLimit(false);
+              }}>{savingLimit ? "Saving…" : "Save limit"}</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setEditingLimit(false)}>Cancel</Button>
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">0 blocks new usage. Leave blank to use only the shared Team pool.</p>
+      </div> : null}
+      {limitError ? <p className="mt-2 text-xs text-destructive" role="alert">{limitError}</p> : null}
     </div>
   );
 }
@@ -145,6 +138,7 @@ export function SettingsModalTeamPanel() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [savingLimitId, setSavingLimitId] = useState<string | null>(null);
   const [limitError, setLimitError] = useState<{ id: string; message: string } | null>(null);
@@ -171,11 +165,14 @@ export function SettingsModalTeamPanel() {
   const seatsUsed = workspace?.seatsUsed ?? 0;
   const seatsLeft = Math.max(0, seatLimit - seatsUsed);
   const canManage = workspace?.role === "owner" || workspace?.role === "admin";
+  const activeCount = workspace?.members.filter(member => member.status === "active").length ?? 0;
+  const pendingCount = workspace?.members.filter(member => member.status === "pending").length ?? 0;
 
   const handleInvite = async () => {
     setInviteError(null);
     setInviteUrl(null);
     setInviteSentTo(null);
+    setCopied(false);
     const trimmed = email.trim();
     if (!trimmed.includes("@")) {
       setInviteError("Enter a valid email address.");
@@ -236,126 +233,99 @@ export function SettingsModalTeamPanel() {
   };
 
   return (
-    <SettingsPanel>
-      <SettingsBlock
-        title="Workspace"
-        description="Shared Team workspace — members use the same credit pool. Owners and admins can set monthly limits for individual members."
-      >
-        <SettingsBlockInset>
-          <p className="text-sm font-medium">{workspace?.name ?? "Loading…"}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {seatsUsed} of {seatLimit} seats used
-            {seatsLeft > 0 ? ` · ${seatsLeft} available` : " · No seats left"}
-          </p>
-        </SettingsBlockInset>
-      </SettingsBlock>
-
-      {canManage ? (
-        <SettingsBlock title="Invite teammate">
-          <SettingsBlockInset>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-              <div className="min-w-0 flex-1 space-y-1">
-                <label htmlFor="aria-team-invite-email" className="sr-only">
-                  Email address
-                </label>
-                <Input
-                  id="aria-team-invite-email"
-                  type="email"
-                  placeholder="colleague@company.com"
-                  value={email}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
-                    setInviteError(null);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      void handleInvite();
-                    }
-                  }}
-                  autoComplete="email"
-                />
-                {inviteError ? (
-                  <p className="text-xs text-destructive" role="alert">
-                    {inviteError}
-                  </p>
-                ) : inviteSentTo ? (
-                  <p className="text-xs text-emerald-500" role="status">
-                    Invitation emailed to {inviteSentTo}. It expires in 7 days.
-                  </p>
-                ) : inviteUrl ? (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="min-w-0 flex-1 truncate" title={inviteUrl}>
-                      Share this link with your teammate. It is shown once and expires in 7 days.
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label="Copy invite link"
-                      onClick={() => void navigator.clipboard?.writeText(inviteUrl)}
-                    >
-                      <Copy className="size-3.5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {ARIA_IS_PREVIEW
-                      ? "Invites are preview-only — no email is sent yet."
-                      : "ARIA will email the invitation when delivery is configured. Otherwise, you will get a one-time link to share."}
-                  </p>
-                )}
-              </div>
-              <Button
-                type="button"
-                className="shrink-0 sm:mt-0"
-                disabled={!email.trim() || seatsLeft === 0 || busy}
-                onClick={() => void handleInvite()}
-              >
-                <UserPlus className="size-4" aria-hidden />
-                Invite
-              </Button>
+    <SettingsPanel className="gap-5">
+      <section aria-label="Team workspace overview" className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-primary/[0.08] via-muted/25 to-background p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
+            <Users className="size-5" aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-base font-semibold tracking-tight">{workspace?.name ?? "Team workspace"}</h3>
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">TEAM</span>
             </div>
-          </SettingsBlockInset>
-        </SettingsBlock>
-      ) : null}
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">One shared credit pool, with individual monthly limits when you need them.</p>
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          <div className="rounded-xl border border-border/60 bg-background/60 px-3 py-3">
+            <p className="text-[11px] text-muted-foreground">Seats used</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums">{seatsUsed}<span className="ml-1 text-xs font-normal text-muted-foreground">/ {seatLimit}</span></p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-background/60 px-3 py-3">
+            <p className="text-[11px] text-muted-foreground">Active members</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums">{activeCount}</p>
+          </div>
+          <div className="col-span-2 rounded-xl border border-border/60 bg-background/60 px-3 py-3 sm:col-span-1">
+            <p className="text-[11px] text-muted-foreground">Pending invites</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums">{pendingCount}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+          <span>Team capacity</span><span className="tabular-nums">{seatsLeft} {seatsLeft === 1 ? "seat" : "seats"} available</span>
+        </div>
+        <div role="progressbar" aria-label="Team seats used" aria-valuemin={0} aria-valuemax={seatLimit}
+          aria-valuenow={seatsUsed} className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border/80">
+          <div className="h-full rounded-full bg-primary transition-[width] duration-300"
+            style={{ width: `${Math.min(100, seatLimit ? seatsUsed / seatLimit * 100 : 0)}%` }} />
+        </div>
+      </section>
 
-      {loadError ? (
-        <p className="text-sm text-destructive" role="alert">{loadError}</p>
-      ) : null}
+      {canManage ? <section className="rounded-2xl border border-border/70 bg-muted/15 p-4 sm:p-5" aria-labelledby="team-invite-title">
+        <div className="flex items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground"><UserPlus className="size-4" aria-hidden /></div>
+          <div><h3 id="team-invite-title" className="text-sm font-semibold">Invite a teammate</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">Add someone to this workspace. Invites reserve a seat for seven days.</p></div>
+        </div>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <label htmlFor="aria-team-invite-email" className="sr-only">Teammate email address</label>
+          <Input id="aria-team-invite-email" type="email" placeholder="teammate@company.com" value={email}
+            className="min-w-0 flex-1" onChange={event => { setEmail(event.target.value); setInviteError(null); }}
+            onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); void handleInvite(); } }} autoComplete="email" />
+          <Button type="button" className="sm:shrink-0" disabled={!email.trim() || seatsLeft === 0 || busy}
+            onClick={() => void handleInvite()}><UserPlus className="size-4" aria-hidden />{busy ? "Sending…" : "Send invite"}</Button>
+        </div>
+        {inviteError ? <p className="mt-2 text-xs text-destructive" role="alert">{inviteError}</p> :
+          inviteSentTo ? <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-500" role="status"><Check className="size-3.5" />Invitation sent to {inviteSentTo}.</p> :
+            inviteUrl ? <div className="mt-3 rounded-lg border border-border/70 bg-background/70 p-3">
+              <p className="text-xs font-medium">One-time invitation link</p>
+              <div className="mt-2 flex min-w-0 items-center gap-2">
+                <code className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground" title={inviteUrl}>{inviteUrl}</code>
+                <Button type="button" variant="outline" size="sm" onClick={async () => {
+                  try { await navigator.clipboard.writeText(inviteUrl); setCopied(true); }
+                  catch { setInviteError("Could not copy the link. Select and copy it manually."); }
+                }}>{copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}{copied ? "Copied" : "Copy"}</Button>
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">Shown once · expires in 7 days</p>
+            </div> : <p className="mt-2 text-[11px] text-muted-foreground">{ARIA_IS_PREVIEW
+              ? "Preview invitation only — no email will be sent."
+              : "ARIA emails the invite when delivery is configured; otherwise you receive a one-time link."}</p>}
+      </section> : null}
 
-      <SettingsBlock title="Members">
-        {!workspace?.members?.length && !loadError ? (
-          <SettingsBlockInset>
-            <p className="text-sm text-muted-foreground">No members yet.</p>
-          </SettingsBlockInset>
-        ) : null}
-        {(workspace?.members ?? []).map((member) => (
-          <TeamMemberRow
-            key={member.id}
-            member={member}
-            selfId={workspace?.selfId ?? ""}
-            canManage={canManage}
-            actorRole={workspace?.role ?? "member"}
-            onRemove={(id) => void handleRemove(id)}
-            onLimit={(id, limit) => void handleLimit(id, limit)}
-            savingLimit={savingLimitId === member.id}
-            limitError={limitError?.id === member.id ? limitError.message : null}
-          />
-        ))}
-      </SettingsBlock>
+      {loadError ? <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">
+        <p>{loadError}</p><Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void refresh()}>Try again</Button>
+      </div> : null}
 
-      {!canManage && inviteError ? (
-        <p className="text-xs text-destructive" role="alert">
-          {inviteError}
-        </p>
-      ) : null}
+      <section aria-labelledby="team-members-title" className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2 px-0.5">
+          <div><h3 id="team-members-title" className="text-sm font-semibold">People</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">Manage access and credit limits for your workspace.</p></div>
+          <span className="text-xs tabular-nums text-muted-foreground">{workspace?.members.length ?? 0} total</span>
+        </div>
+        {!workspace && !loadError ? <div className="rounded-xl border border-border/70 p-5 text-sm text-muted-foreground">Loading members…</div> : null}
+        {workspace && workspace.members.length === 0 ? <div className="rounded-xl border border-border/70 p-5 text-sm text-muted-foreground">No members yet. Invite your first teammate above.</div> : null}
+        <div className="space-y-2.5">
+          {(workspace?.members ?? []).map(member => <TeamMemberRow key={member.id} member={member}
+            selfId={workspace?.selfId ?? ""} canManage={canManage} actorRole={workspace?.role ?? "member"}
+            onRemove={id => void handleRemove(id)} onLimit={(id, limit) => void handleLimit(id, limit)}
+            savingLimit={savingLimitId === member.id} limitError={limitError?.id === member.id ? limitError.message : null} />)}
+        </div>
+      </section>
 
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Mail className="size-3.5 shrink-0 opacity-70" aria-hidden />
-        {canManage
-          ? "Removing a member revokes their access to this workspace immediately."
-          : "Only workspace owners and admins can invite or remove members."}
+      <p className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/15 p-3 text-[11px] leading-relaxed text-muted-foreground">
+        {canManage ? <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden /> : <Mail className="mt-0.5 size-3.5 shrink-0" aria-hidden />}
+        {canManage ? "Removing a member revokes their workspace access immediately. Credit limits reset their usage each UTC month."
+          : "Workspace owners and admins manage invitations and credit limits. Contact them if you need more credits."}
       </p>
     </SettingsPanel>
   );
