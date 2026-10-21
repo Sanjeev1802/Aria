@@ -14,6 +14,7 @@ import {
   fetchAriaTeam,
   inviteAriaTeamMemberApi,
   removeAriaTeamMemberApi,
+  setAriaTeamMemberLimitApi,
   type AriaTeamApiMember,
   type AriaTeamApiWorkspace,
 } from "@/lib/aria-team-api";
@@ -39,25 +40,42 @@ function TeamMemberRow({
   member,
   selfId,
   canManage,
+  actorRole,
   onRemove,
+  onLimit,
+  savingLimit,
+  limitError,
 }: {
   member: AriaTeamApiMember;
   selfId: string;
   canManage: boolean;
+  actorRole: "owner" | "admin" | "member";
   onRemove: (id: string) => void;
+  onLimit: (id: string, limit: number | null) => void;
+  savingLimit: boolean;
+  limitError: string | null;
 }) {
+  const [editingLimit, setEditingLimit] = useState(false);
+  const [limitDraft, setLimitDraft] = useState("");
   const isSelf = member.id === selfId;
   const canRemove = canManage && !isSelf && member.role !== "owner" && member.status === "active";
   const isInvite = member.status !== "active";
+  const canSetLimit = canManage && !ARIA_IS_PREVIEW && !isInvite && member.role !== "owner" &&
+    (actorRole === "owner" || member.role === "member");
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
       <Avatar className="size-9 shrink-0 text-xs">
         <AvatarFallback className="bg-muted font-medium">{initialsFromMember(member)}</AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{member.name}</p>
         <p className="truncate text-xs text-muted-foreground">{member.email}</p>
+        {!isInvite && member.budget ? <p className="mt-1 text-xs text-muted-foreground">
+          {member.budget.used.toLocaleString()} used · {member.budget.limit === null
+            ? "No individual limit" : `${member.budget.limit.toLocaleString()} credit monthly limit`}
+          {member.budget.reserved > 0 ? ` · ${member.budget.reserved.toLocaleString()} reserved` : ""}
+        </p> : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {isInvite ? (
@@ -99,7 +117,23 @@ function TeamMemberRow({
             <X className="size-3.5" />
           </Button>
         ) : null}
+        {canSetLimit ? <Button type="button" variant="outline" size="sm" onClick={() => {
+          setLimitDraft(member.budget?.limit?.toString() ?? ""); setEditingLimit(value => !value);
+        }}>Set limit</Button> : null}
       </div>
+      {editingLimit && canSetLimit ? <div className="flex w-full flex-wrap items-center gap-2 pl-12">
+        <label className="sr-only" htmlFor={`limit-${member.id}`}>Monthly credit limit for {member.name}</label>
+        <Input id={`limit-${member.id}`} inputMode="numeric" type="number" min={0} max={20000} step={1}
+          placeholder="No individual limit" value={limitDraft} onChange={event => setLimitDraft(event.target.value)}
+          className="h-8 w-44" />
+        <Button type="button" size="sm" disabled={savingLimit || (limitDraft !== "" &&
+          (!/^\d+$/.test(limitDraft) || Number(limitDraft) > 20000))} onClick={() => {
+          onLimit(member.id, limitDraft === "" ? null : Number(limitDraft)); setEditingLimit(false);
+        }}>Save</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditingLimit(false)}>Cancel</Button>
+        <span className="text-xs text-muted-foreground">Blank removes the individual limit.</span>
+      </div> : null}
+      {limitError ? <p className="w-full pl-12 text-xs text-destructive" role="alert">{limitError}</p> : null}
     </div>
   );
 }
@@ -112,6 +146,8 @@ export function SettingsModalTeamPanel() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteSentTo, setInviteSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [savingLimitId, setSavingLimitId] = useState<string | null>(null);
+  const [limitError, setLimitError] = useState<{ id: string; message: string } | null>(null);
 
   const refresh = useCallback(async () => {
     if (ARIA_IS_PREVIEW) { setWorkspace(previewTeamWorkspace()); setLoadError(null); return; }
@@ -188,11 +224,22 @@ export function SettingsModalTeamPanel() {
     }
   };
 
+  const handleLimit = async (memberId: string, limit: number | null) => {
+    setLimitError(null);
+    setSavingLimitId(memberId);
+    try {
+      await setAriaTeamMemberLimitApi(memberId, limit);
+      await refresh();
+    } catch (error) {
+      setLimitError({ id: memberId, message: (error as Error).message });
+    } finally { setSavingLimitId(null); }
+  };
+
   return (
     <SettingsPanel>
       <SettingsBlock
         title="Workspace"
-        description="Shared Team workspace — members use the same credit pool and approved data connections."
+        description="Shared Team workspace — members use the same credit pool. Owners and admins can set monthly limits for individual members."
       >
         <SettingsBlockInset>
           <p className="text-sm font-medium">{workspace?.name ?? "Loading…"}</p>
@@ -289,7 +336,11 @@ export function SettingsModalTeamPanel() {
             member={member}
             selfId={workspace?.selfId ?? ""}
             canManage={canManage}
+            actorRole={workspace?.role ?? "member"}
             onRemove={(id) => void handleRemove(id)}
+            onLimit={(id, limit) => void handleLimit(id, limit)}
+            savingLimit={savingLimitId === member.id}
+            limitError={limitError?.id === member.id ? limitError.message : null}
           />
         ))}
       </SettingsBlock>

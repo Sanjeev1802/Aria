@@ -1,4 +1,4 @@
-import { membersDeleteHandler, membersGetHandler, membersPostHandler, run } from "@/lib/server/handlers";
+import { membersDeleteHandler, membersGetHandler, membersPatchHandler, membersPostHandler, run } from "@/lib/server/handlers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,4 +13,8 @@ export function POST(request: Request) {
 
 export function DELETE(request: Request) {
   return run(request, membersDeleteHandler);
+}
+
+export function PATCH(request: Request) {
+  return run(request, membersPatchHandler);
 }

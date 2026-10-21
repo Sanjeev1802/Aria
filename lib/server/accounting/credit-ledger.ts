@@ -28,6 +28,7 @@ export const keys = {
   active: (w: string, member: string): Key => ({ pk: ws(w), sk: `ACTIVE#${member}` }),
   rate: (w: string, member: string, minute: number): Key => ({ pk: ws(w), sk: `RATE#${member}#${minute}` }),
   activity: (w: string, member: string, day: string): Key => ({ pk: ws(w), sk: `ACT#${member}#${day}` }),
+  memberBudget: (w: string, member: string, period: string): Key => ({ pk: ws(w), sk: `BUDGET#${period}#${member}` }),
   member: (w: string, member: string): Key => ({ pk: ws(w), sk: `MEMBER#${member}` }),
   workspace: (w: string): Key => ({ pk: ws(w), sk: "META" }),
 };
@@ -75,6 +76,54 @@ export class CreditLedger {
       reserved: credits(n("reserved")), available: credits(n("available")) };
   }
 
+  /** Member meters renew with the UTC billing month. An absent limit means the shared pool applies. */
+  async memberBudget(workspaceId: string, memberId: string, period = periodFor(this.clock())) {
+    const row = await this.store.get(keys.memberBudget(workspaceId, memberId, period));
+    const policy = row ? undefined : await this.store.get(keys.member(workspaceId, memberId));
+    const limit = row?.limit ?? policy?.creditLimit;
+    return { period, limit: typeof limit === "number" ? limit / 1000 : null,
+      used: Number(row?.used ?? 0) / 1000, reserved: Number(row?.reserved ?? 0) / 1000 };
+  }
+
+  private async ensureMemberBudget(workspaceId: string, memberId: string, period: string) {
+    const key = keys.memberBudget(workspaceId, memberId, period);
+    const existing = await this.store.get(key);
+    if (existing) return existing;
+    const member = await this.store.get(keys.member(workspaceId, memberId));
+    try {
+      await this.store.transact([{ kind: "put", when: [notExists], item: { ...key, used: 0, reserved: 0, exposure: 0,
+        ...(typeof member?.creditLimit === "number" ? { limit: member.creditLimit } : {}) } }]);
+    } catch (error) { if (!(error instanceof ConditionFailed)) throw error; }
+    return this.store.get(key);
+  }
+
+  async setMemberLimit(workspaceId: string, actorId: string, actorRole: string, memberId: string,
+    memberRole: string, limitUnits: number | null) {
+    const period = periodFor(this.clock());
+    await this.ensureMemberBudget(workspaceId, memberId, period);
+    const checks: Write[] = [
+      ...(actorId === memberId ? [] : [{ kind: "check" as const, key: keys.member(workspaceId, actorId), when: [
+        { field: "status" as const, op: "=" as const, value: "active" },
+        { field: "role" as const, op: "=" as const, value: actorRole }] }]),
+      { kind: "update", key: keys.member(workspaceId, memberId),
+        ...(limitUnits === null ? { remove: ["creditLimit"] } : { set: { creditLimit: limitUnits } }),
+        when: [{ field: "status", op: "=", value: "active" }, { field: "role", op: "=", value: memberRole }] },
+      { kind: "check", key: keys.workspace(workspaceId), when: [{ field: "plan", op: "=", value: "team" }] },
+    ];
+    try {
+      await this.store.transact([
+        ...checks,
+        { kind: "update", key: keys.memberBudget(workspaceId, memberId, period),
+          ...(limitUnits === null ? { remove: ["limit"] } : { set: { limit: limitUnits } }),
+          when: [{ field: "pk", op: "exists" }] },
+      ]);
+    } catch (error) {
+      if (error instanceof ConditionFailed) throw new ServiceError("member_limit_conflict", 409);
+      throw error;
+    }
+    return this.memberBudget(workspaceId, memberId, period);
+  }
+
   async find(workspaceId: string, id: string, hash?: string): Promise<RequestRecord | undefined> {
     const row = await this.store.get(keys.request(workspaceId, id));
     if (row && hash !== undefined && row.hash !== hash) throw new ServiceError("idempotency_conflict", 409);
@@ -92,12 +141,15 @@ export class CreditLedger {
     const now = this.clock();
     const period = periodFor(now);
     const { workspaceId: w, memberId: m } = account;
+    const metered = account.plan === "team";
+    const budget = metered ? await this.ensureMemberBudget(w, m, period) : undefined;
+    const limit = typeof budget?.limit === "number" ? budget.limit : null;
     const writes: Write[] = [
       { kind: "put", when: [notExists], item: { ...keys.request(w, request.id),
         workspaceId: w, memberId: m, requestId: request.id, hash: request.hash,
         status: "reserved", providerState: "pending", reserved: request.units, charged: 0,
         inputTokens: 0, outputTokens: 0, model: request.model, rateVersion: request.rateVersion,
-        period, createdAt: now, gsi2pk: "RESERVED", gsi2sk: `${String(now).padStart(15, "0")}#${w}#${request.id}` } },
+        period, memberMetered: metered, createdAt: now, gsi2pk: "RESERVED", gsi2sk: `${String(now).padStart(15, "0")}#${w}#${request.id}` } },
       { kind: "update", key: keys.period(w, period), add: { reserved: request.units, available: -request.units },
         when: [{ field: "available", op: ">=", value: request.units }] },
       { kind: "put", when: [{ any: [{ field: "pk", op: "notExists" }, { field: "expiresAt", op: "<", value: now }] }],
@@ -106,6 +158,11 @@ export class CreditLedger {
         when: [{ any: [{ field: "count", op: "notExists" }, { field: "count", op: "<", value: REQUESTS_PER_MINUTE }] }] },
       { kind: "check", key: keys.member(w, m), when: [{ field: "status", op: "=", value: "active" }] },
       { kind: "check", key: keys.workspace(w), when: [{ field: "plan", op: "=", value: account.plan }] },
+      ...(metered ? [{ kind: "update" as const, key: keys.memberBudget(w, m, period),
+        add: { reserved: request.units, exposure: request.units },
+        when: [limit === null ? { field: "limit" as const, op: "notExists" as const }
+          : { field: "limit" as const, op: "=" as const, value: limit },
+          ...(limit === null ? [] : [{ field: "exposure" as const, op: "<=" as const, value: limit - request.units }])] }] : []),
       this.eventWrite(w, request.id, "reserve", request.units, { memberId: m, period, createdAt: now }),
     ];
     try {
@@ -123,6 +180,7 @@ export class CreditLedger {
       if (failed.has(2)) throw new ServiceError("request_in_progress", 429);
       if (failed.has(3)) throw new ServiceError("rate_limited", 429);
       if (failed.has(1)) throw new ServiceError("insufficient_credits", 402);
+      if (metered && failed.has(6)) throw new ServiceError("member_limit_exceeded", 402);
       throw error;
     }
   }
@@ -159,6 +217,8 @@ export class CreditLedger {
         this.eventWrite(workspaceId, id, "settle", s.charged, { memberId: member, period: String(row.period), createdAt: now }),
         { kind: "update", key: keys.activity(workspaceId, member, new Date(now).toISOString().slice(0, 10)),
           add: { tokens: s.inputTokens + s.outputTokens } },
+        ...(row.memberMetered === true ? [{ kind: "update" as const, key: keys.memberBudget(workspaceId, member, String(row.period)),
+          add: { reserved: -held, used: s.charged, exposure: s.charged - held } }] : []),
       ]);
     } catch (error) {
       if (!(error instanceof ConditionFailed)) throw error;
@@ -182,6 +242,9 @@ export class CreditLedger {
           remove: ["gsi2pk", "gsi2sk"] },
         { kind: "update", key: keys.period(workspaceId, String(row.period)), add: { reserved: -held, available: held } },
         this.eventWrite(workspaceId, id, "release", held, { memberId: String(row.memberId), period: String(row.period), createdAt: now, reason }),
+        ...(row.memberMetered === true ? [{ kind: "update" as const,
+          key: keys.memberBudget(workspaceId, String(row.memberId), String(row.period)),
+          add: { reserved: -held, exposure: -held } }] : []),
       ]);
     } catch (error) {
       if (!(error instanceof ConditionFailed)) throw error;

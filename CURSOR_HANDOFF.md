@@ -2,7 +2,7 @@
 
 > **Current user direction:** finish the application code and local journeys before AWS or other external setup. Follow `CODE_FIRST_PLAN.md` Milestones 0–7. The AWS staging checklist later in this file is a release gate, not the next task.
 
-Updated: 2026-10-21 (profile editing, local plan testing, and ARIA-only composer; branch Aria-new-setup).
+Updated: 2026-10-21 (Team member credit limits, profile editing, local plan testing, and ARIA-only composer; branch Aria-new-setup).
 
 ## Start here
 
@@ -12,7 +12,7 @@ Read `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, this file, and `PROMPT_EVALUATION.md
 
 ### Current code verification (2026-10-21)
 
-- `npm test`: **69/69 pass**. `npm run typecheck` and `npm run build` pass. New profile tests cover authenticated name/photo editing, persistence, user isolation, unsafe input rejection, and cross-site writes. Earlier tests cover local plan changes, OneWave invitations, public search, project assignment, SQLite consistency, identity, and chat persistence.
+- `npm test`: **71/71 pass**. `npm run typecheck` and `npm run build` pass. New tests cover Team member credit limits, settlement/refund/month renewal, and role checks. Profile tests cover authenticated name/photo editing, persistence, user isolation, unsafe input rejection, and cross-site writes. Earlier tests cover local plan changes, OneWave invitations, public search, project assignment, SQLite consistency, identity, and chat persistence.
 - Recent commits: `c6a579b` (project assignment and responsive controls), `ef80748` (system prompt and truncated-answer notice), preceded by `0da6b3a` (saved threads). Verify `git status` and push status before further work.
 - Browser smoke in an isolated local-dev copy verified project creation, a chat started inside that project and persisted with its project ID, moving the chat out of a project, and the mobile sidebar drawer. Viewports 320×700, 375×812, 390×844, 768×1024, 844×390, 1024×768, and 1440×900 had no horizontal overflow or page errors. The final production build passed.
 - `SqliteStore` reads the latest disk state before transactions and rolls back failed writes. This is safe for the local demo, but rewrites the full item table on each write and is not the production data store.
@@ -22,6 +22,7 @@ Read `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, this file, and `PROMPT_EVALUATION.md
 - Team invites use OneWave's `aria-team-invitation` template when `EMAIL_SERVICE_URL` and `EMAIL_SERVICE_API_KEY` are configured. The existing verified-email, single-use invite flow remains authoritative. Email delivery is mocked in tests; real delivery needs staging verification. See `TEAM_EMAIL_SETUP.md`.
 - The local sidebar can switch the current owner workspace among Free, Pro, and Team using `/api/auth/local-plan/`. It is loopback-development-only and changes plan and credits in one transaction. The composer no longer shows a provider dropdown or tier label. When the UI omits a model, the server chooses Nova for Free and Claude for Pro/Team from verified entitlements.
 - Account settings now edits the signed-in user's display name and avatar through `PATCH /api/profile/`. The browser crops PNG/JPEG/WebP to a bounded 128 × 128 PNG; the server validates the payload and stores it in a separate `USER#id / AVATAR` item. Session/profile views load it, while normal authenticated requests read only the small profile item. The profile UI was checked at 390 × 844 for save, reload, and remove.
+- Team owners and admins can set an individual monthly credit limit in Settings → Team. `PATCH /api/workspace/members/` writes the persistent member policy and current-month meter together. The ledger reserves against that meter in the same transaction as the shared pool, then settles or releases both meters together. The UTC month resets usage but retains the configured limit. Members see their own meter; admins can inspect the team.
 
 ### Milestone 0 — verified (2026-10-20)
 
@@ -115,4 +116,4 @@ Also fixed: `showInputError` parsed the minified CSS value `3s` as 3 ms, so auth
 
 ## Next Cursor task
 
-> Stay on `Aria-new-setup`. Read `AGENTS.md`, `CODE_FIRST_PLAN.md`, `TEAM_EMAIL_SETUP.md`, `SEARXNG_SETUP.md`, and this handoff. Verify the current 69 tests and production build. Continue Milestone 2 with server-owned library/personalization, deliberate migration of preview/browser data, and saved-chat search/pagination. Then implement Milestones 3–7 in order. Keep authenticated data scoped to verified user and workspace, use the local identity/fake model for tests, and preserve production fail-closed behavior. Make one tested commit per coherent change and push to `origin/Aria-new-setup`. Do not provision AWS or payment providers yet.
+> Stay on `Aria-new-setup`. Read `AGENTS.md`, `CODE_FIRST_PLAN.md`, `TEAM_EMAIL_SETUP.md`, `SEARXNG_SETUP.md`, and this handoff. Verify the current 71 tests and production build. Continue Milestone 2 with server-owned library/personalization, deliberate migration of preview/browser data, and saved-chat search/pagination. Then implement Milestones 3–7 in order. Keep authenticated data scoped to verified user and workspace, use the local identity/fake model for tests, and preserve production fail-closed behavior. Make one tested commit per coherent change and push to `origin/Aria-new-setup`. Do not provision AWS or payment providers yet.

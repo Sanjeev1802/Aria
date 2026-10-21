@@ -2,6 +2,7 @@ import { ariaFetch, type AriaRole } from "@/lib/aria-session";
 
 export type AriaTeamApiMember = {
   id: string; name: string; email: string; role: AriaRole; status: "active" | "pending" | "expired"; expiresAt?: number;
+  budget?: { period: string; limit: number | null; used: number; reserved: number };
 };
 export type AriaTeamApiWorkspace = {
   name: string; seatLimit: number; seatsUsed: number; selfId: string; role: AriaRole; members: AriaTeamApiMember[];
@@ -30,6 +31,12 @@ export async function inviteAriaTeamMemberApi(email: string): Promise<{ delivery
 export async function removeAriaTeamMemberApi(id: string) {
   const response = await ariaFetch("/api/workspace/members/", { method: "DELETE", body: JSON.stringify({ id }) });
   if (!response.ok) throw await failure(response);
+}
+
+export async function setAriaTeamMemberLimitApi(id: string, limit: number | null) {
+  const response = await ariaFetch("/api/workspace/members/", { method: "PATCH", body: JSON.stringify({ id, limit }) });
+  if (!response.ok) throw await failure(response);
+  return await response.json();
 }
 
 export async function acceptAriaInvite(token: string) {

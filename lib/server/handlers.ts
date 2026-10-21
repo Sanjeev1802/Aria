@@ -125,8 +125,29 @@ export async function membersGetHandler(request: Request, s: Services) {
   return json({
     workspace: { id: ctx.workspace.id, name: ctx.workspace.name, seatLimit: workspace?.seatLimit, seatsUsed: workspace?.seatsUsed },
     selfId: ctx.user.id, role: ctx.membership.role,
-    members: await s.directory.members(ctx.workspace.id),
+    members: await Promise.all((await s.directory.members(ctx.workspace.id)).map(async member => member.status === "active" &&
+      (ctx.membership.role !== "member" || member.id === ctx.user.id)
+      ? { ...member, budget: await s.ledger.memberBudget(ctx.workspace.id, member.id) } : member)),
   });
+}
+
+export async function membersPatchHandler(request: Request, s: Services) {
+  const ctx = await requireWorkspace(request, s, "members:invite");
+  if (ctx.workspace.plan !== "team") throw new ServiceError("plan_required", 403);
+  const body = await readJson(request);
+  const id = str(body.id, 120);
+  if (!id) throw new ServiceError("member_not_found", 404);
+  const target = await s.directory.getMembership(ctx.workspace.id, id);
+  if (!target) throw new ServiceError("member_not_found", 404);
+  if (ctx.membership.role !== "owner" && (target.role !== "member" || id === ctx.user.id)) {
+    throw new ServiceError("permission_denied", 403);
+  }
+  const credits = body.limit;
+  if (credits !== null && (typeof credits !== "number" || !Number.isInteger(credits) || credits < 0 ||
+      credits > PLANS.team.monthlyUnits / 1000)) throw new ServiceError("invalid_member_limit", 400);
+  const budget = await s.ledger.setMemberLimit(ctx.workspace.id, ctx.user.id, ctx.membership.role,
+    id, target.role, credits === null ? null : credits * 1000);
+  return json({ budget });
 }
 
 export async function membersPostHandler(request: Request, s: Services) {

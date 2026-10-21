@@ -11,7 +11,7 @@ ARIA is a Next.js application from The Binary Labs. It presents a single chat ex
 | Area | Current behavior |
 | --- | --- |
 | Accounts | Cognito sign-in and sign-up routes, email confirmation, password recovery, verified sessions in HttpOnly cookies, and session revocation. Users can edit their display name and profile photo in Account settings. A local identity provider supports development. |
-| Workspaces | Personal and Team workspaces, owner/admin/member roles, invitations, seat limits, and immediate access removal. Team invites are emailed through OneWave when configured, with a one-time link fallback for local setup. |
+| Workspaces | Personal and Team workspaces, owner/admin/member roles, invitations, seat limits, per-member monthly Team credit limits, and immediate access removal. Team invites are emailed through OneWave when configured, with a one-time link fallback for local setup. |
 | Plans | Server-enforced Free, Pro, and Team entitlements for credits, seats, and available models. Billing is not connected. |
 | Chat | Streaming responses through Bedrock when configured, a versioned server-owned system prompt, saved conversations, and an explicit notice when a response reaches the model's output limit. |
 | Public web search | Optional, explicit SearXNG search from the chat composer. ARIA sends a short public query to the configured self-hosted instance, passes bounded snippets to the model, and saves linked search results with the answer. |
@@ -75,6 +75,8 @@ Open [http://127.0.0.1:3000/sign-in/](http://127.0.0.1:3000/sign-in/). Sign in w
 
 In local development, the sidebar also has a **Test plan** control for Free, Pro, and Team. It changes the current workspace's server-owned plan and monthly credit allowance so you can test plan gates without checkout. A workspace with more than one occupied seat cannot switch to a one-seat plan until its extra members or pending invites are removed. This control is unavailable in production. The chat composer has no provider dropdown or plan label; ARIA chooses the default provider from the verified plan (Nova for Free, Claude for Pro and Team).
 
+In a Team workspace, open **Settings → Team → Members → Set limit** to assign an individual monthly credit limit. Owners can set limits for admins or members; admins can set limits for members. Leave the field blank for no individual limit, or enter `0` to block that member's new usage. Each request must fit both the member's remaining allowance and the shared Team pool. Limits carry into the next UTC month while used credits reset. Lowering a limit below credits already used blocks new requests without reversing earlier charges. This applies to the chat ledger; public API access is not yet implemented.
+
 Local accounts, credits, projects, and saved chats persist in `.aria/local-dev.sqlite`, which is gitignored. To try projects, open the chat sidebar, create and select a project, then send a message. Use a saved chat's **⋯ → Move to project** menu to reassign it or choose **No project**. The **Recents** menu can also export a chat as JSON.
 
 Open **Profile → Account → Edit profile** to change your display name or photo. ARIA accepts PNG, JPEG, or WebP uploads up to 5 MB, crops the photo to a square, and saves a 128 × 128 PNG. The image is stored separately from the account record, so ordinary authenticated requests do not load it.
@@ -93,7 +95,7 @@ npm run typecheck
 npm run build
 ```
 
-The current branch passes **69 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, local plan switching, and profile editing. Local browser checks covered the profile upload/save/reload/remove flow at mobile width, plan switching, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API. Real SearXNG and OneWave delivery remain to be tested in staging.
+The current branch passes **71 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, per-member Team limits, local plan switching, and profile editing. Local browser checks covered the profile upload/save/reload/remove flow at mobile width, plan switching, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API. Real SearXNG and OneWave delivery remain to be tested in staging.
 
 These checks do not verify real Cognito, DynamoDB, or Bedrock behavior. Those integrations require staging tests before production chat is enabled.
 
