@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private Valkey Serverless cache for ARIA public web-search results only.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnets in the ARIA application VPC (at least two Availability Zones).
+  AppSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group attached to the ARIA server runtime.
+  CacheName:
+    Type: String
+    Default: aria-public-search
+    AllowedPattern: '[a-z][a-z0-9-]*'
+    MaxLength: 40
+
+Resources:
+  CachePassword:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: ARIA public-search Valkey RBAC password.
+      GenerateSecretString:
+        SecretStringTemplate: '{"username":"aria-search"}'
+        GenerateStringKey: password
+        PasswordLength: 48
+        ExcludePunctuation: true
+
+  CacheUser:
+    Type: AWS::ElastiCache::User
+    Properties:
+      UserId: !Sub '${CacheName}-user'
+      UserName: aria-search
+      Engine: valkey
+      AccessString: 'on ~aria:public-search:v1:* -@all +get +setex +cluster|slots +cluster|shards +cluster|nodes'
+      AuthenticationMode:
+        Type: password
+        Passwords:
+          - !Sub '{{resolve:secretsmanager:${CachePassword}:SecretString:password}}'
+
+  CacheUserGroup:
+    Type: AWS::ElastiCache::UserGroup
+    Properties:
+      UserGroupId: !Sub '${CacheName}-users'
+      Engine: valkey
+      UserIds:
+        - !Ref CacheUser
+
+  CacheSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ARIA public-search cache; ARIA server only
+      VpcId: !Ref VpcId
+
+  CacheIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref CacheSecurityGroup
+      IpProtocol: tcp
+      FromPort: 6379
+      ToPort: 6380
+      SourceSecurityGroupId: !Ref AppSecurityGroupId
+      Description: ARIA server to Valkey Serverless primary and reader ports
+
+  PublicSearchCache:
+    Type: AWS::ElastiCache::ServerlessCache
+    Properties:
+      ServerlessCacheName: !Ref CacheName
+      Description: Short-lived public search results; no private ARIA data
+      Engine: valkey
+      ConnectionType: vpc
+      SubnetIds: !Ref PrivateSubnetIds
+      SecurityGroupIds:
+        - !Ref CacheSecurityGroup
+      UserGroupId: !Ref CacheUserGroup
+      SnapshotRetentionLimit: 0
+
+Outputs:
+  CacheHost:
+    Value: !GetAtt PublicSearchCache.Endpoint.Address
+  CachePort:
+    Value: !GetAtt PublicSearchCache.Endpoint.Port
+  PasswordSecretArn:
+    Value: !Ref CachePassword
+  CacheSecurityGroupId:
+    Value: !Ref CacheSecurityGroup

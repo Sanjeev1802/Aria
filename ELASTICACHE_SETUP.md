@@ -6,6 +6,33 @@ This integration is optional. Leave `ARIA_ELASTICACHE_URL` unset until search tr
 
 ## Provision in AWS
 
+The reproducible stack is [`infra/elasticache-search.yaml`](infra/elasticache-search.yaml). It creates a private Valkey Serverless cache, an app-only security group allowing ports 6379–6380 from the ARIA server security group, an RBAC user limited to the public-search keyspace, and a generated password in Secrets Manager. The cache is intentionally separate from DynamoDB credits and account state.
+
+After `aws login`, confirm the AWS account and Region, then identify the ARIA runtime's VPC, its security group, and at least two private subnet IDs in separate Availability Zones. The ARIA server must run in that VPC (or have private network connectivity to it). A laptop cannot directly connect to a private ElastiCache endpoint.
+
+Deploy with account-specific values, for example:
+
+```sh
+aws cloudformation deploy \
+  --region ap-southeast-1 \
+  --stack-name aria-public-search-cache \
+  --template-file infra/elasticache-search.yaml \
+  --parameter-overrides VpcId=vpc-REPLACE PrivateSubnetIds=subnet-REPLACE,subnet-REPLACE AppSecurityGroupId=sg-REPLACE
+```
+
+Read the stack outputs for the cache host, port, and password secret ARN. Grant the ARIA server permission to read **only that secret**, resolve it server-side at deployment/startup, and set `ARIA_ELASTICACHE_URL=rediss://aria-search:<url-encoded-password>@<cache-host>:<cache-port>` in its private environment. Never commit the URL or print it in deployment logs. Restart the server after setting it. If ARIA is still running only on a developer laptop, leave this variable unset; the live SearXNG fallback remains available.
+
+The stack incurs AWS charges while it exists, even with little traffic. Inspect [AWS pricing](https://aws.amazon.com/elasticache/pricing/) and delete the stack when the cache is no longer needed.
+
+### Acceptance checks
+
+1. In the ARIA runtime network, verify that its configured URL can connect with TLS and that the RBAC user can `GET` and `SETEX` a disposable `aria:public-search:v1:*` key.
+2. With Web search enabled, ask the same public question twice within 120 seconds; the second request should avoid a SearXNG fetch. Check the cache hit/miss metrics and SearXNG access log.
+3. Temporarily deny cache access, then retry a public search. It should still return a live SearXNG result; credits and account rules remain in DynamoDB.
+4. Unset `ARIA_ELASTICACHE_URL` to roll back without losing authoritative data.
+
+### Manual alternative
+
 1. Create a **Serverless Valkey** cache in the same AWS Region and VPC as the ARIA server. Keep the cache private. Use a security group that permits the ARIA service to reach the cache endpoint on the required Valkey ports. Serverless caches require TLS and use cluster mode.
 2. Create an ElastiCache RBAC user with a password and narrowly scoped permissions for cluster discovery plus `GET` and `SETEX` on the `aria:public-search:v1:*` key prefix. Associate that user with the cache's user group. Store the password in AWS Secrets Manager and inject it into the ARIA server environment; do not put it in source, browser code, logs, or a client-visible variable.
 3. Set `ARIA_ELASTICACHE_URL` on the ARIA server to a `rediss://username:password@host:port` URL using the cache's **cluster endpoint**. URL-encode special characters in the username and password. Also set `ARIA_SEARXNG_URL`; the cache is unused without public search.

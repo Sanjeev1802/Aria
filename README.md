@@ -130,7 +130,7 @@ Set `EMAIL_SERVICE_URL` and `EMAIL_SERVICE_API_KEY` on the ARIA server to use th
 
 Production accounts and saved work require a Cognito user pool and app client, a DynamoDB table, and a canonical application origin for cross-site request checks. Live model calls also require Bedrock model IDs, verified token rates, AWS permissions, and the explicit `ARIA_LIVE_CHAT=enabled` switch. See [`.env.example`](.env.example), the [DynamoDB table definition](infra/dynamodb-table.json), and the [staging checklist](CURSOR_HANDOFF.md) for the exact configuration.
 
-ElastiCache is optional for public web search and does not affect accounts, credits, or model access. See [ElastiCache setup](ELASTICACHE_SETUP.md) for the private TLS/RBAC configuration, cost consideration, and fallback behavior.
+ElastiCache is optional for public web search and does not affect accounts, credits, or model access. A private Valkey Serverless CloudFormation stack is provided in [`infra/elasticache-search.yaml`](infra/elasticache-search.yaml); see [ElastiCache setup](ELASTICACHE_SETUP.md) for deployment parameters, TLS/RBAC configuration, cost considerations, acceptance checks, and fallback behavior.
 
 Without the required configuration, the production chat API returns `503` by design. Do not put AWS credentials or Cognito secrets in `NEXT_PUBLIC_*` variables. AWS provisioning and real-service staging tests have not been completed.
 
