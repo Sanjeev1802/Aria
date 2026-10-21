@@ -29,7 +29,7 @@ export async function requireInternalAdmin(request: Request, services: Services)
 
 export function assertAdminActionAllowed(role: InternalRole, type: AdminAction["type"]) {
   if (role === "super_admin") return;
-  if (role === "billing" && type === "set_plan") return;
+  if (role === "billing" && ["set_plan", "grant_credits"].includes(type)) return;
   if (role === "operations" && ["disable_user", "enable_user", "revoke_sessions"].includes(type)) return;
   throw new ServiceError("admin_action_forbidden", 403);
 }
@@ -62,7 +62,7 @@ export async function adminOverview(services: Services) {
     },
     activity: audit.map(row => ({ id: String(row.sk).slice(7), action: String(row.action),
       actorId: String(row.actorId), targetId: String(row.targetId), reason: String(row.reason),
-      at: Number(row.at), result: String(row.result) })),
+      at: Number(row.at), result: String(row.result), ...(typeof row.credits === "number" ? { credits: row.credits } : {}) })),
     limited: userKeys.length === 500 || workspaceKeys.length === 500,
   };
 }
@@ -79,17 +79,20 @@ export async function adminCustomer(services: Services, userId: string) {
 }
 
 export type AdminAction = {
-  id: string; type: "disable_user" | "enable_user" | "revoke_sessions" | "set_plan";
-  targetId: string; reason: string; plan?: PlanId;
+  id: string; type: "disable_user" | "enable_user" | "revoke_sessions" | "set_plan" | "grant_credits";
+  targetId: string; reason: string; plan?: PlanId; credits?: number;
 };
 
 export function parseAdminAction(body: Record<string, unknown>): AdminAction {
   if (!validId(body.id) || !validId(body.targetId) || typeof body.reason !== "string" ||
     body.reason.trim().length < 8 || body.reason.length > 500 ||
-    !["disable_user", "enable_user", "revoke_sessions", "set_plan"].includes(String(body.type)) ||
-    (body.type === "set_plan" && !isPlanId(body.plan))) throw new ServiceError("admin_invalid_action", 400);
+    !["disable_user", "enable_user", "revoke_sessions", "set_plan", "grant_credits"].includes(String(body.type)) ||
+    (body.type === "set_plan" && !isPlanId(body.plan)) ||
+    (body.type === "grant_credits" && (typeof body.credits !== "number" || !Number.isSafeInteger(body.credits * 1000) ||
+      body.credits <= 0 || body.credits > 100))) throw new ServiceError("admin_invalid_action", 400);
   return { id: body.id as string, targetId: body.targetId as string, reason: body.reason.trim(),
-    type: body.type as AdminAction["type"], ...(isPlanId(body.plan) ? { plan: body.plan } : {}) };
+    type: body.type as AdminAction["type"], ...(isPlanId(body.plan) ? { plan: body.plan } : {}),
+    ...(body.type === "grant_credits" ? { credits: body.credits as number } : {}) };
 }
 
 export async function executeAdminAction(services: Services, actorId: string, action: AdminAction) {
@@ -97,14 +100,33 @@ export async function executeAdminAction(services: Services, actorId: string, ac
   const prior = await services.store.get(key);
   if (prior) {
     if (prior.actorId !== actorId || prior.action !== action.type || prior.targetId !== action.targetId ||
-      prior.reason !== action.reason || prior.plan !== (action.plan ?? undefined)) throw new ServiceError("admin_action_conflict", 409);
+      prior.reason !== action.reason || prior.plan !== (action.plan ?? undefined) ||
+      prior.credits !== (action.credits ?? undefined)) throw new ServiceError("admin_action_conflict", 409);
     return { result: "duplicate" as const };
   }
-  if (action.targetId === actorId && action.type !== "set_plan") throw new ServiceError("admin_self_action", 403);
+  if (action.targetId === actorId && !["set_plan", "grant_credits"].includes(action.type)) throw new ServiceError("admin_self_action", 403);
   const now = Date.now();
   const audit = { ...key, gsi2pk: "ADMIN#AUDIT", gsi2sk: `${String(Number.MAX_SAFE_INTEGER - now).padStart(16, "0")}#${action.id}`,
     action: action.type, actorId, targetId: action.targetId,
-    reason: action.reason, ...(action.plan ? { plan: action.plan } : {}), at: now, result: "applied" };
+    reason: action.reason, ...(action.plan ? { plan: action.plan } : {}),
+    ...(action.credits ? { credits: action.credits } : {}), at: now, result: "applied" };
+  if (action.type === "grant_credits") {
+    const workspace = await services.directory.getWorkspace(action.targetId);
+    if (!workspace) throw new ServiceError("workspace_not_found", 404);
+    if (workspace.ownerId === actorId) throw new ServiceError("admin_self_action", 403);
+    const period = await services.ledger.ensurePeriodGrant(workspace.id, workspace.plan);
+    try {
+      await services.store.transact([
+        { kind: "check", key: { pk: `WS#${workspace.id}`, sk: "META" }, when: [{ field: "pk", op: "exists" }] },
+        ...services.ledger.grantWrites(workspace.id, period, Math.round(action.credits! * 1000), `admin:${action.id}`),
+        { kind: "put", item: audit, when: [notExists] },
+      ]);
+    } catch (error) {
+      if (error instanceof ConditionFailed) throw new ServiceError("admin_action_conflict", 409);
+      throw error;
+    }
+    return { result: "applied" as const };
+  }
   if (action.type === "set_plan") {
     const workspace = await services.directory.getWorkspace(action.targetId);
     if (!workspace) throw new ServiceError("workspace_not_found", 404);

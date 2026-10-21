@@ -46,11 +46,32 @@ test("production operator access requires a verified subject on the server allow
 
 test("scoped operator roles restrict write actions", () => {
   assert.doesNotThrow(() => assertAdminActionAllowed("billing", "set_plan"));
+  assert.doesNotThrow(() => assertAdminActionAllowed("billing", "grant_credits"));
   assert.doesNotThrow(() => assertAdminActionAllowed("operations", "revoke_sessions"));
   assert.doesNotThrow(() => assertAdminActionAllowed("super_admin", "disable_user"));
   assert.throws(() => assertAdminActionAllowed("support", "set_plan"), { code: "admin_action_forbidden" });
   assert.throws(() => assertAdminActionAllowed("billing", "disable_user"), { code: "admin_action_forbidden" });
   assert.throws(() => assertAdminActionAllowed("operations", "set_plan"), { code: "admin_action_forbidden" });
+  assert.throws(() => assertAdminActionAllowed("support", "grant_credits"), { code: "admin_action_forbidden" });
+});
+
+test("small credit grants are atomic, idempotent, audited, and cannot top up the operator's own workspace", async () => {
+  const store = new MemoryStore();
+  const services = buildServices(config, { store });
+  await requireInternalAdmin(request("alex"), services);
+  const blair = await services.directory.ensureAccount({ sub: "local-blair", email: "blair@localhost.test",
+    name: "Blair", emailVerified: true, authTime: 1 });
+  const action = parseAdminAction({ id: "grant-1", type: "grant_credits", targetId: blair.personalWorkspaceId,
+    credits: 12.5, reason: "Approved support adjustment" });
+  assert.deepEqual(await executeAdminAction(services, "local-alex", action), { result: "applied" });
+  assert.equal((await services.ledger.balance(blair.personalWorkspaceId)).included, 212.5);
+  assert.deepEqual(await executeAdminAction(services, "local-alex", action), { result: "duplicate" });
+  assert.equal((await services.ledger.balance(blair.personalWorkspaceId)).included, 212.5);
+  assert.equal((await adminOverview(services)).activity[0].credits, 12.5);
+  assert.throws(() => parseAdminAction({ ...action, credits: 101 }), { code: "admin_invalid_action" });
+  const alex = await services.directory.getUser("local-alex");
+  await assert.rejects(executeAdminAction(services, "local-alex", { ...action, id: "grant-own", targetId: alex!.personalWorkspaceId }),
+    { code: "admin_self_action" });
 });
 
 test("operator dashboard reads indexed customer data without exposing chat content", async () => {

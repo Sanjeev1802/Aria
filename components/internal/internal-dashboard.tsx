@@ -13,12 +13,12 @@ type Credits = { period: string; included: number; used: number; reserved: numbe
 type User = { id: string; email: string; name: string; status: "active" | "disabled"; personalWorkspaceId: string };
 type Workspace = { id: string; name: string; plan: "free" | "pro" | "team"; seatLimit: number; seatsUsed: number;
   ownerId: string; credits: Credits };
-type Audit = { id: string; action: string; actorId: string; targetId: string; reason: string; at: number; result: string };
+type Audit = { id: string; action: string; actorId: string; targetId: string; reason: string; at: number; result: string; credits?: number };
 type Overview = { users: User[]; workspaces: Workspace[]; summary: { users: number; workspaces: number;
   activeUsers: number; teamWorkspaces: number; creditsUsed: number }; activity: Audit[]; limited: boolean;
-  internalRole: "super_admin" | "support" | "billing" | "operations" };
+  internalRole: "super_admin" | "support" | "billing" | "operations"; operatorId: string };
 type Customer = { user: User; workspaces: (Workspace & { role: string; members: { id: string; name: string; role: string; status: string }[] })[] };
-type ActionType = "disable_user" | "enable_user" | "revoke_sessions" | "set_plan";
+type ActionType = "disable_user" | "enable_user" | "revoke_sessions" | "set_plan" | "grant_credits";
 
 const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 const dateFmt = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -48,6 +48,7 @@ export function InternalDashboard() {
   const [error, setError] = useState("");
   const [action, setAction] = useState<{ type: ActionType; targetId: string; label: string; plan?: Workspace["plan"] } | null>(null);
   const [reason, setReason] = useState("");
+  const [creditAmount, setCreditAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -64,13 +65,15 @@ export function InternalDashboard() {
   };
 
   const submitAction = async () => {
-    if (!action || reason.trim().length < 8 || submitting) return;
+    if (!action || reason.trim().length < 8 || submitting || (action.type === "grant_credits" &&
+      (!Number.isSafeInteger(Number(creditAmount) * 1000) || Number(creditAmount) <= 0 || Number(creditAmount) > 100))) return;
     setSubmitting(true);
     try {
       await api("/api/admin/actions/", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: crypto.randomUUID(), type: action.type, targetId: action.targetId,
-          reason: reason.trim(), ...(action.plan ? { plan: action.plan } : {}) }) });
-      setAction(null); setReason("");
+          reason: reason.trim(), ...(action.plan ? { plan: action.plan } : {}),
+          ...(action.type === "grant_credits" ? { credits: Number(creditAmount) } : {}) }) });
+      setAction(null); setReason(""); setCreditAmount("");
       await refresh();
       if (activeUserId) await openCustomer(activeUserId);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Action failed."); }
@@ -170,7 +173,9 @@ export function InternalDashboard() {
               <div className="internal-member-summary"><span>People</span><strong>{workspace.members.filter(member => member.status === "active").length} active · {workspace.members.filter(member => member.status === "pending").length} invited</strong></div>
               {(overview?.internalRole === "super_admin" || overview?.internalRole === "billing") && <label className="internal-plan-control">Change plan <select value={workspace.plan} onChange={event => setAction({ type: "set_plan", targetId: workspace.id,
                 label: `${workspace.name} to ${planName[event.target.value as Workspace["plan"]]}`, plan: event.target.value as Workspace["plan"] })}>
-                <option value="free">Free</option><option value="pro">Pro</option><option value="team">Team</option></select></label>}</div>)}</div>
+                <option value="free">Free</option><option value="pro">Pro</option><option value="team">Team</option></select></label>}
+              {(overview?.internalRole === "super_admin" || overview?.internalRole === "billing") && workspace.ownerId !== overview.operatorId &&
+                <button className="internal-grant-button" onClick={() => setAction({ type: "grant_credits", targetId: workspace.id, label: `Grant credits to ${workspace.name}` })}>Grant credits</button>}</div>)}</div>
           {(overview?.internalRole === "super_admin" || overview?.internalRole === "operations") && <div className="internal-profile-section"><h3>Account controls</h3><p>Changes require a reason and are recorded in the audit log.</p>
             <div className="internal-control-buttons"><button onClick={() => setAction({ type: "revoke_sessions", targetId: customer.user.id, label: `Sign out ${customer.user.name} on every device` })}>Revoke sessions</button>
               <button className="danger" onClick={() => setAction({ type: customer.user.status === "active" ? "disable_user" : "enable_user",
@@ -179,17 +184,21 @@ export function InternalDashboard() {
         </>}
       </aside>
     </div>}
-    <DialogPrimitive.Root open={Boolean(action)} onOpenChange={open => { if (!open && !submitting) { setAction(null); setReason(""); } }}>
+    <DialogPrimitive.Root open={Boolean(action)} onOpenChange={open => { if (!open && !submitting) { setAction(null); setReason(""); setCreditAmount(""); } }}>
       <DialogPrimitive.Portal><DialogPrimitive.Overlay className="internal-confirm-overlay" />
         {action && <DialogPrimitive.Content className="internal-confirm">
           <div className="internal-confirm-icon"><LockKeyhole size={22} /></div>
           <DialogPrimitive.Title>Confirm account action</DialogPrimitive.Title>
           <DialogPrimitive.Description>{action.label}</DialogPrimitive.Description>
+          {action.type === "grant_credits" && <><label htmlFor="internal-credit-amount">Credits to grant (up to 100)</label>
+            <input id="internal-credit-amount" type="number" min="0.001" max="100" step="0.001" value={creditAmount}
+              onChange={event => setCreditAmount(event.target.value)} placeholder="10" /></>}
           <label htmlFor="internal-action-reason">Reason for this change</label>
           <textarea id="internal-action-reason" value={reason} onChange={event => setReason(event.target.value)} maxLength={500}
             placeholder="Describe the customer request or incident (at least 8 characters)" />
           <div className="internal-confirm-buttons"><button onClick={() => { setAction(null); setReason(""); }} disabled={submitting}>Cancel</button>
-            <button onClick={() => void submitAction()} disabled={submitting || reason.trim().length < 8}>{submitting ? "Applying…" : "Confirm action"}</button></div>
+            <button onClick={() => void submitAction()} disabled={submitting || reason.trim().length < 8 || (action.type === "grant_credits" &&
+              (!Number.isSafeInteger(Number(creditAmount) * 1000) || Number(creditAmount) <= 0 || Number(creditAmount) > 100))}>{submitting ? "Applying…" : "Confirm action"}</button></div>
         </DialogPrimitive.Content>}
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -198,7 +207,7 @@ export function InternalDashboard() {
 
 function AuditList({ activity }: { activity: Audit[] }) {
   return activity.length ? <ol className="internal-audit-list">{activity.map(entry => <li key={entry.id}><div className="internal-event-icon"><Activity size={16} /></div>
-    <div><strong>{entry.action.replaceAll("_", " ")}</strong><p>{entry.reason}</p><small>{dateFmt.format(entry.at)} · by {entry.actorId}</small></div></li>)}</ol>
+    <div><strong>{entry.action.replaceAll("_", " ")}{entry.credits ? ` · ${fmt.format(entry.credits)} credits` : ""}</strong><p>{entry.reason}</p><small>{dateFmt.format(entry.at)} · by {entry.actorId}</small></div></li>)}</ol>
     : <div className="internal-empty">No operator actions yet.</div>;
 }
 
