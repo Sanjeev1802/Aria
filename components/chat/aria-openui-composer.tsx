@@ -6,9 +6,9 @@ import {
   type ComposerAttachment,
 } from "@/lib/aria-composer-attachments";
 import { useThread, useThreadList } from "@openuidev/react-headless";
-import { ArrowUp, Plus, Square, X } from "lucide-react";
+import { ArrowUp, Globe2, Plus, Square, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { selectAriaModel } from "@/lib/aria-openui-llm";
+import { selectAriaModel, selectAriaWebSearch } from "@/lib/aria-openui-llm";
 import { useAriaSession } from "@/lib/aria-session";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,10 @@ export function AriaOpenUIComposer({
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [model, setModel] = useState<"nova" | "claude">("nova");
-  const allowedModels = useAriaSession().entitlements?.models;
+  const [webSearch, setWebSearch] = useState(false);
+  const session = useAriaSession();
+  const allowedModels = session.entitlements?.models;
+  const webSearchAvailable = Boolean(session.webSearchAvailable);
   const claudeAllowed = !allowedModels || allowedModels.includes("claude");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,6 +66,10 @@ export function AriaOpenUIComposer({
     if (!claudeAllowed && model === "claude") { setModel("nova"); selectAriaModel("nova"); }
   }, [claudeAllowed, model]);
 
+  useEffect(() => {
+    if (!webSearchAvailable && webSearch) { setWebSearch(false); selectAriaWebSearch(false); }
+  }, [webSearchAvailable, webSearch]);
+
   const canSend = Boolean(textContent.trim() || attachments.length) && !isRunning && !isLoadingMessages;
 
   const handleSubmit = useCallback(() => {
@@ -73,11 +80,12 @@ export function AriaOpenUIComposer({
     const content = buildMessageContent(textContent, attachments);
     if (!content || isLoadingMessages) return;
     selectAriaModel(model);
+    selectAriaWebSearch(webSearchAvailable && webSearch);
     processMessage({ role: "user", content });
     setTextContent("");
     setAttachments([]);
     setUploadError(null);
-  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent, model]);
+  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent, model, webSearch, webSearchAvailable]);
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -129,6 +137,18 @@ export function AriaOpenUIComposer({
       ) : null}
 
       {uploadError ? <p className="aria-openui-composer-error">{uploadError}</p> : null}
+
+      {webSearchAvailable ? (
+        <div className="aria-openui-composer-tools">
+          <button type="button" aria-pressed={webSearch}
+            className={cn("aria-openui-web-search-toggle", webSearch && "aria-openui-web-search-toggle--active")}
+            title="Search the public web. Your question is sent to the configured search service; do not include private information."
+            disabled={isRunning}
+            onClick={() => setWebSearch(value => !value)}>
+            <Globe2 size={14} aria-hidden /> Web search
+          </button>
+        </div>
+      ) : null}
 
       <div
         className={cn(

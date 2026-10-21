@@ -12,11 +12,13 @@ import { LocalIdentityProvider } from "./auth/local-identity-provider";
 import { LOCAL_DEV_USER_LABELS, LOCAL_USER_COOKIE, resolveLocalUser } from "./local-dev";
 import type { Rates } from "./metering";
 import { prepareThreadRun } from "./threads";
+import type { WebSearchProvider } from "./web-search";
 
 export type ChatDeps = {
   provider: StreamProvider;
   modelConfig: (model: ChatInput["model"]) => { id: string; rates: Rates };
   maxOutputTokens: number;
+  searchWeb?: WebSearchProvider;
 };
 
 const noStore = { "Cache-Control": "no-store" };
@@ -64,6 +66,8 @@ export function chatHandler(deps: ChatDeps) {
     const body = await readJson(request, 128_000);
     try { input = parseChatInput(body); }
     catch (error) { return json({ code: "invalid_request", message: error instanceof Error ? error.message : "Invalid request" }, 400); }
+    if (body.webSearch !== undefined && typeof body.webSearch !== "boolean") return json({ code: "invalid_request", message: "Invalid web search option" }, 400);
+    if (body.webSearch && (!s.config.searxngUrl || !deps.searchWeb)) return json({ code: "web_search_unavailable", message: "Public web search is not configured on this server." }, 503);
     requireModel(ctx.plan, input.model);
     const onComplete = body.threadId === undefined ? undefined : await prepareThreadRun(s, ctx, body.threadId, input);
     const model = deps.modelConfig(input.model);
@@ -71,6 +75,7 @@ export function chatHandler(deps: ChatDeps) {
     return createChatResponse(input, {
       ledger: s.ledger, account: { workspaceId: ctx.workspace.id, memberId: ctx.user.id, plan: ctx.workspace.plan },
       modelId: model.id, rates: model.rates, provider: deps.provider, signal: request.signal, maxOutputTokens: deps.maxOutputTokens,
+      webSearch: body.webSearch ? deps.searchWeb : undefined,
       onComplete,
     });
   };
@@ -91,6 +96,7 @@ export async function sessionHandler(request: Request, s: Services) {
   return json({
     environment: s.config.environment,
     liveChat: s.config.liveChat || s.config.localIdentity,
+    webSearchAvailable: Boolean(s.config.searxngUrl),
     localDev: Boolean(s.config.localIdentity),
     localUser: local?.slot,
     localUsers: s.config.localIdentity ? LOCAL_DEV_USER_LABELS : undefined,

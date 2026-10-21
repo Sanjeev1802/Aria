@@ -23,7 +23,7 @@ function tokenEstimate(text: string) {
  * derived from message and response sizes so ledger settlement is predictable.
  */
 export const streamFakeModel: StreamProvider = async function* (input, modelId, signal) {
-  const lastUser = [...input.messages].reverse().find(m => m.role === "user")?.content ?? "";
+  const lastUser = [...input.messages].reverse().find(m => m.role === "user")?.content.map(part => part.text).join("\n") ?? "";
   const digest = createHash("sha256").update(`${modelId}\0${lastUser}`).digest("hex").slice(0, 8);
   const response = `Local demo (${modelId}) · echo ${digest}: ${lastUser.slice(0, 240)}`;
   for (const word of response.split(" ")) {

@@ -6,6 +6,7 @@ import { createChatResponse, type StreamProvider } from "../lib/server/chat-serv
 import { assertChatEnabled, getServices, readConfig } from "../lib/server/services";
 import type { Account } from "../lib/server/accounting/credit-ledger";
 import { identity, ledgerEnv, sse } from "./helpers";
+import type { WebSearchProvider } from "../lib/server/web-search";
 
 const rates = { input: 0.06, output: 0.24, version: "test" };
 const input = () => parseChatInput({ runId: "request_123", messages: [{ role: "user", content: "Hello" }] });
@@ -137,6 +138,43 @@ test("a token-limited answer tells the user it was cut off and remains replayabl
   const replay = await (await createChatResponse(input(), options(env, limited))).text();
   assert.match(replay, /length limit/);
   assert.equal((await env.ledger.balance(env.ws)).reserved, 0);
+});
+
+test("web search supplies bounded excerpts and saves clickable source links without a second search on replay", async () => {
+  const env = await wallet();
+  let searches = 0;
+  let context = "";
+  const searchWeb: WebSearchProvider = async query => {
+    searches++;
+    assert.equal(query, "Hello");
+    return [{ title: "Example report", url: "https://example.org/report", snippet: "Published findings" }];
+  };
+  const provider: StreamProvider = async function* (_input, _model, _signal, webContext) {
+    context = webContext ?? "";
+    yield { text: "The report says this [1]." };
+    yield { usage: { inputTokens: 120, outputTokens: 12 } };
+  };
+  const first = await (await createChatResponse(input(), { ...options(env, provider), webSearch: searchWeb })).text();
+  assert.match(context, /Published findings/);
+  assert.match(first, /https:\/\/example.org\/report/);
+  const used = (await env.ledger.balance(env.ws)).used;
+  const replay = await (await createChatResponse(input(), { ...options(env, provider), webSearch: searchWeb })).text();
+  assert.match(replay, /https:\/\/example.org\/report/);
+  assert.equal(searches, 1);
+  assert.equal((await env.ledger.balance(env.ws)).used, used);
+});
+
+test("failed web search releases credits without calling the model", async () => {
+  const env = await wallet();
+  let modelCalls = 0;
+  const provider: StreamProvider = async function* () { modelCalls++; yield { text: "wrong" }; };
+  const response = await (await createChatResponse(input(), {
+    ...options(env, provider), webSearch: async () => { throw new Error("upstream details"); },
+  })).text();
+  assert.match(response, /RUN_ERROR/);
+  assert.doesNotMatch(response, /upstream details/);
+  assert.equal(modelCalls, 0);
+  assert.equal((await env.ledger.balance(env.ws)).available, 200);
 });
 
 test("reject system-role injection, attachments, oversized history, and unknown models", () => {

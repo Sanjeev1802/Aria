@@ -23,6 +23,8 @@ export type ServerConfig = {
   localStorePath?: string;
   /** Operator switch for model calls once identity and accounting are verified together. */
   liveChat: boolean;
+  /** Optional server-side SearXNG endpoint for explicit public-web searches. */
+  searxngUrl?: string;
   secureCookies: boolean;
 };
 
@@ -51,6 +53,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       ? (env.ARIA_LOCAL_STORE_PATH?.trim() || join(process.cwd(), ".aria", "local-dev.sqlite"))
       : undefined,
     liveChat: env.ARIA_LIVE_CHAT === "enabled",
+    searxngUrl: env.ARIA_SEARXNG_URL?.trim() || undefined,
     secureCookies: environment === "production",
   };
 }

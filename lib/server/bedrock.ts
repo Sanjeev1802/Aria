@@ -19,12 +19,15 @@ export function modelConfig(model: ChatInput["model"]) {
   return { id, rates: { input, output, version } satisfies Rates };
 }
 
-export async function* streamBedrock(input: ChatInput, modelId: string, signal: AbortSignal):
+export async function* streamBedrock(input: ChatInput, modelId: string, signal: AbortSignal, context?: string):
 AsyncGenerator<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence" }> {
+  const messages = context ? input.messages.map((message, index) => index === input.messages.length - 1
+    ? { ...message, content: [...message.content, { text: `\n\n${context}` }] }
+    : message) : input.messages;
   const result = await client.send(new ConverseStreamCommand({
     modelId,
     system: [{ text: ARIA_SYSTEM_PROMPT }],
-    messages: input.messages,
+    messages,
     inferenceConfig: { maxTokens: MAX_OUTPUT_TOKENS },
   }), { abortSignal: signal });
   if (!result.stream) throw new Error("Missing provider stream");

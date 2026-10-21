@@ -1341,6 +1341,42 @@
 }
 
 /* Composer: attach (+) + file chips */
+.aria-openui-chat .openui-agent-thread-composer.aria-openui-composer {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.aria-openui-chat .aria-openui-composer-tools {
+  display: flex;
+  width: 100%;
+  padding: 0 var(--openui-space-xs);
+}
+
+.aria-openui-chat .aria-openui-web-search-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid var(--aria-sidebar-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--openui-text-neutral-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.aria-openui-chat .aria-openui-web-search-toggle--active {
+  color: var(--openui-text-neutral-primary);
+  border-color: color-mix(in oklch, var(--openui-text-neutral-primary) 35%, transparent);
+  background: var(--openui-highlight-subtle);
+}
+
+.aria-openui-chat .aria-openui-web-search-toggle:focus-visible {
+  outline: 2px solid var(--openui-text-neutral-primary);
+  outline-offset: 2px;
+}
+
 .aria-openui-chat .aria-openui-composer-field {
   display: flex;
   flex-direction: row;

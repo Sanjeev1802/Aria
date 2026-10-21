@@ -4,19 +4,22 @@ import { ARIA_SYSTEM_PROMPT, PROMPT_VERSION } from "./system-prompt";
 import { chargeUnits, type Rates, type Usage } from "./metering";
 import { ServiceError } from "./errors";
 import type { Account, CreditLedger } from "./accounting/credit-ledger";
+import { MAX_WEB_CONTEXT_BYTES, WebSearchError, boundedWebContext, searchQuery, webSourceLinks, type WebSearchProvider } from "./web-search";
 
-export type StreamProvider = (input: ChatInput, model: string, signal: AbortSignal) =>
+export type StreamProvider = (input: ChatInput, model: string, signal: AbortSignal, context?: string) =>
   AsyncIterable<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence" }>;
 
 export async function createChatResponse(input: ChatInput, options: {
   ledger: CreditLedger; account: Account; modelId: string; rates: Rates;
   provider: StreamProvider; signal: AbortSignal; maxOutputTokens: number;
+  webSearch?: WebSearchProvider;
   onComplete?: (text: string) => Promise<void>;
 }): Promise<Response> {
   const { ledger, account, modelId, rates } = options;
   const workspaceId = account.workspaceId;
-  const hash = createHash("sha256").update(JSON.stringify({ input, modelId, rates, prompt: PROMPT_VERSION })).digest("hex");
-  const inputBound = Buffer.byteLength(JSON.stringify(input.messages) + ARIA_SYSTEM_PROMPT, "utf8") * 2 + 2048;
+  const hash = createHash("sha256").update(JSON.stringify({ input, modelId, rates, prompt: PROMPT_VERSION, webSearch: Boolean(options.webSearch) })).digest("hex");
+  const inputBound = (Buffer.byteLength(JSON.stringify(input.messages) + ARIA_SYSTEM_PROMPT, "utf8") +
+    (options.webSearch ? MAX_WEB_CONTEXT_BYTES : 0)) * 2 + 2048;
   const units = chargeUnits({ inputTokens: inputBound, outputTokens: options.maxOutputTokens }, rates);
   const existing = await ledger.reserve(account, { id: input.id, hash, units, model: modelId, rateVersion: rates.version });
   if (existing && existing.status !== "completed") throw new ServiceError("request_already_processed_or_pending", 409);
@@ -50,8 +53,11 @@ export async function createChatResponse(input: ChatInput, options: {
       let usage: Usage | undefined;
       let finishReason: "end_turn" | "max_tokens" | "stop_sequence" | undefined;
       try {
+        const results = options.webSearch ? await options.webSearch(searchQuery(input.messages.at(-1)!.content[0].text), signal) : [];
+        const { context, sources } = boundedWebContext(results);
+        if (options.webSearch && sources.length === 0) throw new WebSearchError("No public web results were found. No credits were charged. Try a different question or turn Web search off.");
         await ledger.markProviderStarted(workspaceId, input.id);
-        for await (const event of options.provider(input, modelId, signal)) {
+        for await (const event of options.provider(input, modelId, signal, sources.length ? context : undefined)) {
           signal.throwIfAborted();
           if ("text" in event) {
             text += event.text;
@@ -66,10 +72,17 @@ export async function createChatResponse(input: ChatInput, options: {
           text += notice;
           content(JSON.stringify(notice).slice(1, -1));
         }
-      } catch {
+        if (sources.length) {
+          const links = webSourceLinks(sources);
+          text += links;
+          content(JSON.stringify(links).slice(1, -1));
+        }
+      } catch (error) {
         // Incomplete/cancelled responses are not customer-billed; AWS may still bill us.
         await ledger.fail(workspaceId, input.id).catch(() => logLedgerIssue("release_deferred", account, input.id));
-        emit({ type: "RUN_ERROR", code: "response_failed", message: "ARIA could not finish this response. No credits were charged for an incomplete response. Try again." });
+        emit(error instanceof WebSearchError
+          ? { type: "RUN_ERROR", code: "web_search_failed", message: error.message }
+          : { type: "RUN_ERROR", code: "response_failed", message: "ARIA could not finish this response. No credits were charged for an incomplete response. Try again." });
         if (!cancelled) controller.close();
         return;
       }
