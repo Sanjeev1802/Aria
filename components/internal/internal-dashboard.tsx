@@ -19,7 +19,8 @@ type Workspace = { id: string; name: string; plan: "free" | "pro" | "team"; seat
 type Audit = { id: string; action: string; actorId: string; targetId: string; reason: string; at: number; result: string; credits?: number };
 type Overview = { users: User[]; workspaces: Workspace[]; summary: { users: number; workspaces: number;
   activeUsers: number; teamWorkspaces: number; creditsUsed: number }; activity: Audit[]; limited: boolean;
-  internalRole: "super_admin" | "support" | "billing" | "operations"; operatorId: string };
+  internalRole: "super_admin" | "support" | "billing" | "operations"; operatorId: string;
+  operator: { name: string; email: string } };
 type Customer = { user: User; workspaces: (Workspace & { role: string; members: { id: string; name: string; role: string; status: string }[] })[] };
 type ActionType = "disable_user" | "enable_user" | "revoke_sessions" | "set_plan" | "grant_credits";
 
@@ -92,7 +93,8 @@ export function InternalDashboard() {
   return <SidebarProvider className="internal-shell internal-dashboard" style={{
     "--sidebar-width": "calc(var(--spacing) * 72)", "--header-height": "calc(var(--spacing) * 12)",
   } as React.CSSProperties}>
-    <InternalSidebar section={section} onSectionChange={next => { setSection(next); setActiveUserId(null); setCustomer(null); }} />
+    <InternalSidebar section={section} operator={overview ? { ...overview.operator, role: overview.internalRole } : undefined}
+      onSectionChange={next => { setSection(next); setActiveUserId(null); setCustomer(null); }} />
     <SidebarInset className="internal-content">
       <header className="internal-topbar"><SidebarTrigger aria-label="Toggle navigation" className="-ml-1" />
         <Separator orientation="vertical" className="mx-2 h-4" />

@@ -4,7 +4,7 @@ import { Activity, ExternalLink, LayoutDashboard, ShieldCheck, Users, Wallet } f
 import { AriaMark } from "@/components/aria-mark";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail, useSidebar,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 
 export const sections = [
@@ -18,8 +18,9 @@ export const sections = [
 
 export type InternalSection = (typeof sections)[number]["id"];
 
-export function InternalSidebar({ section, onSectionChange }: {
+export function InternalSidebar({ section, onSectionChange, operator }: {
   section: InternalSection; onSectionChange: (section: InternalSection) => void;
+  operator?: { name: string; email: string; role: "super_admin" | "support" | "billing" | "operations" };
 }) {
   const { setOpenMobile } = useSidebar();
   return <Sidebar variant="inset" collapsible="icon">
@@ -46,13 +47,17 @@ export function InternalSidebar({ section, onSectionChange }: {
       </SidebarGroup>
     </SidebarContent>
     <SidebarFooter className="p-3">
-      <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-        <ShieldCheck className="size-4" /> Restricted operator access
+      <div className="internal-operator group-data-[collapsible=icon]:px-0">
+        <span className="internal-operator-avatar" aria-hidden="true">{(operator?.name || "A").slice(0, 1).toUpperCase()}</span>
+        <div className="internal-operator-details group-data-[collapsible=icon]:hidden">
+          <strong title={operator?.name || "ARIA operator"}>{operator?.name || "ARIA operator"}</strong>
+          <span className="internal-operator-role">{operator?.role === "super_admin" ? "Super admin" : operator?.role === "operations" ? "Operations admin" : operator?.role === "billing" ? "Billing admin" : operator?.role === "support" ? "Support member" : "Staff"}</span>
+          <small title={operator?.email || ""}>{operator?.email || "Loading account…"}</small>
+        </div>
       </div>
       <SidebarMenu><SidebarMenuItem><SidebarMenuButton asChild tooltip="Return to ARIA">
         <a href="/chat/"><ExternalLink /><span>Return to ARIA</span></a>
       </SidebarMenuButton></SidebarMenuItem></SidebarMenu>
     </SidebarFooter>
-    <SidebarRail />
   </Sidebar>;
 }

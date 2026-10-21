@@ -1,6 +1,6 @@
 # ARIA Internal dashboard
 
-`/internal/` is a restricted operations dashboard for ARIA staff. Its layout uses the shadcn `dashboard-01` pattern: an inset, collapsible sidebar, compact header, four metric cards, a chart card, and a data table. The sidebar, cards, chart container, badges, and table come from the installed shadcn components. The light neutral theme follows the shadcn dashboard, with distinct blue, violet, teal, and orange data accents. ARIA supplies its own mark and live admin data; the block's example revenue, projects, avatars, and sample rows are not shown.
+`/internal/` is a restricted operations dashboard for ARIA staff. Its layout uses the shadcn `dashboard-01` pattern: an inset, collapsible sidebar, compact header, four metric cards, a chart card, and a data table. The sidebar, cards, chart container, badges, and table come from the installed shadcn components. The dark theme uses blue, violet, teal, and orange data accents. ARIA supplies its own mark and live admin data; the block's example revenue, projects, avatars, and sample rows are not shown. The sidebar footer shows the verified operator's name, internal role, and email.
 
 ## Access
 
