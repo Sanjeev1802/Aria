@@ -356,3 +356,37 @@
 .internal-operator-details small{font-size:10px;color:#96a2b5}
 [data-sidebar="sidebar"][data-mobile="true"]{--sidebar:#0e1117;--sidebar-foreground:#e9eef7;--sidebar-accent:#232b39;--sidebar-accent-foreground:#fff;--sidebar-border:#272e39;background:#0e1117;color:#e9eef7}
 [data-sidebar="sidebar"][data-mobile="true"] .internal-operator{background:#1a202b;color:#fff}
+
+/* Overview composition: meaningful chart, plan labels, and operator history. */
+.internal-dashboard .internal-overview-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:16px;margin-bottom:22px}
+.internal-dashboard .internal-chart-card{margin:0;min-width:0}
+.internal-dashboard .internal-chart-card [data-slot=card-header]{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto auto;align-items:center;column-gap:16px;row-gap:3px}
+.internal-dashboard .internal-chart-card [data-slot=card-header]>:nth-child(1){grid-column:1;grid-row:1}
+.internal-dashboard .internal-chart-card [data-slot=card-header]>:nth-child(2){grid-column:1;grid-row:2}
+.internal-dashboard .internal-chart-card [data-slot=card-header]>:nth-child(3){grid-column:1;grid-row:3}
+.internal-dashboard .internal-chart-card [data-slot=card-action]{grid-column:2;grid-row:1/4;align-self:center}
+.internal-dashboard .internal-card-kicker{color:#9db5ff!important;font-size:10px;font-weight:700;letter-spacing:.14em}
+.internal-dashboard .internal-chart-card [data-slot=card-title],.internal-dashboard .internal-activity-card [data-slot=card-title]{font-size:17px;letter-spacing:-.02em;font-weight:600}
+.internal-dashboard .internal-plan-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:7px;padding:14px 7px 1px;border-top:1px solid #303849}
+.internal-dashboard .internal-plan-legend>div{display:flex;align-items:center;gap:7px;min-width:0;color:#aab4c4;font-size:11px}
+.internal-dashboard .internal-plan-legend strong{margin-left:auto;color:#edf2fa;font-size:12px;font-variant-numeric:tabular-nums}
+.internal-dashboard .internal-legend-dot{width:8px;height:8px;flex:none;border-radius:50%}
+.internal-dashboard .internal-legend-0{background:#5b7cf3}.internal-dashboard .internal-legend-1{background:#a56cef}.internal-dashboard .internal-legend-2{background:#23b7a1}
+.internal-dashboard .internal-activity-card{min-width:0;background:linear-gradient(160deg,#1c2230,#181c25 68%);border-color:#303849}
+.internal-dashboard .internal-activity-card [data-slot=card-header]{gap:4px}
+.internal-dashboard .internal-activity-card [data-slot=card-content]{min-height:210px;display:flex;flex-direction:column}
+.internal-dashboard .internal-activity-card .internal-audit-list{padding:3px 0 0;gap:13px}
+.internal-dashboard .internal-activity-card .internal-audit-list li{padding-bottom:12px;border-bottom:1px solid #303849}
+.internal-dashboard .internal-activity-card .internal-audit-list li:last-child{border-bottom:0}
+.internal-dashboard .internal-empty-activity{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;max-width:230px;color:#9ca9bc}
+.internal-dashboard .internal-empty-activity>span{display:grid;place-items:center;width:42px;height:42px;margin-bottom:4px;border:1px solid #384a5d;border-radius:12px;background:#223748;color:#73d2ba}
+.internal-dashboard .internal-empty-activity strong{font-size:13px;color:#e7edf6}
+.internal-dashboard .internal-empty-activity p{margin:0;font-size:11px;line-height:1.5}
+.internal-dashboard .internal-heading h1{font-size:34px;letter-spacing:-.045em}
+.internal-dashboard .internal-stat{min-height:158px;border-radius:14px}
+.internal-dashboard .internal-stat-value{font-size:34px!important}
+.internal-dashboard .internal-panel{border-radius:14px}
+.internal-dashboard .internal-table-wrap tbody tr{transition:background .16s ease}
+@media(max-width:1100px){.internal-dashboard .internal-overview-grid{grid-template-columns:1fr}.internal-dashboard .internal-activity-card [data-slot=card-content]{min-height:160px}}
+@media(max-width:500px){.internal-dashboard .internal-overview-grid{gap:12px}.internal-dashboard .internal-chart-card [data-slot=card-header]{display:flex;flex-direction:column;align-items:flex-start}.internal-dashboard .internal-chart-card [data-slot=card-action]{margin-top:7px}.internal-dashboard .internal-heading h1{font-size:30px}.internal-dashboard .internal-stat{min-height:138px}.internal-dashboard .internal-stat-value{font-size:29px!important}}
+@media(max-width:430px){.internal-dashboard .internal-env{font-size:11px;padding:5px 9px;white-space:nowrap}.internal-dashboard .internal-heading>button{margin-top:12px}}

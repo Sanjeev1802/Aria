@@ -117,7 +117,12 @@ export function InternalDashboard() {
                 <Stat label="Team workspaces" value={fmt.format(overview.summary.teamWorkspaces)} detail="Shared plans" icon={ShieldCheck} tone="teal" />
                 <Stat label="Credits used" value={fmt.format(overview.summary.creditsUsed)} detail="Current UTC billing period" icon={Wallet} tone="orange" />
               </div>
-              <PlanChart counts={planCounts} creditsUsed={overview.summary.creditsUsed} />
+              <div className="internal-overview-grid">
+                <PlanChart counts={planCounts} creditsUsed={overview.summary.creditsUsed} />
+                <Card className="internal-activity-card"><CardHeader><CardDescription className="internal-card-kicker">OPERATOR LOG</CardDescription>
+                  <CardTitle>Recent activity</CardTitle><CardDescription>Account and workspace changes</CardDescription></CardHeader>
+                  <CardContent><AuditList activity={overview.activity.slice(0, 4)} /></CardContent></Card>
+              </div>
               <CustomerTable users={filteredUsers.slice(0, 8)} query={query} setQuery={setQuery} openCustomer={openCustomer}
                 title="Customers" count={overview.users.length} viewAll={() => setSection("customers")} />
             </>}
@@ -187,7 +192,7 @@ export function InternalDashboard() {
 function AuditList({ activity }: { activity: Audit[] }) {
   return activity.length ? <ol className="internal-audit-list">{activity.map(entry => <li key={entry.id}><div className="internal-event-icon"><Activity size={16} /></div>
     <div><strong>{entry.action.replaceAll("_", " ")}{entry.credits ? ` · ${fmt.format(entry.credits)} credits` : ""}</strong><p>{entry.reason}</p><small>{dateFmt.format(entry.at)} · by {entry.actorId}</small></div></li>)}</ol>
-    : <div className="internal-empty">No operator actions yet.</div>;
+    : <div className="internal-empty-activity"><span><ShieldCheck size={20} /></span><strong>All clear</strong><p>Operator actions will appear here as your team works.</p></div>;
 }
 
 function WorkspaceTable({ workspaces, users, openCustomer, credits = false }: { workspaces: Workspace[]; users: User[];

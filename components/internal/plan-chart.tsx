@@ -16,12 +16,12 @@ export function PlanChart({ counts, creditsUsed }: {
     { plan: "Team", workspaces: counts.team },
   ];
   return <Card className="internal-chart-card">
-    <CardHeader><CardTitle>Workspace distribution</CardTitle>
+    <CardHeader><CardDescription className="internal-card-kicker">PLAN MIX</CardDescription><CardTitle>Workspace distribution</CardTitle>
       <CardDescription>Current workspaces by ARIA plan</CardDescription>
-      <CardAction><Badge variant="outline">{creditsUsed.toLocaleString("en-US", { maximumFractionDigits: 2 })} credits used this month</Badge></CardAction>
+      <CardAction><Badge variant="outline">{creditsUsed.toLocaleString("en-US", { maximumFractionDigits: 2 })} credits used · UTC month</Badge></CardAction>
     </CardHeader>
-    <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-      <ChartContainer config={config} className="aspect-auto h-[250px] w-full">
+    <CardContent className="px-2 pt-2 sm:px-6 sm:pt-3">
+      <ChartContainer config={config} className="aspect-auto h-[205px] w-full">
         <BarChart data={data} margin={{ left: 0, right: 8 }} accessibilityLayer>
           <CartesianGrid vertical={false} strokeDasharray="3 3" />
           <XAxis dataKey="plan" tickLine={false} axisLine={false} tickMargin={10} />
@@ -32,6 +32,10 @@ export function PlanChart({ counts, creditsUsed }: {
           </Bar>
         </BarChart>
       </ChartContainer>
+      <div className="internal-plan-legend" aria-label="Workspace counts by plan">
+        {data.map((item, index) => <div key={item.plan}><span className={`internal-legend-dot internal-legend-${index}`} />
+          <span>{item.plan}</span><strong>{item.workspaces}</strong></div>)}
+      </div>
     </CardContent>
   </Card>;
 }
