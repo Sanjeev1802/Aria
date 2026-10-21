@@ -1,6 +1,6 @@
 # ARIA: finish application code before AWS setup
 
-Updated 20 October 2026. This is the active work order. Do not provision AWS or enable `ARIA_LIVE_CHAT` during these milestones. `CURSOR_HANDOFF.md` records what is already implemented and verified.
+Updated 21 October 2026. This is the active work order. Do not provision AWS or enable `ARIA_LIVE_CHAT` during these milestones. `CURSOR_HANDOFF.md` records what is already implemented and verified.
 
 ## Product boundary
 
@@ -62,4 +62,4 @@ Provision staging Cognito, DynamoDB, Bedrock, object storage, queues, email, pay
 
 ## Current next step
 
-Milestone 0 is complete. Account/team flows from Milestone 1 are implemented except MFA challenge UI and role editing. Milestone 2 now has server-owned project CRUD, saved chat threads, project assignment/filtering, and per-chat JSON export. Continue with search/pagination, server-owned library/personalization, and deliberate migration. See `CURSOR_HANDOFF.md` for verified tests and exact next Cursor prompt. Keep AWS and payments setup after the code gate.
+Milestone 0 is complete. Account/team flows from Milestone 1 are implemented except MFA challenge UI and role editing. Milestone 2 now has server-owned project CRUD, saved chat threads, project assignment/filtering, and per-chat JSON export. Optional public-web search through self-hosted SearXNG is also implemented; it is separate from the authorized-source work in Milestone 3. Continue with saved-chat search/pagination, server-owned library/personalization, and deliberate migration. See `CURSOR_HANDOFF.md` for verified tests and exact next Cursor prompt. Keep AWS and payments setup after the code gate.

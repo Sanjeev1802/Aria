@@ -1,5 +1,7 @@
 # Web search for ARIA: provider decision
 
+**Decision (2026-10-21):** ARIA supports an optional, self-hosted SearXNG JSON search API for public web questions. See [SEARXNG_SETUP.md](SEARXNG_SETUP.md) for setup and limitations. This research records the alternatives considered; public search does not provide authorized business-data retrieval.
+
 Checked against providers' own documentation and terms on 20 October 2026. Prices and free allowances can change; verify them again when opening an account. This concerns **public-web search**, not retrieval of a workspace's authorized business data. ARIA must keep those paths separate and must not send private documents, secrets, or customer records as search queries.
 
 ## Recommendation
