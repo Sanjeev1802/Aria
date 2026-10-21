@@ -2,7 +2,7 @@
 
 > **Current user direction:** finish the application code and local journeys before AWS or other external setup. Follow `CODE_FIRST_PLAN.md` Milestones 0–7. The AWS staging checklist later in this file is a release gate, not the next task.
 
-Updated: 2026-10-21 (optional public web search through SearXNG; branch Aria-new-setup).
+Updated: 2026-10-21 (Team invitation email through OneWave; branch Aria-new-setup).
 
 ## Start here
 
@@ -12,13 +12,14 @@ Read `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, this file, and `PROMPT_EVALUATION.md
 
 ### Current code verification (2026-10-20)
 
-- `npm test`: **59/59 pass**. `npm run typecheck` and `npm run build` pass. New tests cover public search normalization, source links, retry behavior, and credit release on search failure. Earlier tests cover project assignment, SQLite consistency, identity, project isolation, chat persistence, forged chat history, and cross-user thread access.
+- `npm test`: **63/63 pass**. `npm run typecheck` and `npm run build` pass. New tests cover OneWave's Team template contract, emailed invitation acceptance, secret-free responses, and seat release on delivery failure. Earlier tests cover public search, project assignment, SQLite consistency, identity, project isolation, chat persistence, forged chat history, and cross-user thread access.
 - Recent commits: `c6a579b` (project assignment and responsive controls), `ef80748` (system prompt and truncated-answer notice), preceded by `0da6b3a` (saved threads). Verify `git status` and push status before further work.
 - Browser smoke in an isolated local-dev copy verified project creation, a chat started inside that project and persisted with its project ID, moving the chat out of a project, and the mobile sidebar drawer. Viewports 320×700, 375×812, 390×844, 768×1024, 844×390, 1024×768, and 1440×900 had no horizontal overflow or page errors. The final production build passed.
 - `SqliteStore` reads the latest disk state before transactions and rolls back failed writes. This is safe for the local demo, but rewrites the full item table on each write and is not the production data store.
 - Authenticated projects use `/api/projects/` and are scoped to the selected workspace. Preview mode retains browser projects. Chat threads use `/api/threads/`; completed responses are saved after ledger settlement, and a user cannot load another user's thread. Selected project assignment is checked by the server, and Recents can filter or move chats and export JSON. A persistence failure is logged as `thread_save_deferred`; there is not yet a repair job for that event.
 - The system prompt is versioned as `aria-2026-10-20.3` and explicitly constrains source claims, current data claims, company-data access, tool claims, secrets, and output format. Optional public web search passes bounded SearXNG excerpts as untrusted context and appends source links to the saved response. Bedrock `max_tokens` responses display and save a continuation notice. `PROMPT_EVALUATION.md` lists staging answer-quality checks; no real model evaluation has run.
 - The existing forgot/reset pages were already implemented; no duplicate auth UI was added. Local confirmation codes now expire after 15 minutes and a resend renews the expiry.
+- Team invites use OneWave's `aria-team-invitation` template when `EMAIL_SERVICE_URL` and `EMAIL_SERVICE_API_KEY` are configured. The existing verified-email, single-use invite flow remains authoritative. Email delivery is mocked in tests; real delivery needs staging verification. See `TEAM_EMAIL_SETUP.md`.
 
 ### Milestone 0 — verified (2026-10-20)
 
@@ -48,7 +49,7 @@ Read `AGENTS.md`, `IMPLEMENTATION_PLAN.md`, this file, and `PROMPT_EVALUATION.md
 - `lib/server/accounts/entitlements.ts`: Free (200 credits/mo, 1 seat, Nova only), Pro (6,000 credits, 1 seat, Nova + Claude, API flag), Team (20,000 shared credits, 5 seats, Nova + Claude, team management). Roles: owner, admin, member.
 - `lib/server/accounts/directory.ts`: first sign-in creates a user and a personal Free workspace (race-safe). It also handles membership resolution, invitations, removal, and plan changes.
 - The browser may *select* a workspace with `X-Aria-Workspace`; the server only honors it with an active membership. Otherwise it returns 404, or 403 `access_revoked` for former members. It never silently falls back to a different wallet when a workspace was named.
-- Invitations: Team plan only; seat-limited (pending invites count); stored as a SHA-256 hash with a 7-day expiry; single-use; revocable; bound to the invited email, which must be verified. Email delivery is not configured: the inviting admin gets a one-time link in the Team settings panel.
+- Invitations: Team plan only; seat-limited (pending invites count); stored as a SHA-256 hash with a 7-day expiry; single-use; revocable; bound to the invited email, which must be verified. When OneWave is configured, ARIA emails the link and returns only delivery status. A failed send revokes the invite and releases its seat. Without email configuration, the inviting admin gets a one-time link for manual sharing.
 - Removing a member revokes access at once. Ledger reservations also re-check membership inside the same transaction, so a request racing a removal is refused.
 - `applyEntitlement` handles plan changes from billing events. It is idempotent per event ID and ignores out-of-order events. An upgrade tops up the current period by the allowance difference in the same transaction; a downgrade takes effect next period.
 - UI now reads profile, plan, role, and allowed models from `/api/auth/session/` (`lib/aria-session.ts`). The hard-coded "Team" plan and preview persona apply only in design preview. The Claude option shows "Claude · Pro" and is disabled on Free. Non-admins don't see invite or remove controls.
@@ -108,8 +109,8 @@ Also fixed: `showInputError` parsed the minified CSS value `3s` as 3 ms, so auth
 - Profile personalization and library still contain prototype data. Projects and conversations use server storage in authenticated mode; chats can be assigned to projects, but files cannot. Existing browser-only conversations are not migrated.
 - Sign-out ends every session for the user, not just the current device.
 - The reconciliation index uses one `RESERVED` partition key. That's fine for launch scale; shard it if reservation volume grows large.
-- No authorized-source retrieval, developer API keys, payment integration, or email delivery yet (see `CODE_FIRST_PLAN.md`, Milestones 3–6). Public SearXNG search is separate from authorized business data; see `SEARXNG_SETUP.md`.
+- No authorized-source retrieval, developer API keys, or payment integration yet (see `CODE_FIRST_PLAN.md`, Milestones 3–6). Real OneWave delivery has not been verified. Public SearXNG search is separate from authorized business data; see `SEARXNG_SETUP.md`.
 
 ## Next Cursor task
 
-> Stay on `Aria-new-setup`. Read `AGENTS.md`, `CODE_FIRST_PLAN.md`, `SEARXNG_SETUP.md`, and this handoff. Verify the current 59 tests and production build. Continue Milestone 2 with server-owned library/personalization, deliberate migration of preview/browser data, and saved-chat search/pagination. Then implement Milestones 3–7 in order. Keep authenticated data scoped to verified user and workspace, use the local identity/fake model for tests, and preserve production fail-closed behavior. Make one tested commit per coherent change and push to `origin/Aria-new-setup`. Do not provision AWS or payment providers yet.
+> Stay on `Aria-new-setup`. Read `AGENTS.md`, `CODE_FIRST_PLAN.md`, `TEAM_EMAIL_SETUP.md`, `SEARXNG_SETUP.md`, and this handoff. Verify the current 63 tests and production build. Continue Milestone 2 with server-owned library/personalization, deliberate migration of preview/browser data, and saved-chat search/pagination. Then implement Milestones 3–7 in order. Keep authenticated data scoped to verified user and workspace, use the local identity/fake model for tests, and preserve production fail-closed behavior. Make one tested commit per coherent change and push to `origin/Aria-new-setup`. Do not provision AWS or payment providers yet.

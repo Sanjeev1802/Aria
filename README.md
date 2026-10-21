@@ -11,7 +11,7 @@ ARIA is a Next.js application from The Binary Labs. It presents a single chat ex
 | Area | Current behavior |
 | --- | --- |
 | Accounts | Cognito sign-in and sign-up routes, email confirmation, password recovery, verified sessions in HttpOnly cookies, and session revocation. A local identity provider supports development. |
-| Workspaces | Personal and Team workspaces, owner/admin/member roles, invitations, seat limits, and immediate access removal. |
+| Workspaces | Personal and Team workspaces, owner/admin/member roles, invitations, seat limits, and immediate access removal. Team invites are emailed through OneWave when configured, with a one-time link fallback for local setup. |
 | Plans | Server-enforced Free, Pro, and Team entitlements for credits, seats, and available models. Billing is not connected. |
 | Chat | Streaming responses through Bedrock when configured, a versioned server-owned system prompt, saved conversations, and an explicit notice when a response reaches the model's output limit. |
 | Public web search | Optional, explicit SearXNG search from the chat composer. ARIA sends a short public query to the configured self-hosted instance, passes bounded snippets to the model, and saves linked search results with the answer. |
@@ -89,7 +89,7 @@ npm run typecheck
 npm run build
 ```
 
-The current branch passes **59 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, token-limited response replay, and public search links. A local browser check covered project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API at mobile width; a real SearXNG deployment remains to be tested.
+The current branch passes **63 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, and Team invitation email behavior. A local browser check covered project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API at mobile width. Real SearXNG and OneWave delivery remain to be tested in staging.
 
 These checks do not verify real Cognito, DynamoDB, or Bedrock behavior. Those integrations require staging tests before production chat is enabled.
 
@@ -113,6 +113,10 @@ Plan rules live on the server in [`lib/server/accounts/entitlements.ts`](lib/ser
 | Team | 20,000 shared | 5 | Nova and Claude, plus team management |
 
 Pro and Team include an API-access entitlement, but ARIA does **not** yet issue API keys or expose a public developer API. Subscription checkout and billing webhooks are also pending. An operator can change plans with `npm run admin -- set-plan` during development and staging.
+
+### Team invitation email
+
+Set `EMAIL_SERVICE_URL` and `EMAIL_SERVICE_API_KEY` on the ARIA server to use the OneWave email service integrated in `aria-api-changes`. Configure its `aria-team-invitation` template to use `name`, `expiry_days`, and `invite_link`, and set `ARIA_APP_ORIGIN` to the public HTTPS ARIA origin. When an owner or admin invites a Team member, ARIA creates a seven-day, single-use invitation, sends the link to the invited email, and shows a delivery confirmation without exposing the link in the API response. If delivery fails, ARIA revokes the invitation and releases its reserved seat. Without email configuration, the existing one-time link is shown to the admin for manual sharing. See [Team email setup](TEAM_EMAIL_SETUP.md).
 
 ## Production requirements
 
