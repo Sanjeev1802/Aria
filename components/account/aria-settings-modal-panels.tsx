@@ -153,6 +153,8 @@ export function SettingsModalPrivacyPanel() {
         <SettingsLinkRow label="Shared links" value="Only me" />
         <SettingsLinkRow label="Training on my content" value="Off" />
         <SettingsLinkRow label="Export conversation history" />
+        <SettingsLinkRow label="Privacy Policy" href="/privacy/" />
+        <SettingsLinkRow label="Terms of Service" href="/terms/" />
       </SettingsBlock>
     </SettingsPanel>
   );

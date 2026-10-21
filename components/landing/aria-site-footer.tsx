@@ -4,7 +4,7 @@ import { ArrowUp, Github, Linkedin } from "lucide-react";
 import { AriaMark } from "@/components/aria-mark";
 
 type Props = {
-  onBriefing: () => void;
+  onBriefing?: () => void;
 };
 
 export function AriaSiteFooter({ onBriefing }: Props) {
@@ -18,7 +18,7 @@ export function AriaSiteFooter({ onBriefing }: Props) {
       <div className="aria-footer-inner">
         <div className="aria-footer-main">
           <div className="aria-footer-brand">
-            <a className="aria-footer-logo" href="#" aria-label="ARIA home">
+            <a className="aria-footer-logo" href="/" aria-label="ARIA home">
               <AriaMark />
               <span>ARIA</span>
             </a>
@@ -41,16 +41,23 @@ export function AriaSiteFooter({ onBriefing }: Props) {
               <a href="https://www.thebinaryholdings.com/team" target="_blank" rel="noopener noreferrer">
                 Team
               </a>
-              <button type="button" onClick={onBriefing}>
-                Arrange a briefing
-              </button>
+              {onBriefing ? (
+                <button type="button" onClick={onBriefing}>
+                  Arrange a briefing
+                </button>
+              ) : null}
             </div>
             <div className="aria-footer-col">
               <p className="aria-footer-col-title">Product</p>
               <a href="/chat/">Workspace</a>
-              <a href="#features">Features</a>
+              <a href="/#features">Features</a>
               <a href="/pricing/">Pricing</a>
-              <a href="#faq">FAQ</a>
+              <a href="/#faq">FAQ</a>
+            </div>
+            <div className="aria-footer-col">
+              <p className="aria-footer-col-title">Legal</p>
+              <a href="/terms/">Terms of Service</a>
+              <a href="/privacy/">Privacy Policy</a>
             </div>
           </nav>
         </div>
