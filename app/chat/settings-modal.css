@@ -135,40 +135,8 @@
 
   .aria-settings-modal-card__nav {
     max-height: none;
-    gap: 8px;
     padding-top: max(12px, env(safe-area-inset-top));
     border-bottom: 1px solid color-mix(in oklch, var(--foreground) 12%, transparent);
-  }
-
-  .aria-settings-nav-group {
-    display: none;
-  }
-
-  .aria-settings-modal-card__nav nav {
-    flex-direction: row;
-    gap: 0;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-
-  .aria-settings-modal-card__nav nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .aria-settings-modal-card__nav nav > div,
-  .aria-settings-modal-card__nav ul {
-    display: flex;
-    flex-direction: row;
-    gap: 4px;
-  }
-
-  .aria-settings-modal-card__nav li {
-    flex-shrink: 0;
-  }
-
-  .aria-settings-modal-card__nav button {
-    width: auto;
   }
 
   .aria-overlay-dialog__body {

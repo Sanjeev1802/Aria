@@ -2,8 +2,11 @@
 
 import "@/lib/disable-openui-inspect";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AriaSettingsModal } from "@/components/account/aria-settings-modal";
+import { AriaLibraryView } from "@/components/library/aria-library-view";
+import { AriaHelpView } from "@/components/workspace/aria-help-view";
+import { AriaPricingView } from "@/components/workspace/aria-pricing-view";
 import type { AriaWorkspacePath } from "@/lib/aria-workspace-paths";
 import { useRouter } from "next/navigation";
 import { refreshAriaSession, useAriaProfile, useAriaSession } from "@/lib/aria-session";
@@ -27,12 +30,6 @@ import { getAriaChatLLM } from "@/lib/aria-openui-llm";
 import { createAriaThreadStorage } from "@/lib/aria-thread-storage";
 import { AriaProjectProvider, useAriaProjects } from "@/lib/aria-project-context";
 import { watchAndRemoveOpenUIDevtools } from "@/lib/remove-openui-devtools-dom";
-
-// These workspaces are not needed to begin a conversation.
-const AriaLibraryView = dynamic(() => import("@/components/library/aria-library-view").then(m => m.AriaLibraryView));
-const AriaHelpView = dynamic(() => import("@/components/workspace/aria-help-view").then(m => m.AriaHelpView));
-const AriaPricingView = dynamic(() => import("@/components/workspace/aria-pricing-view").then(m => m.AriaPricingView));
-const AriaSettingsModal = dynamic(() => import("@/components/account/aria-settings-modal").then(m => m.AriaSettingsModal));
 
 export type AriaOpenUIChatProps = {
   /** Opens a workspace route on load (e.g. `pricing` from `/pricing/`). */

@@ -25,7 +25,7 @@ import {
 } from "@/lib/aria-settings-modal-sections";
 import { cn } from "@/lib/utils";
 import { useNav } from "@openuidev/react-ui";
-import { CreditCard, Database, Search, Shield, UserRound, Users, X } from "lucide-react";
+import { ChevronDown, CreditCard, Database, Search, Shield, UserRound, Users, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -146,14 +146,23 @@ export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) 
         aria-label="Settings"
       >
         <CardAction className="absolute top-2 right-2 z-10">
-          <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={close}>
+          <Button type="button" variant="ghost" size="icon-sm" className="size-10 md:size-7" aria-label="Close" onClick={close}>
             <X className="size-4" />
           </Button>
         </CardAction>
 
         <div className="aria-settings-modal-card__grid">
-          <aside className="aria-settings-modal-card__nav flex flex-col gap-3 border-b border-border/60 bg-muted/40 p-3 md:border-r md:border-b-0">
-            <div className="relative shrink-0">
+          <aside className="aria-settings-modal-card__nav flex flex-col gap-3 border-b border-border/60 bg-muted/40 p-3 pr-12 md:border-r md:border-b-0 md:pr-3">
+            <div className="relative md:hidden">
+              <label htmlFor="aria-settings-section" className="sr-only">Settings section</label>
+              <select id="aria-settings-section" value={active}
+                onChange={event => selectSection(event.target.value as AriaSettingsModalSection)}
+                className="h-10 w-full appearance-none rounded-lg border border-border/70 bg-background/70 px-3 pr-9 text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {navItems.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            </div>
+            <div className="relative hidden shrink-0 md:block">
               <Search
                 className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden
@@ -167,7 +176,7 @@ export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) 
                 aria-label="Search settings"
               />
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+            <div className="hidden min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 md:block">
               <nav className="flex flex-col gap-3" aria-label="Settings sections">
                 {groups.map(({ group, items }) => (
                   <div key={group}>

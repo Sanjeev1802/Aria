@@ -81,7 +81,7 @@ function TeamMemberRow({
                   "border-border/70 bg-muted/60 text-muted-foreground")}>{isInvite
                 ? member.status === "expired" ? "Expired" : "Invited" : member.role}</span>
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground" title={member.email}>{member.email}</p>
+          <p className="mt-0.5 break-all text-xs text-muted-foreground" title={member.email}>{member.email}</p>
         </div>
       </div>
 
@@ -101,12 +101,12 @@ function TeamMemberRow({
       </div> : null}
 
       {canSetLimit || canRemove || (isInvite && canManage) ? <div className="mt-3 flex flex-wrap items-center gap-2">
-        {canSetLimit ? <Button type="button" variant="outline" size="sm" aria-expanded={editingLimit}
+        {canSetLimit ? <Button type="button" variant="outline" size="sm" className="min-h-10 sm:min-h-7" aria-expanded={editingLimit}
           onClick={() => { setLimitDraft(limit?.toString() ?? ""); setEditingLimit(value => !value); }}>
           {limit === null ? "Set credit limit" : "Edit credit limit"}</Button> : null}
-        {isInvite && canManage ? <Button type="button" variant="ghost" size="sm" className="text-muted-foreground"
+        {isInvite && canManage ? <Button type="button" variant="ghost" size="sm" className="min-h-10 text-muted-foreground sm:min-h-7"
           onClick={() => onRemove(member.id)}><X className="size-3.5" />Cancel invite</Button> : null}
-        {canRemove ? <Button type="button" variant="ghost" size="sm" className="text-muted-foreground"
+        {canRemove ? <Button type="button" variant="ghost" size="sm" className="min-h-10 text-muted-foreground sm:min-h-7"
           onClick={() => onRemove(member.id)}><X className="size-3.5" />Remove member</Button> : null}
       </div> : null}
 
@@ -115,13 +115,13 @@ function TeamMemberRow({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Input id={`limit-${member.id}`} inputMode="numeric" type="text" pattern="[0-9]*"
             placeholder="No individual limit" value={limitDraft} onChange={event => setLimitDraft(event.target.value)}
-            className="h-9 w-full min-w-0 sm:max-w-56" />
+            className="h-10 w-full min-w-0 sm:h-9 sm:max-w-56" />
           <div className="flex items-center gap-2">
-            <Button type="button" size="sm" disabled={savingLimit || (limitDraft !== "" &&
+            <Button type="button" size="sm" className="min-h-10 sm:min-h-7" disabled={savingLimit || (limitDraft !== "" &&
               (!/^\d+$/.test(limitDraft) || Number(limitDraft) > 20000))} onClick={() => {
                 onLimit(member.id, limitDraft === "" ? null : Number(limitDraft)); setEditingLimit(false);
               }}>{savingLimit ? "Saving…" : "Save limit"}</Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setEditingLimit(false)}>Cancel</Button>
+            <Button type="button" variant="ghost" size="sm" className="min-h-10 sm:min-h-7" onClick={() => setEditingLimit(false)}>Cancel</Button>
           </div>
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">0 blocks new usage. Leave blank to use only the shared Team pool.</p>
@@ -280,9 +280,9 @@ export function SettingsModalTeamPanel() {
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <label htmlFor="aria-team-invite-email" className="sr-only">Teammate email address</label>
           <Input id="aria-team-invite-email" type="email" placeholder="teammate@company.com" value={email}
-            className="min-w-0 flex-1" onChange={event => { setEmail(event.target.value); setInviteError(null); }}
+            className="h-10 min-w-0 flex-1 sm:h-8" onChange={event => { setEmail(event.target.value); setInviteError(null); }}
             onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); void handleInvite(); } }} autoComplete="email" />
-          <Button type="button" className="sm:shrink-0" disabled={!email.trim() || seatsLeft === 0 || busy}
+          <Button type="button" className="min-h-10 sm:min-h-8 sm:shrink-0" disabled={!email.trim() || seatsLeft === 0 || busy}
             onClick={() => void handleInvite()}><UserPlus className="size-4" aria-hidden />{busy ? "Sending…" : "Send invite"}</Button>
         </div>
         {inviteError ? <p className="mt-2 text-xs text-destructive" role="alert">{inviteError}</p> :
@@ -291,7 +291,7 @@ export function SettingsModalTeamPanel() {
               <p className="text-xs font-medium">One-time invitation link</p>
               <div className="mt-2 flex min-w-0 items-center gap-2">
                 <code className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground" title={inviteUrl}>{inviteUrl}</code>
-                <Button type="button" variant="outline" size="sm" onClick={async () => {
+                <Button type="button" variant="outline" size="sm" className="min-h-10 sm:min-h-7" onClick={async () => {
                   try { await navigator.clipboard.writeText(inviteUrl); setCopied(true); }
                   catch { setInviteError("Could not copy the link. Select and copy it manually."); }
                 }}>{copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}{copied ? "Copied" : "Copy"}</Button>
@@ -303,7 +303,7 @@ export function SettingsModalTeamPanel() {
       </section> : null}
 
       {loadError ? <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">
-        <p>{loadError}</p><Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void refresh()}>Try again</Button>
+        <p>{loadError}</p><Button type="button" variant="outline" size="sm" className="mt-3 min-h-10 sm:min-h-7" onClick={() => void refresh()}>Try again</Button>
       </div> : null}
 
       <section aria-labelledby="team-members-title" className="space-y-3">
