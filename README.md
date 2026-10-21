@@ -73,6 +73,8 @@ npm run dev
 
 Open [http://127.0.0.1:3000/sign-in/](http://127.0.0.1:3000/sign-in/). Sign in with a local test account, then open chat. The **Local user** control in the sidebar switches between Alex and Blair, whose workspaces are separate. Local chat uses a deterministic test model and the normal credit ledger; it does not call Bedrock or spend AWS credits.
 
+In local development, the sidebar also has a **Test plan** control for Free, Pro, and Team. It changes the current workspace's server-owned plan and monthly credit allowance so you can test plan gates without checkout. A workspace with more than one occupied seat cannot switch to a one-seat plan until its extra members or pending invites are removed. This control is unavailable in production. The chat composer has no provider dropdown or plan label; ARIA chooses the default provider from the verified plan (Nova for Free, Claude for Pro and Team).
+
 Local accounts, credits, projects, and saved chats persist in `.aria/local-dev.sqlite`, which is gitignored. To try projects, open the chat sidebar, create and select a project, then send a message. Use a saved chat's **⋯ → Move to project** menu to reassign it or choose **No project**. The **Recents** menu can also export a chat as JSON.
 
 For a static interface preview with scripted replies and no server data, set `NEXT_PUBLIC_ARIA_PREVIEW=true` instead. Preview data is separate from authenticated workspace data and is not automatically migrated.
@@ -89,7 +91,7 @@ npm run typecheck
 npm run build
 ```
 
-The current branch passes **63 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, and Team invitation email behavior. A local browser check covered project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API at mobile width. Real SearXNG and OneWave delivery remain to be tested in staging.
+The current branch passes **67 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, and local plan switching. A local browser check covered plan switching at mobile width, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API. Real SearXNG and OneWave delivery remain to be tested in staging.
 
 These checks do not verify real Cognito, DynamoDB, or Bedrock behavior. Those integrations require staging tests before production chat is enabled.
 
