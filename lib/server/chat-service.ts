@@ -80,9 +80,7 @@ export async function createChatResponse(input: ChatInput, options: {
       } catch (error) {
         // Incomplete/cancelled responses are not customer-billed; AWS may still bill us.
         await ledger.fail(workspaceId, input.id).catch(() => logLedgerIssue("release_deferred", account, input.id));
-        emit(error instanceof WebSearchError
-          ? { type: "RUN_ERROR", code: "web_search_failed", message: error.message }
-          : { type: "RUN_ERROR", code: "response_failed", message: "ARIA could not finish this response. No credits were charged for an incomplete response. Try again." });
+        emit(chatFailure(error));
         if (!cancelled) controller.close();
         return;
       }
@@ -103,6 +101,20 @@ export async function createChatResponse(input: ChatInput, options: {
     "X-Accel-Buffering": "no",
     "X-Request-Id": input.id,
   } });
+}
+
+function chatFailure(error: unknown) {
+  if (error instanceof WebSearchError) return { type: "RUN_ERROR", code: "web_search_failed", message: error.message };
+  if (error instanceof Error && error.name === "ThrottlingException") {
+    const dailyLimit = /tokens per day/i.test(error.message);
+    return { type: "RUN_ERROR", code: "model_quota_exceeded", message: dailyLimit
+      ? "Amazon Bedrock's daily token limit has been reached. No credits were charged. Try again after the AWS quota resets or ask an administrator to increase it."
+      : "Amazon Bedrock is temporarily rate limiting requests. No credits were charged. Try again shortly." };
+  }
+  if (error instanceof Error && error.name === "AccessDeniedException") {
+    return { type: "RUN_ERROR", code: "model_access_denied", message: "ARIA cannot access its configured AI model. No credits were charged. Please contact an administrator to check Bedrock access." };
+  }
+  return { type: "RUN_ERROR", code: "response_failed", message: "ARIA could not finish this response. No credits were charged for an incomplete response. Try again." };
 }
 
 async function settleWithRetry(ledger: CreditLedger, workspaceId: string, id: string, s: Parameters<CreditLedger["settle"]>[2]) {

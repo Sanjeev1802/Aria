@@ -111,6 +111,24 @@ test("provider failure and missing metadata release credits", async () => {
   }
 });
 
+test("Bedrock daily quota and access failures show actionable safe errors without charging", async () => {
+  for (const [name, message, expected] of [
+    ["ThrottlingException", "Too many tokens per day, please wait before trying again.", "daily token limit"],
+    ["AccessDeniedException", "Authentication failed: secret detail", "check Bedrock access"],
+  ]) {
+    const env = await wallet();
+    const provider: StreamProvider = async function* () {
+      const error = new Error(message);
+      error.name = name;
+      throw error;
+    };
+    const text = await (await createChatResponse(input(), options(env, provider))).text();
+    assert.match(text, new RegExp(expected));
+    assert.doesNotMatch(text, /secret detail/);
+    assert.equal((await env.ledger.balance(env.ws)).available, 200);
+  }
+});
+
 test("aborted inference cannot settle or charge", async () => {
   const env = await wallet();
   const abort = new AbortController(); abort.abort();
