@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   return run(request, async (req, services) => {
-    await requireInternalAdmin(req, services);
-    return Response.json(await adminOverview(services), { headers: { "Cache-Control": "no-store" } });
+    const { internalRole } = await requireInternalAdmin(req, services);
+    return Response.json({ ...await adminOverview(services), internalRole }, { headers: { "Cache-Control": "no-store" } });
   });
 }

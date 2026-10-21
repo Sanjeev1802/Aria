@@ -33,6 +33,8 @@ export type ServerConfig = {
   secureCookies: boolean;
   /** Verified Cognito subjects allowed into the internal operator console. */
   adminSubjects?: string[];
+  /** Additional verified subjects with scoped internal roles. */
+  adminRoles?: Record<string, "support" | "billing" | "operations">;
   /** Loopback-only preview for local development; grants Alex the operator role. */
   adminLocalDev?: boolean;
 };
@@ -69,6 +71,9 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       ? { url: env.EMAIL_SERVICE_URL.trim(), apiKey: env.EMAIL_SERVICE_API_KEY.trim() } : undefined,
     secureCookies: environment === "production",
     adminSubjects: (env.ARIA_ADMIN_SUBS || "").split(",").map(value => value.trim()).filter(Boolean),
+    adminRoles: Object.fromEntries((env.ARIA_ADMIN_ROLES || "").split(",").map(entry => entry.trim().split(":"))
+      .filter((parts): parts is [string, "support" | "billing" | "operations"] =>
+        parts.length === 2 && Boolean(parts[0]) && ["support", "billing", "operations"].includes(parts[1]))),
     adminLocalDev: environment === "development" && env.ARIA_ADMIN_LOCAL_DEV === "true",
   };
 }

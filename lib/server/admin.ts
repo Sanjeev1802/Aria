@@ -6,6 +6,7 @@ import type { Services } from "./services";
 
 const auditKey = (id: string) => ({ pk: "ADMIN#AUDIT", sk: `ACTION#${id}` });
 const validId = (value: unknown) => typeof value === "string" && /^[\w:.-]{1,128}$/.test(value);
+export type InternalRole = "super_admin" | "support" | "billing" | "operations";
 
 async function mapBatches<T, R>(items: T[], task: (item: T) => Promise<R>, size = 20): Promise<R[]> {
   const output: R[] = [];
@@ -18,10 +19,19 @@ export async function requireInternalAdmin(request: Request, services: Services)
   const auth = await authenticate(request, services);
   const localPreview = services.config.environment === "development" && services.config.localIdentity &&
     services.config.adminLocalDev && auth.user.id === "local-alex";
-  if (!localPreview && !services.config.adminSubjects?.includes(auth.user.id)) {
+  const role: InternalRole | undefined = localPreview || services.config.adminSubjects?.includes(auth.user.id)
+    ? "super_admin" : services.config.adminRoles?.[auth.user.id];
+  if (!role) {
     throw new ServiceError("admin_access_denied", 403);
   }
-  return auth;
+  return { ...auth, internalRole: role };
+}
+
+export function assertAdminActionAllowed(role: InternalRole, type: AdminAction["type"]) {
+  if (role === "super_admin") return;
+  if (role === "billing" && type === "set_plan") return;
+  if (role === "operations" && ["disable_user", "enable_user", "revoke_sessions"].includes(type)) return;
+  throw new ServiceError("admin_action_forbidden", 403);
 }
 
 export async function adminOverview(services: Services) {

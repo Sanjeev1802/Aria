@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { MemoryStore } from "../lib/server/store/memory-store";
 import { buildServices } from "../lib/server/services";
-import { adminCustomer, adminOverview, executeAdminAction, parseAdminAction, requireInternalAdmin } from "../lib/server/admin";
+import { adminCustomer, adminOverview, assertAdminActionAllowed, executeAdminAction, parseAdminAction, requireInternalAdmin } from "../lib/server/admin";
 
 const config = { environment: "development" as const, region: "us-east-1", localIdentity: true,
   liveChat: false, secureCookies: false, adminLocalDev: true };
@@ -39,6 +39,18 @@ test("production operator access requires a verified subject on the server allow
     { code: "admin_access_denied" });
   const allowed = buildServices({ ...base, adminSubjects: [identity.sub] }, { store, verifier });
   assert.equal((await requireInternalAdmin(req, allowed)).user.id, identity.sub);
+  assert.equal((await requireInternalAdmin(req, allowed)).internalRole, "super_admin");
+  const scoped = buildServices({ ...base, adminSubjects: [], adminRoles: { [identity.sub]: "billing" } }, { store, verifier });
+  assert.equal((await requireInternalAdmin(req, scoped)).internalRole, "billing");
+});
+
+test("scoped operator roles restrict write actions", () => {
+  assert.doesNotThrow(() => assertAdminActionAllowed("billing", "set_plan"));
+  assert.doesNotThrow(() => assertAdminActionAllowed("operations", "revoke_sessions"));
+  assert.doesNotThrow(() => assertAdminActionAllowed("super_admin", "disable_user"));
+  assert.throws(() => assertAdminActionAllowed("support", "set_plan"), { code: "admin_action_forbidden" });
+  assert.throws(() => assertAdminActionAllowed("billing", "disable_user"), { code: "admin_action_forbidden" });
+  assert.throws(() => assertAdminActionAllowed("operations", "set_plan"), { code: "admin_action_forbidden" });
 });
 
 test("operator dashboard reads indexed customer data without exposing chat content", async () => {

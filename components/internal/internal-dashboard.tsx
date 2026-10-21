@@ -15,7 +15,8 @@ type Workspace = { id: string; name: string; plan: "free" | "pro" | "team"; seat
   ownerId: string; credits: Credits };
 type Audit = { id: string; action: string; actorId: string; targetId: string; reason: string; at: number; result: string };
 type Overview = { users: User[]; workspaces: Workspace[]; summary: { users: number; workspaces: number;
-  activeUsers: number; teamWorkspaces: number; creditsUsed: number }; activity: Audit[]; limited: boolean };
+  activeUsers: number; teamWorkspaces: number; creditsUsed: number }; activity: Audit[]; limited: boolean;
+  internalRole: "super_admin" | "support" | "billing" | "operations" };
 type Customer = { user: User; workspaces: (Workspace & { role: string; members: { id: string; name: string; role: string; status: string }[] })[] };
 type ActionType = "disable_user" | "enable_user" | "revoke_sessions" | "set_plan";
 
@@ -109,7 +110,7 @@ export function InternalDashboard() {
     <div className="internal-content">
       <header className="internal-topbar"><button className="internal-menu" aria-label="Open navigation" onClick={() => setMobileNav(true)}><Menu size={21} /></button>
         <div className="internal-crumb">ARIA <span>/</span> Internal <span>/</span> <strong>{nav.find(item => item.id === section)?.label}</strong></div>
-        <div className="internal-top-actions"><Badge variant="outline" className="internal-env"><span />Restricted access</Badge><ShieldCheck size={17} aria-label="Restricted access" /></div></header>
+        <div className="internal-top-actions"><Badge variant="outline" className="internal-env"><span />{overview?.internalRole.replaceAll("_", " ") || "Restricted access"}</Badge><ShieldCheck size={17} aria-label="Restricted access" /></div></header>
       <main className="internal-main">
         {loading ? <div className="internal-state">Loading ARIA operations…</div> : error && !overview
           ? <div className="internal-state internal-error"><LockKeyhole size={26} /><h1>Internal access unavailable</h1><p>{error}</p><a href="/sign-in/?next=%2Finternal%2F">Sign in</a></div>
@@ -167,14 +168,14 @@ export function InternalDashboard() {
               <div className="internal-credit-line"><span>Credits used</span><strong>{fmt.format(workspace.credits.used)} / {fmt.format(workspace.credits.included)}</strong></div>
               <div className="internal-progress"><span style={{ width: `${Math.min(100, workspace.credits.included ? workspace.credits.used / workspace.credits.included * 100 : 0)}%` }} /></div>
               <div className="internal-member-summary"><span>People</span><strong>{workspace.members.filter(member => member.status === "active").length} active · {workspace.members.filter(member => member.status === "pending").length} invited</strong></div>
-              <label className="internal-plan-control">Change plan <select value={workspace.plan} onChange={event => setAction({ type: "set_plan", targetId: workspace.id,
+              {(overview?.internalRole === "super_admin" || overview?.internalRole === "billing") && <label className="internal-plan-control">Change plan <select value={workspace.plan} onChange={event => setAction({ type: "set_plan", targetId: workspace.id,
                 label: `${workspace.name} to ${planName[event.target.value as Workspace["plan"]]}`, plan: event.target.value as Workspace["plan"] })}>
-                <option value="free">Free</option><option value="pro">Pro</option><option value="team">Team</option></select></label></div>)}</div>
-          <div className="internal-profile-section"><h3>Account controls</h3><p>Changes require a reason and are recorded in the audit log.</p>
+                <option value="free">Free</option><option value="pro">Pro</option><option value="team">Team</option></select></label>}</div>)}</div>
+          {(overview?.internalRole === "super_admin" || overview?.internalRole === "operations") && <div className="internal-profile-section"><h3>Account controls</h3><p>Changes require a reason and are recorded in the audit log.</p>
             <div className="internal-control-buttons"><button onClick={() => setAction({ type: "revoke_sessions", targetId: customer.user.id, label: `Sign out ${customer.user.name} on every device` })}>Revoke sessions</button>
               <button className="danger" onClick={() => setAction({ type: customer.user.status === "active" ? "disable_user" : "enable_user",
                 targetId: customer.user.id, label: `${customer.user.status === "active" ? "Disable" : "Enable"} ${customer.user.name}` })}>
-                {customer.user.status === "active" ? "Disable account" : "Enable account"}</button></div></div>
+                {customer.user.status === "active" ? "Disable account" : "Enable account"}</button></div></div>}
         </>}
       </aside>
     </div>}
