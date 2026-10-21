@@ -128,7 +128,7 @@ Set `EMAIL_SERVICE_URL` and `EMAIL_SERVICE_API_KEY` on the ARIA server to use th
 
 ## Production requirements
 
-Production accounts and saved work require a Cognito user pool and app client, a DynamoDB table, and a canonical application origin for cross-site request checks. Live model calls also require Bedrock model IDs, verified token rates, AWS permissions, and the explicit `ARIA_LIVE_CHAT=enabled` switch. See [`.env.example`](.env.example), the [DynamoDB table definition](infra/dynamodb-table.json), and the [staging checklist](CURSOR_HANDOFF.md) for the exact configuration.
+Production accounts and saved work require a Cognito user pool and app client, a DynamoDB table, and a canonical application origin for cross-site request checks. Live model calls also require Bedrock model IDs, verified token rates, AWS permissions, and the explicit `ARIA_LIVE_CHAT=enabled` switch. See [`.env.example`](.env.example), the [DynamoDB table definition](infra/dynamodb-table.json), and the [staging checklist](CODE_FIRST_PLAN.md#real-service-staging-checklist) for the exact configuration.
 
 ElastiCache is optional for public web search and does not affect accounts, credits, or model access. A private Valkey Serverless CloudFormation stack is provided in [`infra/elasticache-search.yaml`](infra/elasticache-search.yaml); see [ElastiCache setup](ELASTICACHE_SETUP.md) for deployment parameters, TLS/RBAC configuration, cost considerations, acceptance checks, and fallback behavior.
 
@@ -138,7 +138,7 @@ Without the required configuration, the production chat API returns `503` by des
 
 The next code work is server-owned library and personalization, chat search and pagination, and a deliberate path for preview-only data. ARIA then needs authorized-source retrieval with verifiable citations, Pro/Team API keys and endpoints, subscription checkout and signed billing webhooks, and release-level browser, load, accessibility, and security checks. Real AWS staging and deployment follow the code gate.
 
-Use the [code-first plan](CODE_FIRST_PLAN.md) for milestone order and the [Cursor handoff](CURSOR_HANDOFF.md) for verified behavior and the next exact task. The [product requirements](prd.md) and [implementation plan](IMPLEMENTATION_PLAN.md) describe the broader product and infrastructure direction.
+Use the [code-first plan](CODE_FIRST_PLAN.md) for milestone order and the release gate. The [product requirements](prd.md) and [implementation plan](IMPLEMENTATION_PLAN.md) describe the broader product and infrastructure direction.
 
 ## Repository guide
 

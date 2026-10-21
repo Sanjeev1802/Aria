@@ -1,6 +1,6 @@
 # ARIA: finish application code before AWS setup
 
-Updated 21 October 2026. This is the active work order. Do not provision AWS or enable `ARIA_LIVE_CHAT` during these milestones. `CURSOR_HANDOFF.md` records what is already implemented and verified.
+Updated 21 October 2026. This is the active work order. Do not provision AWS or enable `ARIA_LIVE_CHAT` during these milestones. Verify completed behavior against the current source and tests.
 
 ## Product boundary
 
@@ -54,12 +54,20 @@ Deliver a working local application with real server-owned data and a complete F
 
 - Add meaningful browser journeys for Free, Pro, Team, intelligence, and API keys using the local identity and fake model. Run `npm test`, `npm run typecheck`, `npm run build`, and keyboard/mobile accessibility checks. Measure chat first render, first-token display, and p95 at the expected local concurrency; record actual numbers.
 - Audit logs for secrets and prompts, rate limits, retention/delete/export, dependency findings, secure response headers, and clear incident/reconciliation messages.
-- Acceptance: all code paths pass locally; no screen silently falls back to seeded business data; production remains closed without external integrations. Update this file and `CURSOR_HANDOFF.md` after each milestone with evidence, unfinished items, and the next exact command.
+- Acceptance: all code paths pass locally; no screen silently falls back to seeded business data; production remains closed without external integrations. Update this file after each milestone with evidence, unfinished items, and the next exact command.
 
 ## Only after the code gate
 
-Provision staging Cognito, DynamoDB, Bedrock, object storage, queues, email, payments, domain, IAM, budgets, monitoring, and backup. Run the real-service staging checklist in `CURSOR_HANDOFF.md`. Enable `ARIA_LIVE_CHAT` only after those checks pass. AWS and payment services are still required for a public launch; local completion is an application-code milestone.
+Provision staging Cognito, DynamoDB, Bedrock, object storage, queues, email, payments, domain, IAM, budgets, monitoring, and backup. Run the real-service staging checklist below. Enable `ARIA_LIVE_CHAT` only after those checks pass. AWS and payment services are still required for a public launch; local completion is an application-code milestone.
+
+### Real-service staging checklist
+
+- Create a Cognito user pool and app client with email verification, the required password and auth-flow settings, and verified token handling. Exercise sign-up, confirmation, sign-in, refresh, reset, and sign-out.
+- Create the DynamoDB table from `infra/dynamodb-table.json`, enable TTL on `ttl` and point-in-time recovery, and scope the app IAM role to the table and required Bedrock model or inference profile.
+- Configure the canonical `ARIA_APP_ORIGIN`, AWS Region, model IDs, token rates, and rate version from `.env.example`. Keep `ARIA_LIVE_CHAT` disabled until the checks pass.
+- Verify two users in separate workspaces, a Team invite and removal, concurrent sends against one credit pool, server interruption during streaming followed by reconciliation, and a complete Nova response with token usage matching ledger events.
+- Schedule `npm run admin -- reconcile` every 5–10 minutes and alert on deferred settlement, deferred release, and provider-cost review. Verify real email delivery, Bedrock quota, backup/restore, and payment events before public launch.
 
 ## Current next step
 
-Milestone 0 is complete. Account/team flows from Milestone 1 are implemented except MFA challenge UI and role editing. Milestone 2 now has server-owned project CRUD, saved chat threads, project assignment/filtering, and per-chat JSON export. Optional public-web search through self-hosted SearXNG is also implemented; it is separate from the authorized-source work in Milestone 3. Continue with saved-chat search/pagination, server-owned library/personalization, and deliberate migration. See `CURSOR_HANDOFF.md` for verified tests and exact next Cursor prompt. Keep AWS and payments setup after the code gate.
+Milestone 0 is complete. Account/team flows from Milestone 1 are implemented except MFA challenge UI and role editing. Milestone 2 now has server-owned project CRUD, saved chat threads, project assignment/filtering, and per-chat JSON export. Optional public-web search through self-hosted SearXNG is also implemented; it is separate from the authorized-source work in Milestone 3. Continue with saved-chat search/pagination, server-owned library/personalization, and deliberate migration. Keep AWS and payments setup after the code gate.

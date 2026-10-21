@@ -6,7 +6,7 @@ Updated: 2026-10-20. This document describes the actual repository and takes pre
 
 Build a Next.js chat application using Amazon Nova through Amazon Bedrock, with server-authoritative usage accounting, Free/Pro/Team subscriptions, authorized business intelligence, and paid developer API access.
 
-**The application is not production complete.** Identity (Cognito), workspace authorization, server-owned entitlements, and a shared DynamoDB ledger are implemented and locally tested, but have not run against real AWS. Production chat returns 503 unless Cognito, the DynamoDB table, `ARIA_APP_ORIGIN`, and the operator switch `ARIA_LIVE_CHAT=enabled` are all configured. Enable the switch only after the staging gate in `CURSOR_HANDOFF.md` passes.
+**The application is not production complete.** Identity (Cognito), workspace authorization, server-owned entitlements, and a shared DynamoDB ledger are implemented and locally tested, but have not run against real AWS. Production chat returns 503 unless Cognito, the DynamoDB table, `ARIA_APP_ORIGIN`, and the operator switch `ARIA_LIVE_CHAT=enabled` are all configured. Enable the switch only after the staging gate in `CODE_FIRST_PLAN.md` passes.
 
 ### What Cursor already built
 
@@ -35,7 +35,7 @@ Build a Next.js chat application using Amazon Nova through Amazon Bedrock, with 
 - Server-owned accounts: personal Free workspace on first sign-in, roles (owner/admin/member), hashed expiring single-use invitations bound to verified email, immediate revocation, idempotent and ordered plan changes (`applyEntitlement`).
 - DynamoDB single-table store and credit ledger. One transaction per reservation checks credits, the member lock, the rate limit, active membership, and the authorized plan. Settlement is pinned to the reservation's period. Crash reconciliation flags provider-cost review.
 - Browser state (plan, profile, team) now comes from `/api/auth/session/`; preview data remains only in design preview.
-- Details, test coverage, and remaining AWS/payment setup: `CURSOR_HANDOFF.md`.
+- Remaining work and the staging gate: `CODE_FIRST_PLAN.md`.
 
 ## Architecture and response flow
 
@@ -140,4 +140,4 @@ Bedrock is paid. Free tooling does not make model inference free. Do not test pa
 
 ## Verification
 
-See `CURSOR_HANDOFF.md` for commands and final verification results. Tests use an injected fake provider; they do not claim that AWS credentials, account quotas, or real model responses have been verified.
+Run `npm test`, `npm run typecheck`, and `npm run build` for current verification results. Tests use an injected fake provider; they do not claim that AWS credentials, account quotas, or real model responses have been verified.
