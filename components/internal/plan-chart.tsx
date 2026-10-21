@@ -1,11 +1,11 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 
-const config = { workspaces: { label: "Workspaces", color: "#9abaf2" } } satisfies ChartConfig;
+const config = { workspaces: { label: "Workspaces", color: "#5b7cf3" } } satisfies ChartConfig;
 
 export function PlanChart({ counts, creditsUsed }: {
   counts: { free: number; pro: number; team: number }; creditsUsed: number;
@@ -27,7 +27,9 @@ export function PlanChart({ counts, creditsUsed }: {
           <XAxis dataKey="plan" tickLine={false} axisLine={false} tickMargin={10} />
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
           <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-          <Bar dataKey="workspaces" fill="#9abaf2" radius={[6, 6, 0, 0]} maxBarSize={96} isAnimationActive={false} />
+          <Bar dataKey="workspaces" radius={[6, 6, 0, 0]} maxBarSize={96} isAnimationActive={false}>
+            <Cell fill="#5b7cf3" /><Cell fill="#a56cef" /><Cell fill="#23b7a1" />
+          </Bar>
         </BarChart>
       </ChartContainer>
     </CardContent>

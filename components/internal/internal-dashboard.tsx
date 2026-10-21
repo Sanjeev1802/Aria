@@ -34,9 +34,9 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
   return body as T;
 }
 
-function Stat({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string;
-  icon: typeof Users }) {
-  return <Card className="internal-stat"><CardHeader className="pb-0"><CardDescription className="internal-stat-top"><span>{label}</span><Icon size={18} aria-hidden="true" /></CardDescription>
+function Stat({ label, value, detail, icon: Icon, tone }: { label: string; value: string; detail: string;
+  icon: typeof Users; tone: "blue" | "violet" | "teal" | "orange" }) {
+  return <Card className={`internal-stat internal-stat-${tone}`}><CardHeader className="pb-0"><CardDescription className="internal-stat-top"><span>{label}</span><span className="internal-stat-icon"><Icon size={18} aria-hidden="true" /></span></CardDescription>
     <CardTitle className="internal-stat-value">{value}</CardTitle></CardHeader><CardContent className="pt-0"><small>{detail}</small></CardContent></Card>;
 }
 
@@ -89,7 +89,7 @@ export function InternalDashboard() {
   const planCounts = useMemo(() => ({ free: overview?.workspaces.filter(w => w.plan === "free").length ?? 0,
     pro: overview?.workspaces.filter(w => w.plan === "pro").length ?? 0,
     team: overview?.workspaces.filter(w => w.plan === "team").length ?? 0 }), [overview]);
-  return <SidebarProvider className="internal-shell internal-dashboard dark" style={{
+  return <SidebarProvider className="internal-shell internal-dashboard" style={{
     "--sidebar-width": "calc(var(--spacing) * 72)", "--header-height": "calc(var(--spacing) * 12)",
   } as React.CSSProperties}>
     <InternalSidebar section={section} onSectionChange={next => { setSection(next); setActiveUserId(null); setCustomer(null); }} />
@@ -110,10 +110,10 @@ export function InternalDashboard() {
 
             {section === "overview" && <>
               <div className="internal-stats">
-                <Stat label="Customers" value={fmt.format(overview.summary.users)} detail={`${fmt.format(overview.summary.activeUsers)} active accounts`} icon={Users} />
-                <Stat label="Workspaces" value={fmt.format(overview.summary.workspaces)} detail="Across every plan" icon={Wallet} />
-                <Stat label="Team workspaces" value={fmt.format(overview.summary.teamWorkspaces)} detail="Shared plans" icon={ShieldCheck} />
-                <Stat label="Credits used" value={fmt.format(overview.summary.creditsUsed)} detail="Current UTC billing period" icon={Wallet} />
+                <Stat label="Customers" value={fmt.format(overview.summary.users)} detail={`${fmt.format(overview.summary.activeUsers)} active accounts`} icon={Users} tone="blue" />
+                <Stat label="Workspaces" value={fmt.format(overview.summary.workspaces)} detail="Across every plan" icon={Wallet} tone="violet" />
+                <Stat label="Team workspaces" value={fmt.format(overview.summary.teamWorkspaces)} detail="Shared plans" icon={ShieldCheck} tone="teal" />
+                <Stat label="Credits used" value={fmt.format(overview.summary.creditsUsed)} detail="Current UTC billing period" icon={Wallet} tone="orange" />
               </div>
               <PlanChart counts={planCounts} creditsUsed={overview.summary.creditsUsed} />
               <CustomerTable users={filteredUsers.slice(0, 8)} query={query} setQuery={setQuery} openCustomer={openCustomer}
@@ -123,10 +123,10 @@ export function InternalDashboard() {
               title="All customers" count={overview.users.length} />}
             {section === "workspaces" && <WorkspaceTable workspaces={overview.workspaces} users={overview.users} openCustomer={openCustomer} />}
             {section === "plans" && <><div className="internal-stats">
-              <Stat label="Free" value={fmt.format(planCounts.free)} detail="Personal workspaces" icon={Users} />
-              <Stat label="Pro" value={fmt.format(planCounts.pro)} detail="Individual paid workspaces" icon={Wallet} />
-              <Stat label="Team" value={fmt.format(planCounts.team)} detail="Shared workspaces" icon={ShieldCheck} />
-              <Stat label="Credits used" value={fmt.format(overview.summary.creditsUsed)} detail="Current UTC billing period" icon={Activity} />
+              <Stat label="Free" value={fmt.format(planCounts.free)} detail="Personal workspaces" icon={Users} tone="blue" />
+              <Stat label="Pro" value={fmt.format(planCounts.pro)} detail="Individual paid workspaces" icon={Wallet} tone="violet" />
+              <Stat label="Team" value={fmt.format(planCounts.team)} detail="Shared workspaces" icon={ShieldCheck} tone="teal" />
+              <Stat label="Credits used" value={fmt.format(overview.summary.creditsUsed)} detail="Current UTC billing period" icon={Activity} tone="orange" />
               </div><WorkspaceTable workspaces={overview.workspaces} users={overview.users} openCustomer={openCustomer} credits /></>}
             {section === "activity" && <section className="internal-panel"><div className="internal-panel-heading"><div><h2>Operator actions</h2><p>Who changed what, and why</p></div><Activity size={18} /></div>
               <AuditList activity={overview.activity} /></section>}
