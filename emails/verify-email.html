@@ -7,10 +7,11 @@
     <meta name="supported-color-schemes" content="dark">
     <title>Verify your email for ARIA</title>
     <style>
-      @media only screen and (max-width: 640px) {
-        .outer-pad { padding: 28px 16px !important; }
-        .card-pad { padding: 36px 24px !important; }
-        .code { font-size: 36px !important; letter-spacing: 7px !important; }
+      @media only screen and (min-width: 641px) {
+        .outer-pad { padding: 72px 24px !important; }
+        .card-pad { padding: 48px 48px 44px !important; }
+        .code { font-size: 42px !important; letter-spacing: 10px !important; }
+        .heading { font-size: 32px !important; }
       }
     </style>
   </head>
@@ -21,29 +22,29 @@
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;">
       <tr>
         <!-- Replace the two ../public/email/ image paths with absolute HTTPS URLs before adding this HTML to Cognito. -->
-        <td align="center" class="outer-pad" bgcolor="#0b2530" style="padding:72px 24px;background-color:#0b2530;background-image:url('../public/email/signup-background.jpg'),linear-gradient(165deg,#d5d3a8 0%,#a7dcc7 28%,#367481 62%,#0b2530 100%);background-position:center top;background-size:cover;background-repeat:no-repeat;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="width:100%;max-width:560px;border-collapse:collapse;">
+        <td align="center" class="outer-pad" bgcolor="#0b2530" style="padding:28px 16px;background-color:#0b2530;background-image:url('../public/email/signup-background.jpg'),linear-gradient(165deg,#d5d3a8 0%,#a7dcc7 28%,#367481 62%,#0b2530 100%);background-position:center top;background-size:cover;background-repeat:no-repeat;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;max-width:560px;border-collapse:collapse;">
             <tr>
-              <td align="center" style="padding:0 0 26px;">
-                <img src="../public/email/aria-mark.png" width="44" height="50" alt="" style="display:block;width:44px;height:50px;border:0;outline:none;text-decoration:none;">
-                <span style="display:block;padding-top:11px;color:#ffffff;font-size:17px;font-weight:700;letter-spacing:0.26em;line-height:1.2;">ARIA</span>
-              </td>
-            </tr>
-            <tr>
-              <td class="card-pad" bgcolor="#151515" style="padding:48px 48px 44px;background-color:#151515;border:1px solid #333333;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,0.22);">
+              <td class="card-pad" bgcolor="#151515" style="padding:36px 24px;background-color:#151515;border:1px solid #333333;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,0.22);">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td align="center" style="padding:0 0 34px;">
+                      <img src="../public/email/aria-mark.png" width="44" height="50" alt="" style="display:block;width:44px;height:50px;border:0;outline:none;text-decoration:none;">
+                      <span style="display:block;padding-top:11px;color:#ffffff;font-size:17px;font-weight:700;letter-spacing:0.26em;line-height:1.2;">ARIA</span>
+                    </td>
+                  </tr>
                   <tr>
                     <td style="padding:0 0 12px;color:#a7dcc7;font-size:11px;font-weight:700;letter-spacing:0.18em;line-height:1.4;text-transform:uppercase;">ACCOUNT VERIFICATION</td>
                   </tr>
                   <tr>
-                    <td style="padding:0 0 15px;color:#ffffff;font-size:32px;font-weight:700;letter-spacing:-0.035em;line-height:1.15;">Verify your email</td>
+                    <td class="heading" style="padding:0 0 15px;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:-0.035em;line-height:1.15;">Verify your email</td>
                   </tr>
                   <tr>
                     <td style="padding:0 0 32px;color:#b8b8b8;font-size:16px;line-height:1.65;">Enter this code on the ARIA sign-up page to finish creating your account.</td>
                   </tr>
                   <tr>
                     <td align="center" bgcolor="#222222" style="padding:22px 12px;background-color:#222222;border:1px solid #414141;border-radius:12px;">
-                      <span class="code" style="display:block;color:#ffffff;font-size:42px;font-weight:700;letter-spacing:10px;line-height:1.2;white-space:nowrap;">{####}</span>
+                      <span class="code" style="display:block;color:#ffffff;font-size:30px;font-weight:700;letter-spacing:5px;line-height:1.2;white-space:nowrap;">{####}</span>
                     </td>
                   </tr>
                   <tr>
