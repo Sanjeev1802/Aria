@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { SqliteStore } from "../lib/server/store/sqlite-store";
 import { buildServices, readConfig } from "../lib/server/services";
-import { chatHandler, sessionHandler, usageHandler } from "../lib/server/handlers";
+import { chatHandler, membersDeleteHandler, membersPostHandler, sessionHandler, usageHandler } from "../lib/server/handlers";
+import { localPlanHandler } from "../lib/server/local-plan";
 import { localTestModelConfig, streamFakeModel } from "../lib/server/fake-model";
 import { LOCAL_USER_HEADER } from "../lib/local-user-shared";
 import { chargeUnits } from "../lib/server/metering";
@@ -88,6 +89,64 @@ test("local users cannot read each other's workspace usage", async () => {
     () => usageHandler(loopbackRequest("/api/usage/", { localUser: "blair", workspace: alexBody.workspace.id }), services),
     { code: "workspace_not_found" },
   );
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("local owner can switch plans, credits and features update, and smaller plans respect occupied seats", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aria-plans-"));
+  const path = join(dir, "s.sqlite");
+  const services = buildServices({ ...devConfig, localStorePath: path }, { store: new SqliteStore(path) });
+  const start = await (await sessionHandler(loopbackRequest("/api/auth/session/", { localUser: "alex" }), services)).json() as {
+    workspace: { id: string; plan: string }; entitlements: { models: string[] };
+  };
+  assert.equal(start.workspace.plan, "free");
+  assert.deepEqual(start.entitlements.models, ["nova"]);
+  const pro = await localPlanHandler(loopbackRequest("/api/auth/local-plan/", { localUser: "alex", body: { plan: "pro" } }), services);
+  assert.equal(pro.status, 200);
+  assert.equal((await services.ledger.balance(start.workspace.id)).included, 6_000);
+  const proSession = await (await sessionHandler(loopbackRequest("/api/auth/session/", { localUser: "alex" }), services)).json() as {
+    workspace: { plan: string }; entitlements: { models: string[] };
+  };
+  assert.equal(proSession.workspace.plan, "pro");
+  assert.deepEqual(proSession.entitlements.models, ["nova", "claude"]);
+  await localPlanHandler(loopbackRequest("/api/auth/local-plan/", { localUser: "alex", body: { plan: "team" } }), services);
+  const invite = await membersPostHandler(loopbackRequest("/api/workspace/members/", { localUser: "alex", body: { email: "new@example.com" } }), services);
+  assert.equal(invite.status, 201);
+  await assert.rejects(() => localPlanHandler(loopbackRequest("/api/auth/local-plan/", { localUser: "alex", body: { plan: "free" } }), services),
+    { code: "local_plan_seats_exceeded" });
+  const teamMembers = await services.directory.members(start.workspace.id);
+  const pending = teamMembers.find(member => member.status === "pending");
+  assert.ok(pending);
+  await membersDeleteHandler(loopbackRequest("/api/workspace/members/", { method: "DELETE", localUser: "alex", body: { id: pending.id } }), services);
+  await localPlanHandler(loopbackRequest("/api/auth/local-plan/", { localUser: "alex", body: { plan: "free" } }), services);
+  assert.equal((await services.ledger.balance(start.workspace.id)).included, 200);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("local plan switching is unavailable in production, on remote hosts, and across origins", async () => {
+  const services = buildServices(devConfig, { store: new SqliteStore(join(mkdtempSync(join(tmpdir(), "aria-plan-guard-")), "s.sqlite")) });
+  const req = loopbackRequest("/api/auth/local-plan/", { localUser: "alex", body: { plan: "team" } });
+  await assert.rejects(() => localPlanHandler(req, buildServices({ ...devConfig, environment: "production", localIdentity: false }, { store: services.store })),
+    { code: "local_development_only" });
+  const remote = new Request("https://aria.example/api/auth/local-plan/", {
+    method: "POST", headers: { "content-type": "application/json", origin: "https://aria.example" }, body: '{"plan":"team"}',
+  });
+  await assert.rejects(() => localPlanHandler(remote, services), { code: "local_development_only" });
+  const crossSite = new Request("http://127.0.0.1:3000/api/auth/local-plan/", {
+    method: "POST", headers: { "content-type": "application/json", origin: "https://elsewhere.example" }, body: '{"plan":"team"}',
+  });
+  await assert.rejects(() => localPlanHandler(crossSite, services), { code: "invalid_origin" });
+});
+
+test("development accepts the browser's loopback Host when Next normalizes the request URL", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "aria-loopback-"));
+  const services = buildServices({ ...devConfig, localStorePath: join(dir, "s.sqlite") }, { store: new SqliteStore(join(dir, "s.sqlite")) });
+  const request = new Request("http://localhost:3000/api/auth/local-plan/", {
+    method: "POST", headers: { "content-type": "application/json", host: "127.0.0.1:3000", origin: "http://127.0.0.1:3000" },
+    body: '{"plan":"pro"}',
+  });
+  const response = await localPlanHandler(request, services);
+  assert.equal(response.status, 200);
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -216,7 +275,7 @@ test("deterministic fake model usage is stable", async () => {
   };
   const first = await collect();
   const second = await collect();
-  assert.match(first.text, /Local demo/);
+  assert.match(first.text, /ARIA local demo/);
   assert.deepEqual(first.text, second.text);
   assert.deepEqual(first.usage, second.usage);
   assert.ok(chargeUnits(first.usage!, localTestModelConfig("nova").rates) > 0);

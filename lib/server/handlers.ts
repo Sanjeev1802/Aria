@@ -66,6 +66,9 @@ export function chatHandler(deps: ChatDeps) {
     const body = await readJson(request, 128_000);
     try { input = parseChatInput(body); }
     catch (error) { return json({ code: "invalid_request", message: error instanceof Error ? error.message : "Invalid request" }, 400); }
+    // The ARIA chat UI omits a provider choice. The server selects its default
+    // from the verified plan; explicit model requests remain plan-gated.
+    if (body.model === undefined) input = { ...input, model: ctx.plan.id === "free" ? "nova" : "claude" };
     if (body.webSearch !== undefined && typeof body.webSearch !== "boolean") return json({ code: "invalid_request", message: "Invalid web search option" }, 400);
     if (body.webSearch && (!s.config.searxngUrl || !deps.searchWeb)) return json({ code: "web_search_unavailable", message: "Public web search is not configured on this server." }, 503);
     requireModel(ctx.plan, input.model);

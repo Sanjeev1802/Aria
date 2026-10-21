@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { refreshAriaSession, useAriaProfile, useAriaSession } from "@/lib/aria-session";
 import { AriaAuthNotice } from "@/components/auth/aria-auth-notice";
 import { AriaLocalUserSwitcher } from "@/components/dev/aria-local-user-switcher";
+import { AriaLocalPlanSwitcher } from "@/components/dev/aria-local-plan-switcher";
 import { AriaMark } from "@/components/aria-mark";
 import { AgentInterface, openuiChatLibrary } from "@openuidev/react-ui";
 import { AriaOpenUIAssistantMessage } from "@/components/chat/aria-openui-assistant-message";
@@ -144,6 +145,7 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
           <AgentInterface.SidebarFooter>
             <div className="aria-openui-sidebar-footer-stack">
               <AriaLocalUserSwitcher />
+              <AriaLocalPlanSwitcher />
               <AriaOpenUISidebarCredits />
               <AriaOpenUISidebarUser
                 name={profile.name}

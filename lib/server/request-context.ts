@@ -16,9 +16,22 @@ export type WorkspaceContext = AuthContext & { workspace: WorkspaceRecord; membe
 /** Cookie-authenticated writes must come from the app's own origin. */
 export function assertSameOrigin(request: Request, services: Services) {
   if (request.method === "GET" || request.method === "HEAD") return;
-  const expected = services.config.appOrigin ?? (services.config.environment === "development" ? new URL(request.url).origin : undefined);
+  const url = new URL(request.url);
+  const expected = services.config.appOrigin ?? (services.config.environment === "development" ? url.origin : undefined);
   const origin = request.headers.get("origin");
-  if (!expected || origin !== expected) throw new ServiceError("invalid_origin", 403);
+  if (expected && origin === expected) return;
+  // Next dev can normalize request.url to localhost while retaining the
+  // browser's loopback Host header. Accept that original same-origin host only.
+  if (!services.config.appOrigin && services.config.environment === "development") {
+    const host = request.headers.get("host");
+    if (host) {
+      try {
+        const original = new URL(`${url.protocol}//${host}`);
+        if (LOOPBACK.includes(original.hostname) && origin === original.origin) return;
+      } catch { /* invalid Host */ }
+    }
+  }
+  throw new ServiceError("invalid_origin", 403);
 }
 
 function isLoopback(request: Request) {

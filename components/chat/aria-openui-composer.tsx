@@ -8,7 +8,7 @@ import {
 import { useThread, useThreadList } from "@openuidev/react-headless";
 import { ArrowUp, Globe2, Plus, Square, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { selectAriaModel, selectAriaWebSearch } from "@/lib/aria-openui-llm";
+import { selectAriaWebSearch } from "@/lib/aria-openui-llm";
 import { useAriaSession } from "@/lib/aria-session";
 import { cn } from "@/lib/utils";
 
@@ -33,12 +33,9 @@ export function AriaOpenUIComposer({
   const [textContent, setTextContent] = useState("");
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [model, setModel] = useState<"nova" | "claude">("nova");
   const [webSearch, setWebSearch] = useState(false);
   const session = useAriaSession();
-  const allowedModels = session.entitlements?.models;
   const webSearchAvailable = Boolean(session.webSearchAvailable);
-  const claudeAllowed = !allowedModels || allowedModels.includes("claude");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,10 +60,6 @@ export function AriaOpenUIComposer({
     : "openui-agent-thread-composer__submit-button";
 
   useEffect(() => {
-    if (!claudeAllowed && model === "claude") { setModel("nova"); selectAriaModel("nova"); }
-  }, [claudeAllowed, model]);
-
-  useEffect(() => {
     if (!webSearchAvailable && webSearch) { setWebSearch(false); selectAriaWebSearch(false); }
   }, [webSearchAvailable, webSearch]);
 
@@ -79,13 +72,12 @@ export function AriaOpenUIComposer({
     }
     const content = buildMessageContent(textContent, attachments);
     if (!content || isLoadingMessages) return;
-    selectAriaModel(model);
     selectAriaWebSearch(webSearchAvailable && webSearch);
     processMessage({ role: "user", content });
     setTextContent("");
     setAttachments([]);
     setUploadError(null);
-  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent, model, webSearch, webSearchAvailable]);
+  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent, webSearch, webSearchAvailable]);
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -193,20 +185,6 @@ export function AriaOpenUIComposer({
         />
 
         <div className={actionBarClass}>
-          <select
-            aria-label="AI model"
-            value={model}
-            disabled={isRunning}
-            onChange={event => {
-              const next = event.target.value === "claude" ? "claude" : "nova";
-              setModel(next);
-              selectAriaModel(next);
-            }}
-            className="max-w-28 rounded-md bg-transparent p-1 text-xs text-muted-foreground"
-          >
-            <option value="nova">Amazon Nova</option>
-            <option value="claude" disabled={!claudeAllowed}>{claudeAllowed ? "Claude" : "Claude · Pro"}</option>
-          </select>
           <button
             type="button"
             onClick={handleSubmit}

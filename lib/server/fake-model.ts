@@ -25,7 +25,7 @@ function tokenEstimate(text: string) {
 export const streamFakeModel: StreamProvider = async function* (input, modelId, signal) {
   const lastUser = [...input.messages].reverse().find(m => m.role === "user")?.content.map(part => part.text).join("\n") ?? "";
   const digest = createHash("sha256").update(`${modelId}\0${lastUser}`).digest("hex").slice(0, 8);
-  const response = `Local demo (${modelId}) · echo ${digest}: ${lastUser.slice(0, 240)}`;
+  const response = `ARIA local demo · echo ${digest}: ${lastUser.slice(0, 240)}`;
   for (const word of response.split(" ")) {
     signal.throwIfAborted();
     yield { text: `${word} ` };

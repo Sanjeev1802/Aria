@@ -135,6 +135,27 @@ test("production chat stays disabled until the operator switch is set, even with
   assert.equal((await call(s, usageHandler, request("/api/usage/", { tokens: tokensFor("alice") }))).status, 200);
 });
 
+test("ARIA chooses the default provider from the verified plan when the UI sends no model", async () => {
+  const w = await world();
+  const chosen: string[] = [];
+  const planChat = chatHandler({
+    provider: async function* (_input, modelId) {
+      chosen.push(modelId);
+      yield { text: "ARIA response" };
+      yield { usage: { inputTokens: 10, outputTokens: 5 } };
+    },
+    modelConfig: model => ({ id: `${model}-test`, rates }), maxOutputTokens: 256,
+  });
+  for (const [tokens, id] of [[w.bob, "free_default_1"], [w.alice, "team_default_1"]] as const) {
+    const response = await run(request("/api/chat/", { tokens, body: {
+      runId: id, messages: [{ role: "user", content: "Hello" }],
+    } }), planChat, w.s);
+    assert.equal(response.status, 200);
+    await response.text();
+  }
+  assert.deepEqual(chosen, ["nova-test", "claude-test"]);
+});
+
 test("sign-in sets HttpOnly secure cookies and provisions a server-owned Free workspace", async () => {
   const s = testServices();
   const bad = await call(s, signInHandler, request("/api/auth/sign-in/", { body: { email: "alice@example.com", password: "nope" } }));

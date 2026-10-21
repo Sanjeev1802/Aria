@@ -915,6 +915,12 @@
   display: none;
 }
 
+.aria-openui-chat .aria-local-plan-error {
+  color: var(--openui-text-danger-primary, #f87171);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .aria-openui-chat .aria-local-user-switcher__label {
   font-size: 11px;
   font-weight: 600;
@@ -942,6 +948,11 @@
 .aria-openui-chat .aria-local-user-switcher__btn.is-active {
   border-color: color-mix(in oklch, var(--openui-text-warning-primary, #f5a524) 70%, var(--aria-sidebar-border));
   background: color-mix(in oklch, var(--openui-text-warning-primary, #f5a524) 12%, transparent);
+}
+
+.aria-openui-chat .aria-local-user-switcher__btn:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
 .aria-openui-chat .aria-openui-sidebar-credits {
