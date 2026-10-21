@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState, type ComponentProps, type FormEvent } from "react"
+import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react"
 import { AriaMark } from "@/components/aria-mark"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
+import { safeNextPath } from "@/lib/auth/safe-next-path"
 import { ARIA_IS_PREVIEW, ariaSignIn } from "@/lib/aria-session"
 import { cn } from "cn"
 
@@ -23,11 +24,9 @@ function isValidEmail(value: string) {
 
 const DEFAULT_ERROR = "Enter a valid email and password."
 
-/** Same-origin path from `?next=`, never an external URL. */
-function safeNextPath() {
+function destinationFromQuery() {
   if (typeof window === "undefined") return "/chat/"
-  const next = new URLSearchParams(window.location.search).get("next") ?? ""
-  return next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/chat/"
+  return safeNextPath(new URLSearchParams(window.location.search).get("next"))
 }
 
 function AuthBrandPanel() {
@@ -48,6 +47,11 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
   const [bootstrap, setBootstrap] = useState(false)
   const [pending, setPending] = useState(false)
   const [errorText, setErrorText] = useState(DEFAULT_ERROR)
+  const [nextPath, setNextPath] = useState("/chat/")
+
+  useEffect(() => {
+    setNextPath(destinationFromQuery())
+  }, [])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -72,7 +76,7 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
   }
 
   if (bootstrap) {
-    return <WorkspaceBootstrapOverlay intent="sign-in" destination={safeNextPath()} />
+    return <WorkspaceBootstrapOverlay intent="sign-in" destination={nextPath} />
   }
 
   return (
@@ -135,7 +139,8 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
                 <Button type="submit" disabled={pending}>{pending ? "Signing in…" : "Login"}</Button>
               </Field>
               <FieldDescription className="text-center">
-                Don&apos;t have an account? <Link href="/sign-up/">Sign up</Link>
+                Don&apos;t have an account?{" "}
+                <Link href={`/sign-up/?next=${encodeURIComponent(nextPath)}`}>Sign up</Link>
               </FieldDescription>
             </FieldGroup>
           </form>

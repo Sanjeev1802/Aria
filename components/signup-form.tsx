@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState, type ComponentProps, type FormEvent } from "react"
+import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react"
 import { AriaMark } from "@/components/aria-mark"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
 import { Button } from "@/components/ui/button"
@@ -14,10 +14,16 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
+import { safeNextPath } from "@/lib/auth/safe-next-path"
 import { ARIA_IS_PREVIEW, ariaConfirmSignUp, ariaResendCode, ariaSignIn, ariaSignUp } from "@/lib/aria-session"
 import { cn } from "cn"
 
 const DEFAULT_ERROR = "Use a valid email and matching passwords of at least 8 characters."
+
+function destinationFromQuery() {
+  if (typeof window === "undefined") return "/chat/"
+  return safeNextPath(new URLSearchParams(window.location.search).get("next"))
+}
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
@@ -45,6 +51,11 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
   const [awaitingCode, setAwaitingCode] = useState(false)
   const [code, setCode] = useState("")
   const [notice, setNotice] = useState<string | null>(null)
+  const [nextPath, setNextPath] = useState("/chat/")
+
+  useEffect(() => {
+    setNextPath(destinationFromQuery())
+  }, [])
 
   function fail(message: string) {
     setErrorText(message)
@@ -100,7 +111,7 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
   }
 
   if (bootstrap) {
-    return <WorkspaceBootstrapOverlay intent="sign-up" />
+    return <WorkspaceBootstrapOverlay intent="sign-up" destination={nextPath} />
   }
 
   return (
@@ -200,7 +211,8 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
                 </Button>
               </Field>
               <FieldDescription className="text-center">
-                Already have an account? <Link href="/sign-in/">Sign in</Link>
+                Already have an account?{" "}
+                <Link href={`/sign-in/?next=${encodeURIComponent(nextPath)}`}>Sign in</Link>
               </FieldDescription>
             </FieldGroup>
           </form>

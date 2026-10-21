@@ -9,6 +9,10 @@ const config: NextConfig = {
   output: "standalone",
   trailingSlash: true,
   poweredByHeader: false,
+  // Do not ship original TS/TSX to the browser in production.
+  productionBrowserSourceMaps: false,
+  // Hide the Next.js Dev Tools indicator. Compile errors still surface.
+  devIndicators: false,
   turbopack: {
     resolveAlias: {
       "@openuidev/devtools": openuiDevtoolsStub,

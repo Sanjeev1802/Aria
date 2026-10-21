@@ -9,6 +9,7 @@ import { useThread, useThreadList } from "@openuidev/react-headless";
 import { ArrowUp, Globe2, Plus, Square, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { selectAriaWebSearch } from "@/lib/aria-openui-llm";
+import { takeLandingDraft } from "@/lib/landing-draft";
 import { useAriaSession } from "@/lib/aria-session";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +92,16 @@ export function AriaOpenUIComposer({
     setAttachments([]);
     setUploadError(null);
   }, [selectedThreadId]);
+
+  useEffect(() => {
+    if (!isWelcome) return;
+    const fromLanding = takeLandingDraft();
+    const fromQuery = typeof window === "undefined"
+      ? ""
+      : new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
+    const draft = fromLanding || fromQuery;
+    if (draft) setTextContent(draft);
+  }, [isWelcome]);
 
   const onPickFiles = async (files: FileList | null) => {
     if (!files?.length) return;

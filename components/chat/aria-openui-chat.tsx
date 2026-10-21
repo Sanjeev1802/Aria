@@ -10,7 +10,9 @@ import { AriaPricingView } from "@/components/workspace/aria-pricing-view";
 import type { AriaWorkspacePath } from "@/lib/aria-workspace-paths";
 import { useRouter } from "next/navigation";
 import { refreshAriaSession, useAriaProfile, useAriaSession } from "@/lib/aria-session";
+import { signInHref } from "@/lib/auth/safe-next-path";
 import { AriaAuthNotice } from "@/components/auth/aria-auth-notice";
+import { ThinkingStatus } from "@/components/chat/thinking-status";
 import { AriaLocalUserSwitcher } from "@/components/dev/aria-local-user-switcher";
 import { AriaLocalPlanSwitcher } from "@/components/dev/aria-local-plan-switcher";
 import { AriaMark } from "@/components/aria-mark";
@@ -67,7 +69,9 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   useEffect(() => { void refreshAriaSession(); }, []);
 
   useEffect(() => {
-    if (sessionStatus === "unauthenticated") router.replace("/sign-in/?next=/chat/");
+    if (sessionStatus !== "unauthenticated") return;
+    const next = window.location.pathname + window.location.search;
+    router.replace(signInHref(next));
   }, [router, sessionStatus]);
 
   const banner = process.env.NEXT_PUBLIC_ARIA_PREVIEW === "true"
@@ -77,6 +81,15 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
       : sessionStatus === "unavailable"
         ? "Live AI is not configured on this server"
         : profile.session.liveChat === false ? "Chat is not enabled yet" : null;
+
+  if (sessionStatus === "loading" || sessionStatus === "unauthenticated") {
+    return (
+      <div className="aria-openui-chat dark flex h-dvh w-full items-center justify-center bg-background">
+        <AriaAuthNotice />
+        <ThinkingStatus />
+      </div>
+    );
+  }
 
   return (
     <div className="aria-openui-chat dark h-dvh w-full">

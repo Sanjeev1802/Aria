@@ -355,57 +355,6 @@ html[data-theme="dark"] .hero.aria-tdev-hero .cm-beam[data-beam][data-fading]::a
   background: #d8d8d8;
 }
 
-.hero.aria-tdev-hero .cm-agent {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 32px;
-  min-height: 32px;
-  padding: 6px 8px 6px 12px;
-  border: 0;
-  border-radius: 54px;
-  appearance: none;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: var(--cmp-btn-drop), var(--cmp-btn-ring);
-  color: var(--cmp-ink);
-  font: 500 12px/14px var(--font-sans);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 140ms ease;
-}
-
-.hero.aria-tdev-hero .cm-agent:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.hero.aria-tdev-hero .cm-agent:focus-visible {
-  outline: 2px solid var(--text-muted);
-  outline-offset: 2px;
-}
-
-.hero.aria-tdev-hero .cm-agent-label {
-  font: 500 12px/14px var(--font-sans);
-}
-
-.hero.aria-tdev-hero .cm-agent svg {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  color: var(--text-muted);
-}
-
-.cm-agent-menu {
-  min-width: 180px;
-}
-
-.cm-agent-menu-kicker {
-  margin: 0 0 4px;
-  padding: 0 8px;
-  font: 500 11px/14px var(--font-sans);
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
 .hero.aria-tdev-hero .aria-file-row {
   padding: 10px 15px 0;
 }

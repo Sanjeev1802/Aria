@@ -1,0 +1,584 @@
+/* Landing product illustrations — cropped ARIA workspace, not toy cards. */
+
+.feature-art.aria-product-art {
+  --pa-well: #0b0b0b;
+  --pa-window: #111;
+  --pa-rail: #141414;
+  --pa-stage: #101010;
+  --pa-line: rgba(255, 255, 255, 0.08);
+  --pa-ink: #f4f4f2;
+  --pa-muted: rgba(255, 255, 255, 0.52);
+  --pa-faint: rgba(255, 255, 255, 0.34);
+  --pa-gold: #e5bd89;
+  --pa-composer: #1b1b1b;
+  --pa-credit: oklch(0.62 0.16 250);
+  aspect-ratio: 1.42;
+  color: var(--pa-ink);
+  background:
+    radial-gradient(ellipse at 72% 0%, rgba(229, 189, 137, 0.11), transparent 54%),
+    radial-gradient(ellipse at 6% 108%, rgba(255, 255, 255, 0.045), transparent 48%),
+    var(--pa-well);
+  border: 1px solid var(--pa-line);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.feature-art.aria-product-art.model-art,
+.feature-art.aria-product-art.intelligence-art,
+.feature-art.aria-product-art.team-art,
+.feature-art.aria-product-art.api-art {
+  background:
+    radial-gradient(ellipse at 72% 0%, rgba(229, 189, 137, 0.11), transparent 54%),
+    radial-gradient(ellipse at 6% 108%, rgba(255, 255, 255, 0.045), transparent 48%),
+    var(--pa-well);
+}
+
+.aria-product-art button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.aria-product-art .pa-window {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  width: calc(100% - 24px);
+  height: calc(100% - 24px);
+  margin: 12px;
+  border: 1px solid var(--pa-line);
+  border-radius: 14px;
+  background: var(--pa-window);
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.aria-product-art .pa-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 10px 10px;
+  border-right: 1px solid var(--pa-line);
+  background: var(--pa-rail);
+}
+
+.aria-product-art .pa-rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--pa-ink);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.aria-product-art .pa-rail-brand .aria-mark {
+  width: 14px;
+  height: 14px;
+}
+
+.aria-product-art .pa-rail-label {
+  margin: 8px 0 2px;
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--pa-ink);
+  font-size: 11px;
+}
+
+.aria-product-art .pa-rail-kicker {
+  margin: 10px 0 0;
+  padding: 0 9px;
+  color: var(--pa-faint);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.aria-product-art .pa-rail-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aria-product-art .pa-rail-list li {
+  padding: 7px 9px;
+  border-radius: 10px;
+  color: var(--pa-muted);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aria-product-art .pa-rail-list li.is-active {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--pa-ink);
+}
+
+.aria-product-art .pa-stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 14px 16px 12px;
+  background: var(--pa-stage);
+}
+
+.aria-product-art .pa-context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--pa-line);
+}
+
+.aria-product-art .pa-workspace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--pa-ink);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.aria-product-art .pa-workspace-chip span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: #2a241c;
+  color: var(--pa-gold);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.aria-product-art .pa-faces {
+  display: flex;
+  flex: none;
+}
+
+.aria-product-art .pa-faces .pa-avatar {
+  margin-left: -6px;
+  box-shadow: 0 0 0 2px var(--pa-stage);
+}
+
+.aria-product-art .pa-faces .pa-avatar:first-child {
+  margin-left: 0;
+}
+
+.aria-product-art .pa-avatar {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.aria-product-art .pa-avatar--gold { background: #3a3126; color: var(--pa-gold); }
+.aria-product-art .pa-avatar--slate { background: #2a3036; color: #b7c4cc; }
+.aria-product-art .pa-avatar--rose { background: #35282c; color: #e0b8c0; }
+
+.aria-product-art .pa-context-meta,
+.aria-product-art .pa-context-credits {
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--pa-faint);
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.aria-product-art .pa-context-credits {
+  display: none;
+}
+
+.aria-product-art .pa-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.aria-product-art .pa-user {
+  align-self: flex-end;
+  max-width: 86%;
+  padding: 8px 12px;
+  border-radius: 14px 14px 4px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eee;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.aria-product-art .pa-assistant {
+  max-width: 100%;
+  color: #d8d8d6;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.aria-product-art .pa-assistant p {
+  margin: 0;
+}
+
+.aria-product-art .pa-assistant-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: var(--pa-muted);
+  font-size: 10px;
+}
+
+.aria-product-art .pa-assistant-meta .aria-mark {
+  width: 12px;
+  height: 12px;
+  color: var(--pa-gold);
+}
+
+.aria-product-art .pa-example {
+  margin-left: auto;
+  padding: 2px 6px;
+  border: 1px solid var(--pa-line);
+  border-radius: 999px;
+  color: var(--pa-faint);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+}
+
+.aria-product-art .pa-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.aria-product-art .pa-metrics div {
+  padding: 8px 8px 7px;
+  border: 1px solid var(--pa-line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.aria-product-art .pa-metrics b {
+  display: block;
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  color: var(--pa-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.aria-product-art .pa-metrics .is-down b {
+  color: #d7b4b4;
+}
+
+.aria-product-art .pa-metrics small {
+  color: var(--pa-faint);
+  font-size: 9px;
+}
+
+.aria-product-art .pa-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 46px;
+  margin-top: 10px;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--pa-line);
+}
+
+.aria-product-art .pa-chart span {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, var(--pa-gold), rgba(229, 189, 137, 0.28));
+}
+
+.aria-product-art .pa-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  color: var(--pa-faint);
+  font-size: 9px;
+}
+
+.aria-product-art .pa-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--pa-faint);
+  font-size: 10px;
+}
+
+.aria-product-art .pa-source,
+.aria-product-art .pa-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--pa-line);
+  border-radius: 999px;
+  color: var(--pa-muted);
+  background: rgba(255, 255, 255, 0.03);
+  white-space: nowrap;
+}
+
+.aria-product-art .pa-credits {
+  margin-top: auto;
+  padding: 9px 10px 8px;
+  border: 1px solid var(--pa-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--pa-faint);
+  font-size: 10px;
+}
+
+.aria-product-art .pa-credits > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--pa-muted);
+}
+
+.aria-product-art .pa-credits b {
+  color: var(--pa-muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.aria-product-art .pa-credits em {
+  color: var(--pa-ink);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.aria-product-art .pa-credits p {
+  margin: 6px 0 0;
+  color: var(--pa-faint);
+  font-size: 9px;
+}
+
+.aria-product-art .pa-credits-track {
+  height: 4px;
+  margin-top: 7px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.aria-product-art .pa-credits-track i {
+  display: block;
+  width: 38%;
+  height: 100%;
+  background: var(--pa-credit);
+}
+
+.team-art .pa-credits-track i {
+  width: 38%;
+}
+
+.api-art .pa-credits-track i {
+  width: 26%;
+}
+
+.aria-product-art .pa-stage--code {
+  padding-top: 12px;
+}
+
+.aria-product-art .pa-code {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pa-line);
+  border-radius: 12px;
+  background: #161616;
+  overflow: hidden;
+}
+
+.aria-product-art .pa-code-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--pa-line);
+  color: var(--pa-muted);
+  font-size: 10px;
+}
+
+.aria-product-art .pa-code-top > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aria-product-art .pa-key-chip {
+  margin-left: auto;
+  padding: 3px 7px;
+  border: 1px solid var(--pa-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--pa-gold);
+  font-size: 9px;
+}
+
+.aria-product-art .pa-code-top button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pa-muted);
+}
+
+.aria-product-art .pa-code-top button:hover {
+  color: var(--pa-ink);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.aria-product-art .pa-code pre {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  line-height: 1.7;
+  color: #d7d2c8;
+}
+
+.aria-product-art .pa-k { color: #c4b3e6; }
+.aria-product-art .pa-fn { color: #ecd4a4; }
+.aria-product-art .pa-s { color: #c9d7b4; }
+
+.aria-product-art .pa-code-foot {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--pa-line);
+  color: var(--pa-faint);
+  font-size: 10px;
+}
+
+.aria-product-art .pa-composer-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.aria-product-art .pa-composer-files {
+  display: flex;
+}
+
+.aria-product-art .pa-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 7px 0 6px;
+  border-radius: 14px;
+  background: var(--pa-composer);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.aria-product-art .pa-composer-plus,
+.aria-product-art .pa-composer-send {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: #cfcfcf;
+  flex: none;
+}
+
+.aria-product-art .pa-composer-send {
+  background: #fff;
+  color: #111;
+}
+
+.aria-product-art .pa-composer-send svg {
+  width: 13px;
+  height: 13px;
+}
+
+.aria-product-art .pa-composer-placeholder {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(151, 151, 151, 0.8);
+  font-size: 12px;
+}
+
+@media (max-width: 1000px) {
+  .feature-art.aria-product-art {
+    aspect-ratio: 1.28;
+  }
+
+  .aria-product-art .pa-window {
+    grid-template-columns: 128px minmax(0, 1fr);
+  }
+
+  .aria-product-art .pa-context-meta {
+    display: none;
+  }
+
+  .aria-product-art .pa-context-credits {
+    display: inline;
+  }
+}
+
+@media (max-width: 700px) {
+  .feature-art.aria-product-art {
+    aspect-ratio: 1.08;
+    border-radius: 18px;
+  }
+
+  .aria-product-art .pa-window {
+    width: calc(100% - 14px);
+    height: calc(100% - 14px);
+    margin: 7px;
+    grid-template-columns: 1fr;
+  }
+
+  .aria-product-art .pa-rail {
+    display: none;
+  }
+
+  .aria-product-art .pa-stage {
+    padding: 12px;
+  }
+
+  .aria-product-art .pa-chart {
+    height: 34px;
+  }
+
+  .aria-product-art .pa-chart-labels,
+  .aria-product-art .pa-composer-files {
+    display: none;
+  }
+
+  .aria-product-art .pa-code pre {
+    font-size: 9px;
+  }
+}

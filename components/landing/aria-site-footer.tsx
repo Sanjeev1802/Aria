@@ -51,7 +51,7 @@ export function AriaSiteFooter({ onBriefing }: Props) {
               <p className="aria-footer-col-title">Product</p>
               <a href="/chat/">Workspace</a>
               <a href="/#features">Features</a>
-              <a href="/pricing/">Pricing</a>
+              <a href="/#pricing">Pricing</a>
               <a href="/#faq">FAQ</a>
             </div>
             <div className="aria-footer-col">

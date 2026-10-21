@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
-import { Check, FileText, X } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { FileText, X } from "lucide-react";
 
 declare global {
   interface Window {
@@ -15,8 +14,6 @@ type Props = {
   onPromptChange: (value: string) => void;
   onSubmit: () => void;
   inputRef: RefObject<HTMLTextAreaElement | null>;
-  model: string;
-  onModelChange: (model: string) => void;
   file: File | null;
   onClearFile: () => void;
   fileError: string;
@@ -34,8 +31,6 @@ export function TdevHeroComposer({
   onPromptChange,
   onSubmit,
   inputRef,
-  model,
-  onModelChange,
   file,
   onClearFile,
   fileError,
@@ -156,28 +151,6 @@ export function TdevHeroComposer({
               </svg>
             </button>
             <span className="cm-grow" aria-hidden="true" />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="cm-agent" aria-haspopup="menu">
-                  <span className="cm-agent-label">Agent</span>
-                  <svg viewBox="0 0 16 16" aria-hidden="true">
-                    <path
-                      fill="currentColor"
-                      d="M4.46967 6.46967C4.76256 6.17678 5.23744 6.17678 5.53033 6.46967L8 8.93934L10.4697 6.46967C10.7626 6.17678 11.2374 6.17678 11.5303 6.46967C11.8232 6.76256 11.8232 7.23744 11.5303 7.53033L8.53033 10.5303C8.23744 10.8232 7.76256 10.8232 7.46967 10.5303L4.46967 7.53033C4.17678 7.23744 4.17678 6.76256 4.46967 6.46967Z"
-                    />
-                  </svg>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="model-dropdown cm-agent-menu">
-                <p className="cm-agent-menu-kicker">Model</p>
-                {["Auto", "Claude", "Amazon Nova"].map((name) => (
-                  <DropdownMenuItem key={name} onSelect={() => onModelChange(name)}>
-                    {name}
-                    <span className="dropdown-check">{model === name && <Check size={14} />}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
             <button
               type="submit"
               className="cm-round cm-send"
