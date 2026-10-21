@@ -3,7 +3,7 @@ import { ServiceError } from "./errors";
 const messages: Record<string,string> = {
   live_service_not_configured: "Live AI is not configured. Use explicit preview mode, or configure identity, the shared ledger, and Bedrock on the server.",
   model_or_rates_not_configured: "This model is not configured yet. Set its Bedrock model ID and verified token rates on the server.",
-  insufficient_credits: "There are not enough available credits for this request. Try a shorter conversation or the lower-cost model.",
+  insufficient_credits: "There are not enough available credits for this request. Try a shorter conversation or check your plan's remaining credits.",
   member_limit_exceeded: "This request would exceed your monthly Team credit limit. Ask a workspace admin to raise it.",
   invalid_member_limit: "Enter a whole-credit limit from 0 to 20,000, or choose no individual limit.",
   member_limit_conflict: "The team or member changed while saving the limit. Refresh and try again.",
@@ -29,7 +29,7 @@ const messages: Record<string,string> = {
   access_revoked: "Your access to this workspace was removed.",
   permission_denied: "Your workspace role does not allow this action.",
   entitlement_changed: "Your plan changed while this request was starting. Try again.",
-  model_not_in_plan: "This model is not included in your plan. Choose Amazon Nova or upgrade.",
+  model_not_in_plan: "This model is unavailable. ARIA currently uses Amazon Nova for every plan.",
   plan_required: "Team management requires the Team plan.",
   seats_exhausted: "All seats are in use. Remove a member or cancel an invite first.",
   already_invited_or_member: "This person is already on the team or has a pending invite.",

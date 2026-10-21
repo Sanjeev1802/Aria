@@ -7,9 +7,9 @@ import { ARIA_SYSTEM_PROMPT } from "./system-prompt";
 export const LOCAL_TEST_RATE_VERSION = "local-test-v1";
 export const LOCAL_TEST_RATES: Rates = { input: 0.06, output: 0.24, version: LOCAL_TEST_RATE_VERSION };
 
-export function localTestModelConfig(model: ChatInput["model"]) {
+export function localTestModelConfig(_model: ChatInput["model"]) {
   return {
-    id: model === "nova" ? "aria/local-test-nova" : "aria/local-test-claude",
+    id: "aria/local-test-nova",
     rates: LOCAL_TEST_RATES,
   };
 }

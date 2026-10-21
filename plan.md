@@ -1,6 +1,6 @@
 # ARIA Chat — Plans, Tokens, and Credits
 
-> Implementation update, 20 October 2026: the actual frontend is **Next.js App Router + TypeScript + OpenUI**, with server routes and standalone Node output. Models are **Amazon Nova and Claude via Bedrock**. Read `IMPLEMENTATION_PLAN.md` and `CURSOR_HANDOFF.md` for current implementation status and remaining production work. Older Vite/static-hosting references and Nova-only cost examples below are historical proposals, not the current deployable architecture or a Claude-inclusive budget.
+> Implementation update, 20 October 2026: the actual frontend is **Next.js App Router + TypeScript + OpenUI**, with server routes and standalone Node output. The current model is **Amazon Nova via Bedrock** on every plan. Read `IMPLEMENTATION_PLAN.md` and `CURSOR_HANDOFF.md` for current implementation status and remaining production work. Older Vite/static-hosting references and cost examples below are historical proposals, not the current deployable architecture or launch budget.
 
 Date: 20 October 2026  
 Status: Proposed launch plan for 500 users; AWS architecture and cost estimates added. Retail prices and credit allowances below are proposals, not approved prices.

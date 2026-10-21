@@ -108,7 +108,7 @@ test("local owner can switch plans, credits and features update, and smaller pla
     workspace: { plan: string }; entitlements: { models: string[] };
   };
   assert.equal(proSession.workspace.plan, "pro");
-  assert.deepEqual(proSession.entitlements.models, ["nova", "claude"]);
+  assert.deepEqual(proSession.entitlements.models, ["nova"]);
   await localPlanHandler(loopbackRequest("/api/auth/local-plan/", { localUser: "alex", body: { plan: "team" } }), services);
   const invite = await membersPostHandler(loopbackRequest("/api/workspace/members/", { localUser: "alex", body: { email: "new@example.com" } }), services);
   assert.equal(invite.status, 201);

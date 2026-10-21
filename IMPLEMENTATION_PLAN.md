@@ -4,7 +4,7 @@ Updated: 2026-10-20. This document describes the actual repository and takes pre
 
 ## Outcome and current boundary
 
-Build a Next.js chat application using Amazon Nova and Claude through Amazon Bedrock, with server-authoritative usage accounting, Free/Pro/Team subscriptions, authorized business intelligence, and paid developer API access.
+Build a Next.js chat application using Amazon Nova through Amazon Bedrock, with server-authoritative usage accounting, Free/Pro/Team subscriptions, authorized business intelligence, and paid developer API access.
 
 **The application is not production complete.** Identity (Cognito), workspace authorization, server-owned entitlements, and a shared DynamoDB ledger are implemented and locally tested, but have not run against real AWS. Production chat returns 503 unless Cognito, the DynamoDB table, `ARIA_APP_ORIGIN`, and the operator switch `ARIA_LIVE_CHAT=enabled` are all configured. Enable the switch only after the staging gate in `CURSOR_HANDOFF.md` passes.
 
@@ -20,7 +20,7 @@ Build a Next.js chat application using Amazon Nova and Claude through Amazon Bed
 
 - Next.js Node route handlers, standalone output instead of static export.
 - Versioned server-owned ARIA prompt: clear answers, uncertainty, capability honesty, untrusted-content handling, no fabricated sources or private business access.
-- AWS SDK Bedrock ConverseStream adapter for configured Nova/Claude model IDs.
+- AWS SDK Bedrock ConverseStream adapter for the configured Nova model ID.
 - Safe AG-UI event stream feeding the existing OpenUI text renderer. Model text is escaped into a single TextContent component; it cannot create arbitrary UI programs.
 - Request/body/context/output limits, 90-second provider deadline, cancellation, no automatic paid retries or silent model fallback.
 - ~~Local SQLite ledger~~ replaced by the shared DynamoDB ledger (see "Identity and shared ledger pass" below). The same rules hold: integer millicredits, atomic reservations, immutable events, actual-token settlement, duplicate detection/replay, failed-request releases, one active request and five new requests/minute per member.
@@ -45,7 +45,7 @@ sequenceDiagram
   participant API as Server chat handler
   participant L as Credit ledger
   participant B as AWS Bedrock
-  UI->>API: Request ID + messages + Nova/Claude choice
+  UI->>API: Request ID + messages
   API->>API: Identity gate, origin, size, role, model validation
   API->>L: Reserve bounded maximum credit charge
   L-->>API: Reservation or reject/replay
@@ -119,9 +119,9 @@ Acceptance: Free API access denied; revoked keys fail immediately; key budget an
 
 Use AWS CDK for CloudFront, Next.js server hosting (a supported Next.js AWS adapter or a Node container), Cognito, DynamoDB, S3, SQS, IAM roles, alarms, and budgets. Separate runtime secrets from public settings. Next standalone output needs server hosting; S3-only static hosting no longer runs this repository.
 
-500 registered users is not 500 simultaneous generations. Confirm expected MAU, peak concurrency, requests/month, region, exact Claude model, Nova model, context lengths, output lengths, and model mix. Older Nova-only cost estimates in `plan.md` exclude Claude and are not a launch budget.
+500 registered users is not 500 simultaneous generations. Confirm expected MAU, peak concurrency, requests/month, region, exact Nova model, context lengths, and output lengths. Older cost estimates in `plan.md` are not a launch budget.
 
-Acceptance: provision actual Bedrock quotas, exercise both models, benchmark streamed p50/p95 latency and time to first token, check mobile accessibility, test cancellation/load/recovery, alarms and restore drill. Define retention and deletion behavior. No paid public launch until identity, ledger, billing, and tenancy checks pass.
+Acceptance: provision actual Bedrock quotas, exercise Nova, benchmark streamed p50/p95 latency and time to first token, check mobile accessibility, test cancellation/load/recovery, alarms and restore drill. Define retention and deletion behavior. No paid public launch until identity, ledger, billing, and tenancy checks pass.
 
 ## Free development resources
 

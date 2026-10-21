@@ -102,7 +102,6 @@ h2 { font-size:44px; font-weight:500; line-height:1.13; letter-spacing:-1.9px; m
 .model-option b { display:block; font-size:13px; font-weight:550; }
 .model-option small { display:block; margin-top:3px; font-size:8px; color:#837d72; }
 .model-icon { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:26px; }
-.claude-icon { background:#f8e8df; color:#b57050; }
 .nova-icon { background:#e9e5f8; color:#8270b6; }
 .choice-circle { margin-left:auto; width:15px; height:15px; border-radius:50%; border:1px solid #dbd8ce; display:flex; align-items:center; justify-content:center; }
 .chosen .choice-circle { background:#302d29; color:white; border-color:#302d29; }

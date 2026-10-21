@@ -28,8 +28,8 @@ const marketPartners = [
   { name: "Ethio telecom", logo: "/partners/ethiotelecom.jpg", logoHeight: "32px" },
 ] as const;
 const faqs = [
-  ["What is ARIA?", "ARIA is a conversational workspace that brings AI models, your documents, and approved business intelligence together. Ask a question, explore the evidence, and turn what you learn into your next step."],
-  ["Which AI models can I use?", "ARIA is designed to support Anthropic Claude and Amazon Nova through Amazon Bedrock. Model availability will depend on your plan, region, and workspace permissions. This preview does not call a live model."],
+  ["What is ARIA?", "ARIA is a conversational workspace that brings AI, your documents, and approved business intelligence together. Ask a question, explore the evidence, and turn what you learn into your next step."],
+  ["Which AI model does ARIA use?", "ARIA uses Amazon Nova through Amazon Bedrock on every plan. Your plan controls credits, seats, and workspace features; it does not change the model."],
   ["What makes ARIA Intelligence different?", "On Pro and Team, ARIA Intelligence connects your questions to business data your organization is authorized to use. Answers should show their sources, time period, and limitations. A subscription does not automatically grant access to every dataset."],
   ["How do credits work?", "Credits are your usage budget. Each request uses credits based on the model, tokens processed, and any paid data operations. Chat and API requests share the same balance. Included credits renew monthly and do not roll over. The prices and allowances shown here are proposed launch terms."],
   ["Can I use ARIA in my own application?", "Yes—the Pro and Team plans include developer API access in the product plan. You'll be able to create scoped keys, set spending limits, and monitor usage. Keep those keys on your server. The API is not live in this design preview."],
@@ -95,7 +95,7 @@ export default function Home() {
             <span>Know more.</span>
           </h1>
           <p className="subtitle t-stagger-line t-stagger-line--2">
-            The models you trust. The context you own. One conversation that never loses the thread —{" "}
+            The intelligence you trust. The context you own. One conversation that never loses the thread —{" "}
             <strong>ARIA</strong>.
           </p>
           <div ref={draftRef} className="t-stagger-line t-stagger-line--3">

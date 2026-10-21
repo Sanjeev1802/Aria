@@ -2,7 +2,7 @@
 
 **AI chat for individuals and teams, with workspaces, saved conversations, and transparent usage accounting.**
 
-ARIA is a Next.js application from The Binary Labs. It presents a single chat experience backed by Amazon Nova or Claude through Amazon Bedrock. The application owns identity, workspace access, plan rules, and credit accounting; the browser cannot grant itself permissions or credits.
+ARIA is a Next.js application from The Binary Labs. It presents a single chat experience backed by Amazon Nova through Amazon Bedrock. The application owns identity, workspace access, plan rules, and credit accounting; the browser cannot grant itself permissions or credits.
 
 > **Project status:** ARIA is under active development on [`Aria-new-setup`](https://github.com/The-Binary-Holdings/Aria/tree/Aria-new-setup). Local development works without AWS. Production chat is disabled until the required AWS services are configured and verified in staging. The application is not ready for a public launch.
 
@@ -12,7 +12,7 @@ ARIA is a Next.js application from The Binary Labs. It presents a single chat ex
 | --- | --- |
 | Accounts | Cognito sign-in and sign-up routes, email confirmation, password recovery, verified sessions in HttpOnly cookies, and session revocation. Users can edit their display name and profile photo in Account settings. A local identity provider supports development. |
 | Workspaces | Personal and Team workspaces, owner/admin/member roles, invitations, seat limits, per-member monthly Team credit limits, and immediate access removal. Team invites are emailed through OneWave when configured, with a one-time link fallback for local setup. |
-| Plans | Server-enforced Free, Pro, and Team entitlements for credits, seats, and available models. Billing is not connected. |
+| Plans | Server-enforced Free, Pro, and Team entitlements for credits, seats, and features. All plans use Bedrock Nova. Billing is not connected. |
 | Chat | Streaming responses through Bedrock when configured, a versioned server-owned system prompt, saved conversations, and an explicit notice when a response reaches the model's output limit. |
 | Public web search | Optional, explicit SearXNG search from the chat composer. ARIA sends a short public query to the configured self-hosted instance, passes bounded snippets to the model, and saves linked search results with the answer. |
 | Projects | Create, rename, and delete projects; start a chat inside a project; move chats between projects; filter the chat list by project. |
@@ -31,7 +31,7 @@ flowchart LR
   API --> Threads[Chats and projects]
   API --> Chat[Chat service]
   Chat --> Ledger
-  Chat --> Bedrock[Amazon Bedrock: Nova or Claude]
+  Chat --> Bedrock[Amazon Bedrock: Nova]
   Chat --> Search[Optional SearXNG public-web search]
   Identity --> Store[(DynamoDB in production)]
   Ledger --> Store
@@ -49,7 +49,7 @@ The [ARIA system prompt](lib/server/system-prompt.ts) asks for direct, useful an
 - **Identity:** Amazon Cognito with server-verified JWTs and HttpOnly cookies
 - **Production data:** DynamoDB single-table design
 - **Local data:** SQLite through `node:sqlite`; in-memory store for tests
-- **Models:** Amazon Nova and Claude through Amazon Bedrock; an optional Anthropic Messages API key routes eligible Claude requests directly to Anthropic. Free requests always use Nova through Bedrock. Pricing and inference select the same backend per request.
+- **Model provider:** Amazon Bedrock with Amazon Nova for every plan
 - **Optional public search:** Self-hosted SearXNG JSON API
 - **Tests:** Node test runner with `tsx`
 
@@ -73,7 +73,7 @@ npm run dev
 
 Open [http://127.0.0.1:3000/sign-in/](http://127.0.0.1:3000/sign-in/). Sign in with a local test account, then open chat. The **Local user** control in the sidebar switches between Alex and Blair, whose workspaces are separate. Local chat uses a deterministic test model and the normal credit ledger; it does not call Bedrock or spend AWS credits.
 
-In local development, the sidebar also has a **Test plan** control for Free, Pro, and Team. It changes the current workspace's server-owned plan and monthly credit allowance so you can test plan gates without checkout. A workspace with more than one occupied seat cannot switch to a one-seat plan until its extra members or pending invites are removed. This control is unavailable in production. The chat composer has no provider dropdown or plan label; ARIA chooses the default provider from the verified plan (Nova for Free, Claude for Pro and Team).
+In local development, the sidebar also has a **Test plan** control for Free, Pro, and Team. It changes the current workspace's server-owned plan and monthly credit allowance so you can test plan gates without checkout. A workspace with more than one occupied seat cannot switch to a one-seat plan until its extra members or pending invites are removed. This control is unavailable in production. The chat composer has no provider dropdown or plan label; every plan uses Bedrock Nova.
 
 In a Team workspace, open **Settings → Team → People → Set credit limit** to assign an individual monthly credit limit. Owners can set limits for admins or members; admins can set limits for members. Leave the field blank for no individual limit, or enter `0` to block that member's new usage. Each request must fit both the member's remaining allowance and the shared Team pool. Limits carry into the next UTC month while used credits reset. Lowering a limit below credits already used blocks new requests without reversing earlier charges. This applies to the chat ledger; public API access is not yet implemented.
 
@@ -97,7 +97,7 @@ npm run typecheck
 npm run build
 ```
 
-Automated tests and type checking cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, per-member Team limits, local plan switching, profile editing, and plan-aware provider routing. Local browser checks covered the profile upload/save/reload/remove flow at mobile width, plan switching, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was checked against a local mock and a live local SearXNG instance. Real Cognito, Bedrock, and OneWave behavior still needs staging verification.
+Automated tests and type checking cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, per-member Team limits, local plan switching, profile editing, and Nova-only model enforcement. Local browser checks covered the profile upload/save/reload/remove flow at mobile width, plan switching, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was checked against a local mock and a live local SearXNG instance. Real Cognito, Bedrock, and OneWave behavior still needs staging verification.
 
 These checks do not verify real Cognito, DynamoDB, or Bedrock behavior. Those integrations require staging tests before production chat is enabled.
 
@@ -117,8 +117,8 @@ Plan rules live on the server in [`lib/server/accounts/entitlements.ts`](lib/ser
 | Plan | Included monthly credits | Seats | Models |
 | --- | ---: | ---: | --- |
 | Free | 200 | 1 | Nova |
-| Pro | 6,000 | 1 | Nova and Claude |
-| Team | 20,000 shared | 5 | Nova and Claude, plus team management |
+| Pro | 6,000 | 1 | Nova |
+| Team | 20,000 shared | 5 | Nova, plus team management |
 
 Pro and Team include an API-access entitlement, but ARIA does **not** yet issue API keys or expose a public developer API. Subscription checkout and billing webhooks are also pending. An operator can change plans with `npm run admin -- set-plan` during development and staging.
 

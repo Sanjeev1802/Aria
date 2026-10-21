@@ -65,7 +65,7 @@ export default function TermsPage() {
         </p>
         <p>
           ARIA does not grant you a right to any particular model, region, or capacity. We may choose,
-          replace, or limit models (including Amazon Nova and Claude) for quality, safety, cost, or
+          replace, or limit the Amazon Nova model for quality, safety, cost, or
           availability. Optional public web search, when enabled, looks up short public queries and is
           not access to your organization’s private systems.
         </p>
@@ -160,7 +160,7 @@ export default function TermsPage() {
         <h2>08 / Third-party providers</h2>
         <p>
           ARIA relies on infrastructure and model providers, which may include Amazon Web Services
-          (identity, storage, and Bedrock models), Anthropic (when configured), transactional email,
+          (identity, storage, and Bedrock inference), transactional email,
           and optional self-hosted search. Their terms and privacy notices apply to their processing.
           We are not responsible for outages, policy changes, or content filters those providers apply.
         </p>

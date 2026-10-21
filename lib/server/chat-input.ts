@@ -1,11 +1,11 @@
-export type ChatInput = { id: string; model: "nova" | "claude"; messages: { role: "user" | "assistant"; content: { text: string }[] }[] };
+export type ChatInput = { id: string; model: "nova"; messages: { role: "user" | "assistant"; content: { text: string }[] }[] };
 
 export function parseChatInput(raw: unknown): ChatInput {
   if (!raw || typeof raw !== "object") throw new Error("Expected a chat request");
   const body = raw as Record<string, unknown>;
   if (typeof body.runId !== "string" || !/^[a-zA-Z0-9_-]{8,100}$/.test(body.runId)) throw new Error("Invalid request ID");
   const model = body.model ?? "nova";
-  if (model !== "nova" && model !== "claude") throw new Error("Unsupported model");
+  if (model !== "nova") throw new Error("Unsupported model");
   if (!Array.isArray(body.messages) || !body.messages.length || body.messages.length > 40) throw new Error("Send 1–40 messages");
   let bytes = 0;
   const messages = body.messages.map((m: unknown) => {

@@ -46,7 +46,7 @@ Deliver a working local application with real server-owned data and a complete F
 
 ## Milestone 6 — subscription code and pricing journey
 
-- Freeze proposed plan terms before implementation: Free Nova, Pro/Team Nova+Claude, included credits, five included Team seats, UTC calendar periods, upgrade/downgrade/cancellation/payment-failure behavior. Keep price labels marked proposed until approved.
+- Freeze proposed plan terms before implementation: Bedrock Nova for Free, Pro, and Team, included credits, five included Team seats, UTC calendar periods, upgrade/downgrade/cancellation/payment-failure behavior. Keep price labels marked proposed until approved.
 - Add a `BillingProvider` interface and local event fixture driver. Build checkout/portal pending/success/failure/canceled states and a signed-webhook verification boundary. Feed verified, idempotent events into existing `applyEntitlement`. Production checkout remains disabled until a merchant provider is chosen and connected.
 - Acceptance: UI clicks cannot grant plans; duplicate/out-of-order events do not double grant; renewal, cancellation, unpaid state, and invoice links behave as specified; manual admin plan changes are labeled operator actions.
 

@@ -135,7 +135,7 @@ test("production chat stays disabled until the operator switch is set, even with
   assert.equal((await call(s, usageHandler, request("/api/usage/", { tokens: tokensFor("alice") }))).status, 200);
 });
 
-test("ARIA chooses the default provider from the verified plan when the UI sends no model", async () => {
+test("ARIA uses Bedrock Nova for every verified plan when the UI sends no model", async () => {
   const w = await world();
   const chosen: string[] = [];
   const planChat = chatHandler({
@@ -153,7 +153,7 @@ test("ARIA chooses the default provider from the verified plan when the UI sends
     assert.equal(response.status, 200);
     await response.text();
   }
-  assert.deepEqual(chosen, ["nova-test", "claude-test"]);
+  assert.deepEqual(chosen, ["nova-test", "nova-test"]);
 });
 
 test("sign-in sets HttpOnly secure cookies and provisions a server-owned Free workspace", async () => {
@@ -178,7 +178,7 @@ test("browser-supplied plan, balance, and workspace claims grant nothing", async
   const w = await world();
   const r = await call(w.s, chat, request("/api/chat/", { tokens: w.bob,
     body: chatBody("claims_req", { model: "claude", plan: "team", credits: 1e9, role: "owner", workspaceId: w.teamWs }) }));
-  assert.equal(r.body?.code, "model_not_in_plan");
+  assert.equal(r.body?.code, "invalid_request");
   const usage = await call(w.s, usageHandler, request("/api/usage/", { tokens: w.bob }));
   assert.equal(usage.body?.plan, "free");
   assert.equal(usage.body?.workspaceId, w.bobWs);
@@ -208,7 +208,7 @@ test("invited members share the Team pool; members cannot administer", async () 
   assert.equal(session.body?.workspace.id, w.teamWs, "accepting selects the team workspace");
   assert.equal(session.body?.workspace.role, "member");
   const before = (await w.s.ledger.balance(w.teamWs)).used;
-  const events = await sse(await run(request("/api/chat/", { tokens: carol.tokens, workspace: w.teamWs, body: chatBody("carol_req_1", { model: "claude" }) }), chat, w.s));
+  const events = await sse(await run(request("/api/chat/", { tokens: carol.tokens, workspace: w.teamWs, body: chatBody("carol_req_1", { model: "nova" }) }), chat, w.s));
   assert.equal(events.at(-1)?.type, "RUN_FINISHED");
   assert.ok((await w.s.ledger.balance(w.teamWs)).used > before);
   const invite = await call(w.s, membersPostHandler, request("/api/workspace/members/", { tokens: carol.tokens, workspace: w.teamWs, body: { email: "x@example.com" } }));

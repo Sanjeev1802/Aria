@@ -4,18 +4,13 @@ import type { ChatInput } from "./chat-input";
 import type { Rates, Usage } from "./metering";
 import { ServiceError } from "./errors";
 
-if (!process.env.AWS_BEARER_TOKEN_BEDROCK?.trim() && process.env.BEDROCK_API_KEY?.trim()) {
-  process.env.AWS_BEARER_TOKEN_BEDROCK = process.env.BEDROCK_API_KEY.trim();
-}
-
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || "us-east-1", maxAttempts: 1 });
 export const MAX_OUTPUT_TOKENS = 1024;
 
-export function modelConfig(model: ChatInput["model"]) {
-  const prefix = model === "nova" ? "ARIA_NOVA" : "ARIA_CLAUDE";
-  const id = process.env[`${prefix}_MODEL_ID`];
-  const input = Number(process.env[`${prefix}_INPUT_USD_PER_MILLION`]);
-  const output = Number(process.env[`${prefix}_OUTPUT_USD_PER_MILLION`]);
+export function modelConfig(_model: ChatInput["model"]) {
+  const id = process.env.ARIA_NOVA_MODEL_ID;
+  const input = Number(process.env.ARIA_NOVA_INPUT_USD_PER_MILLION);
+  const output = Number(process.env.ARIA_NOVA_OUTPUT_USD_PER_MILLION);
   const version = process.env.ARIA_RATE_VERSION;
   if (!id || !version || !Number.isFinite(input) || !Number.isFinite(output) || input <= 0 || output <= 0) {
     throw new ServiceError("model_or_rates_not_configured", 503);

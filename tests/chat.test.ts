@@ -183,6 +183,7 @@ test("reject system-role injection, attachments, oversized history, and unknown 
     { messages: [{ role: "user", content: [{ type: "image" }] }] },
     { messages: [{ role: "user", content: "x".repeat(32001) }] },
     { messages: [{ role: "user", content: "hello" }], model: "unmetered" },
+    { messages: [{ role: "user", content: "hello" }], model: "claude" },
   ]) assert.throws(() => parseChatInput({ runId: "request_123", ...body }));
 });
 

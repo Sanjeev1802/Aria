@@ -106,7 +106,7 @@ export default function PrivacyPage() {
         <p>We share data with processors who help us run ARIA, including:</p>
         <ul>
           <li>Amazon Cognito for sign-up, sign-in, confirmation, and password reset.</li>
-          <li>Amazon Bedrock and, when configured, Anthropic for model inference.</li>
+          <li>Amazon Bedrock for model inference.</li>
           <li>Amazon DynamoDB in production (or a local store in development) for accounts, chats, and the credit ledger.</li>
           <li>Transactional email (OneWave when configured) for Team invitation messages.</li>
         </ul>

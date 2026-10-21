@@ -5,7 +5,7 @@ import { LOCAL_USER_HEADER, type LocalUserSlot } from "@/lib/local-user-shared";
 import { readLocalUserSlot } from "@/lib/aria-local-dev";
 
 export type AriaRole = "owner" | "admin" | "member";
-export type AriaModelChoice = "nova" | "claude";
+export type AriaModelChoice = "nova";
 
 /**
  * Display copy of the server session. The server re-checks identity, membership,
@@ -34,7 +34,7 @@ const PREVIEW_SESSION: AriaSession = {
   user: { id: "preview", email: ARIA_PREVIEW_PROFILE.email, name: ARIA_PREVIEW_PROFILE.name },
   workspace: { id: "preview", name: "Studio workspace", plan: ARIA_PREVIEW_PROFILE.planId, planLabel: ARIA_PREVIEW_PROFILE.planLabel,
     role: "owner", seatLimit: 5, seatsUsed: 3 },
-  entitlements: { models: ["nova", "claude"], apiAccess: true, teamManagement: true, monthlyCredits: 0 },
+  entitlements: { models: ["nova"], apiAccess: true, teamManagement: true, monthlyCredits: 0 },
 };
 const LOADING: AriaSession = { status: "loading" };
 

@@ -1,7 +1,7 @@
 import { ServiceError } from "../errors";
 
 export type PlanId = "free" | "pro" | "team";
-export type ModelChoice = "nova" | "claude";
+export type ModelChoice = "nova";
 export type Role = "owner" | "admin" | "member";
 
 export type Entitlement = {
@@ -18,8 +18,8 @@ export type Entitlement = {
 /** Server-owned plan rules. Browser plan labels are display only. */
 export const PLANS: Record<PlanId, Entitlement> = {
   free: { id: "free", label: "Free", monthlyUnits: 200_000, seats: 1, models: ["nova"], apiAccess: false, teamManagement: false },
-  pro: { id: "pro", label: "Pro", monthlyUnits: 6_000_000, seats: 1, models: ["nova", "claude"], apiAccess: true, teamManagement: false },
-  team: { id: "team", label: "Team", monthlyUnits: 20_000_000, seats: 5, models: ["nova", "claude"], apiAccess: true, teamManagement: true },
+  pro: { id: "pro", label: "Pro", monthlyUnits: 6_000_000, seats: 1, models: ["nova"], apiAccess: true, teamManagement: false },
+  team: { id: "team", label: "Team", monthlyUnits: 20_000_000, seats: 5, models: ["nova"], apiAccess: true, teamManagement: true },
 };
 
 export function isPlanId(value: unknown): value is PlanId {
