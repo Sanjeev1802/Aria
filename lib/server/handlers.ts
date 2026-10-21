@@ -103,7 +103,7 @@ export async function sessionHandler(request: Request, s: Services) {
     localDev: Boolean(s.config.localIdentity),
     localUser: local?.slot,
     localUsers: s.config.localIdentity ? LOCAL_DEV_USER_LABELS : undefined,
-    user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name },
+    user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name, avatar: await s.directory.getAvatar(ctx.user.id) },
     workspace: { id: ctx.workspace.id, name: ctx.workspace.name, plan: ctx.plan.id, planLabel: ctx.plan.label,
       role: ctx.membership.role, seatLimit: ctx.workspace.seatLimit, seatsUsed: ctx.workspace.seatsUsed },
     entitlements: { models: ctx.plan.models, apiAccess: ctx.plan.apiAccess, teamManagement: ctx.plan.teamManagement,

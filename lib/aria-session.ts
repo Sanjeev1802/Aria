@@ -16,7 +16,7 @@ export type AriaSession = {
   environment?: "development" | "production";
   liveChat?: boolean;
   webSearchAvailable?: boolean;
-  user?: { id: string; email: string; name: string };
+  user?: { id: string; email: string; name: string; avatar?: string | null };
   workspace?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole; seatLimit: number; seatsUsed: number };
   entitlements?: { models: AriaModelChoice[]; apiAccess: boolean; teamManagement: boolean; monthlyCredits: number };
   workspaces?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole }[];
@@ -156,7 +156,7 @@ export function useAriaProfile() {
     name,
     handle: session.user?.email?.split("@")[0] ?? "",
     email: session.user?.email ?? "",
-    avatar: "",
+    avatar: session.user?.avatar ?? "",
     planLabel: session.workspace ? (ARIA_IS_PREVIEW ? `${session.workspace.planLabel} (preview)` : session.workspace.planLabel) : "",
     planShort: session.workspace?.planLabel ?? (session.status === "loading" ? "" : "Not signed in"),
   };

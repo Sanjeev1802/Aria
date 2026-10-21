@@ -10,7 +10,7 @@ ARIA is a Next.js application from The Binary Labs. It presents a single chat ex
 
 | Area | Current behavior |
 | --- | --- |
-| Accounts | Cognito sign-in and sign-up routes, email confirmation, password recovery, verified sessions in HttpOnly cookies, and session revocation. A local identity provider supports development. |
+| Accounts | Cognito sign-in and sign-up routes, email confirmation, password recovery, verified sessions in HttpOnly cookies, and session revocation. Users can edit their display name and profile photo in Account settings. A local identity provider supports development. |
 | Workspaces | Personal and Team workspaces, owner/admin/member roles, invitations, seat limits, and immediate access removal. Team invites are emailed through OneWave when configured, with a one-time link fallback for local setup. |
 | Plans | Server-enforced Free, Pro, and Team entitlements for credits, seats, and available models. Billing is not connected. |
 | Chat | Streaming responses through Bedrock when configured, a versioned server-owned system prompt, saved conversations, and an explicit notice when a response reaches the model's output limit. |
@@ -77,6 +77,8 @@ In local development, the sidebar also has a **Test plan** control for Free, Pro
 
 Local accounts, credits, projects, and saved chats persist in `.aria/local-dev.sqlite`, which is gitignored. To try projects, open the chat sidebar, create and select a project, then send a message. Use a saved chat's **⋯ → Move to project** menu to reassign it or choose **No project**. The **Recents** menu can also export a chat as JSON.
 
+Open **Profile → Account → Edit profile** to change your display name or photo. ARIA accepts PNG, JPEG, or WebP uploads up to 5 MB, crops the photo to a square, and saves a 128 × 128 PNG. The image is stored separately from the account record, so ordinary authenticated requests do not load it.
+
 For a static interface preview with scripted replies and no server data, set `NEXT_PUBLIC_ARIA_PREVIEW=true` instead. Preview data is separate from authenticated workspace data and is not automatically migrated.
 
 ### Optional public web search
@@ -91,7 +93,7 @@ npm run typecheck
 npm run build
 ```
 
-The current branch passes **67 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, and local plan switching. A local browser check covered plan switching at mobile width, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API. Real SearXNG and OneWave delivery remain to be tested in staging.
+The current branch passes **69 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, local plan switching, and profile editing. Local browser checks covered the profile upload/save/reload/remove flow at mobile width, plan switching, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API. Real SearXNG and OneWave delivery remain to be tested in staging.
 
 These checks do not verify real Cognito, DynamoDB, or Bedrock behavior. Those integrations require staging tests before production chat is enabled.
 

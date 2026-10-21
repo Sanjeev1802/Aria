@@ -12,13 +12,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAriaPricingPlan, type AriaPlanId } from "@/lib/aria-current-plan";
 import { AriaWorkspaceSwitcher } from "@/components/account/aria-workspace-switcher";
-import { ARIA_IS_PREVIEW, useAriaProfile } from "@/lib/aria-session";
+import { ARIA_IS_PREVIEW, ariaFetch, refreshAriaSession, useAriaProfile } from "@/lib/aria-session";
+import { avatarFromFile } from "@/lib/aria-profile-image";
 import {
   loadAriaSidebarCredits,
   type AriaSidebarCreditsSnapshot,
 } from "@/lib/aria-sidebar-credits-storage";
 import { Info, Sparkles, UserRound, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function initialsFromName(name: string) {
   return name
@@ -32,22 +35,95 @@ function initialsFromName(name: string) {
 
 export function SettingsModalAccountPanel() {
   const { name, handle, avatar, email, planLabel } = useAriaProfile();
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(name);
+  const [draftAvatar, setDraftAvatar] = useState<string | null | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
   const initials = initialsFromName(name);
+  const shownAvatar = draftAvatar === undefined ? avatar : draftAvatar ?? "";
+
+  useEffect(() => { if (!editing) setDraftName(name); }, [editing, name]);
+
+  const cancel = () => {
+    setEditing(false);
+    setDraftName(name);
+    setDraftAvatar(undefined);
+    setError("");
+  };
+
+  const save = async () => {
+    const nextName = draftName.trim().replace(/\s+/g, " ");
+    if (!nextName || nextName.length > 80) { setError("Enter a name between 1 and 80 characters."); return; }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await ariaFetch("/api/profile/", { method: "PATCH", body: JSON.stringify({
+        name: nextName, ...(draftAvatar !== undefined ? { avatar: draftAvatar } : {}),
+      }) });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? "Could not save your profile.");
+      }
+      await refreshAriaSession();
+      setDraftAvatar(undefined);
+      setEditing(false);
+      setNotice("Profile updated.");
+      window.dispatchEvent(new Event("aria:team-updated"));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save your profile.");
+    } finally { setBusy(false); }
+  };
 
   return (
     <SettingsPanel>
       <SettingsBlock title="Profile">
         <SettingsBlockInset>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Avatar className="size-16 text-lg" data-size="lg">
-              {avatar ? <AvatarImage src={avatar} alt="" /> : null}
+              {shownAvatar ? <AvatarImage src={shownAvatar} alt="" /> : null}
               <AvatarFallback className="bg-muted font-semibold">{initials}</AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-base font-semibold">{name}</p>
               <p className="text-sm text-muted-foreground">@{handle}</p>
             </div>
+            {!editing && !ARIA_IS_PREVIEW ? <Button type="button" variant="outline" size="sm" onClick={() => {
+              setError(""); setNotice(""); setEditing(true);
+            }}>Edit profile</Button> : null}
           </div>
+          {editing ? <div className="mt-5 space-y-4 border-t border-border/70 pt-5">
+            <div className="space-y-1.5">
+              <label htmlFor="aria-profile-name" className="text-sm font-medium">Display name</label>
+              <Input id="aria-profile-name" value={draftName} maxLength={80}
+                onChange={event => setDraftName(event.target.value)} autoComplete="name" />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                aria-label="Choose profile photo" onChange={async event => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  setError("");
+                  setPreparingPhoto(true);
+                  try { setDraftAvatar(await avatarFromFile(file)); }
+                  catch (cause) { setError(cause instanceof Error ? cause.message : "Could not prepare this image."); }
+                  finally { setPreparingPhoto(false); if (fileInput.current) fileInput.current.value = ""; }
+                }} />
+              <Button type="button" variant="outline" size="sm" disabled={busy || preparingPhoto} onClick={() => fileInput.current?.click()}>{preparingPhoto ? "Preparing photo…" : "Upload photo"}</Button>
+              {shownAvatar ? <Button type="button" variant="ghost" size="sm" disabled={busy || preparingPhoto} onClick={() => setDraftAvatar(null)}>Remove photo</Button> : null}
+              <span className="text-xs text-muted-foreground">PNG, JPEG, or WebP · up to 5 MB</span>
+            </div>
+            {error ? <p className="text-sm text-destructive" role="alert">{error}</p> : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" disabled={busy || preparingPhoto} onClick={cancel}>Cancel</Button>
+              <Button type="button" disabled={busy || preparingPhoto} onClick={() => void save()}>{busy ? "Saving…" : "Save changes"}</Button>
+            </div>
+          </div> : null}
+          {notice ? <p className="mt-3 text-sm text-emerald-500" role="status">{notice}</p> : null}
         </SettingsBlockInset>
       </SettingsBlock>
       <SettingsBlock title="Sign-in">

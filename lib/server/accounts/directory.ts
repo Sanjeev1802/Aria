@@ -18,6 +18,7 @@ export const INVITE_TTL_MS = 7 * 24 * 3_600_000;
 
 const k = {
   user: (sub: string): Key => ({ pk: `USER#${sub}`, sk: "PROFILE" }),
+  avatar: (sub: string): Key => ({ pk: `USER#${sub}`, sk: "AVATAR" }),
   workspace: (w: string): Key => ({ pk: `WS#${w}`, sk: "META" }),
   member: (w: string, sub: string): Key => ({ pk: `WS#${w}`, sk: `MEMBER#${sub}` }),
   email: (w: string, email: string): Key => ({ pk: `WS#${w}`, sk: `EMAIL#${email}` }),
@@ -80,6 +81,29 @@ export class AccountDirectory {
     await this.store.transact([{ kind: "update", key: k.user(sub), set: { status }, when: [{ field: "pk", op: "exists" }] }]);
   }
 
+  async updateProfile(sub: string, patch: { name?: string; avatar?: string | null }) {
+    const writes: Write[] = [patch.name === undefined
+      ? { kind: "check", key: k.user(sub), when: [{ field: "status", op: "=", value: "active" }] }
+      : { kind: "update", key: k.user(sub), set: { name: patch.name }, when: [{ field: "status", op: "=", value: "active" }] }];
+    if (patch.avatar) writes.push({ kind: "put", item: { ...k.avatar(sub), data: patch.avatar } });
+    else if (patch.avatar === null) writes.push({ kind: "delete", key: k.avatar(sub) });
+    try {
+      await this.store.transact(writes);
+    } catch (error) {
+      if (error instanceof ConditionFailed) throw new ServiceError("account_disabled", 403);
+      throw error;
+    }
+    const user = await this.getUser(sub);
+    if (!user) throw new ServiceError("account_unavailable", 503);
+    return user;
+  }
+
+  /** Photos are fetched only for session/profile views, not every authenticated request. */
+  async getAvatar(sub: string): Promise<string | null> {
+    const row = await this.store.get(k.avatar(sub));
+    return typeof row?.data === "string" ? row.data : null;
+  }
+
   async getWorkspace(workspaceId: string): Promise<WorkspaceRecord | undefined> {
     const row = await this.store.get(k.workspace(workspaceId));
     if (!row) return undefined;
@@ -134,9 +158,13 @@ export class AccountDirectory {
 
   async members(workspaceId: string): Promise<MemberView[]> {
     const now = this.clock();
-    const members = (await this.store.query(`WS#${workspaceId}`, "MEMBER#"))
-      .filter(r => r.status === "active" && isRole(r.role))
-      .map(r => ({ id: String(r.userId), name: String(r.name), email: String(r.email), role: r.role as Role, status: "active" as const }));
+    const active = (await this.store.query(`WS#${workspaceId}`, "MEMBER#"))
+      .filter(r => r.status === "active" && isRole(r.role));
+    const members = await Promise.all(active.map(async r => {
+      const profile = await this.getUser(String(r.userId));
+      return { id: String(r.userId), name: profile?.name ?? String(r.name), email: String(r.email),
+        role: r.role as Role, status: "active" as const };
+    }));
     const invites = (await this.store.query(`WS#${workspaceId}`, "INVITE#"))
       .filter(r => r.status === "pending" && isRole(r.role))
       .map(r => ({ id: `invite_${String(r.inviteId)}`, name: String(r.email).split("@")[0], email: String(r.email),
