@@ -49,7 +49,7 @@ The [ARIA system prompt](lib/server/system-prompt.ts) asks for direct, useful an
 - **Identity:** Amazon Cognito with server-verified JWTs and HttpOnly cookies
 - **Production data:** DynamoDB single-table design
 - **Local data:** SQLite through `node:sqlite`; in-memory store for tests
-- **Models:** Amazon Nova and Claude through Amazon Bedrock
+- **Models:** Amazon Nova and Claude through Amazon Bedrock; an optional Anthropic Messages API key routes eligible Claude requests directly to Anthropic. Free requests always use Nova through Bedrock. Pricing and inference select the same backend per request.
 - **Optional public search:** Self-hosted SearXNG JSON API
 - **Tests:** Node test runner with `tsx`
 
@@ -97,7 +97,7 @@ npm run typecheck
 npm run build
 ```
 
-The current branch passes **71 automated tests**, type checking, and a production build. Tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, per-member Team limits, local plan switching, and profile editing. Local browser checks covered the profile upload/save/reload/remove flow at mobile width, plan switching, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was also checked against a local mock SearXNG API. Real SearXNG and OneWave delivery remain to be tested in staging.
+Automated tests and type checking cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, public search links, Team invitation email behavior, per-member Team limits, local plan switching, profile editing, and plan-aware provider routing. Local browser checks covered the profile upload/save/reload/remove flow at mobile width, plan switching, the prompt without a model control, project creation and assignment, moving a chat, the mobile sidebar, and viewport widths from 320 to 1440 pixels without horizontal overflow or page errors. Public search was checked against a local mock and a live local SearXNG instance. Real Cognito, Bedrock, and OneWave behavior still needs staging verification.
 
 These checks do not verify real Cognito, DynamoDB, or Bedrock behavior. Those integrations require staging tests before production chat is enabled.
 
