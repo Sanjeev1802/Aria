@@ -67,6 +67,9 @@ export function ForgotPasswordForm() {
               </Field>
             ) : null}
             <FieldDescription className="text-center">
+              Need to confirm your email?{" "}
+              <Link href={`/sign-up/?email=${encodeURIComponent(email.trim())}`}>Enter the code</Link>
+              <br />
               <Link href="/sign-in/">Back to sign in</Link>
             </FieldDescription>
           </FieldGroup>

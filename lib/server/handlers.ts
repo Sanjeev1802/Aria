@@ -239,11 +239,21 @@ export async function signUpHandler(request: Request, s: Services) {
   const email = str(body.email), password = str(body.password, 256);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) throw new ServiceError("invalid_auth_request", 400);
   const idp = requireAnyIdp(s);
-  if (s.config.localIdentity && idp instanceof LocalIdentityProvider) {
-    return json(await idp.signUp(email, password, str(body.name, 100)));
+  try {
+    if (s.config.localIdentity && idp instanceof LocalIdentityProvider) {
+      return json(await idp.signUp(email, password, str(body.name, 100)));
+    }
+    const { idp: cognitoIdp } = requireIdp(s);
+    return json(await cognitoIdp.signUp(email, password, str(body.name, 100)));
+  } catch (error) {
+    if (!(error instanceof ServiceError) || error.code !== "account_exists") throw error;
+    try {
+      await idp.resendCode(email);
+      return json({ confirmationRequired: true });
+    } catch {
+      throw error;
+    }
   }
-  const { idp: cognitoIdp } = requireIdp(s);
-  return json(await cognitoIdp.signUp(email, password, str(body.name, 100)));
 }
 
 export async function confirmHandler(request: Request, s: Services) {
@@ -266,7 +276,15 @@ export async function forgotPasswordHandler(request: Request, s: Services) {
   const body = await readJson(request);
   const email = str(body.email);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ServiceError("invalid_email", 400);
-  await idp.forgotPassword(email);
+  try {
+    await idp.forgotPassword(email);
+  } catch (error) {
+    if (error instanceof ServiceError && error.code === "password_reset_unavailable") {
+      await idp.resendCode(email).catch(() => undefined);
+      throw new ServiceError("account_not_confirmed", 403);
+    }
+    throw error;
+  }
   return json({ ok: true });
 }
 

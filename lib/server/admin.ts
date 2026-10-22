@@ -14,13 +14,37 @@ async function mapBatches<T, R>(items: T[], task: (item: T) => Promise<R>, size 
   return output;
 }
 
-/** Internal operator access is bound to verified Cognito subjects, never a workspace role or email claim. */
+function subjectRole(services: Services, subject: string): InternalRole | undefined {
+  if (services.config.adminSubjects?.includes(subject)) return "super_admin";
+  return services.config.adminRoles?.[subject];
+}
+
+/**
+ * Internal operator access is bound to verified Cognito subjects, never a workspace role.
+ * In local preview only, a Cognito sign-in is granted when its verified email already belongs
+ * to an allowlisted operator (so demo operators keep access after signing in with Cognito).
+ */
 export async function requireInternalAdmin(request: Request, services: Services) {
   const auth = await authenticate(request, services);
   const localPreview = services.config.environment === "development" && services.config.localIdentity &&
     services.config.adminLocalDev && auth.user.id === "local-alex";
-  const role: InternalRole | undefined = localPreview || services.config.adminSubjects?.includes(auth.user.id)
-    ? "super_admin" : services.config.adminRoles?.[auth.user.id];
+  let role: InternalRole | undefined = localPreview ? "super_admin" : subjectRole(services, auth.user.id);
+  if (!role && services.config.environment === "development" && services.config.adminLocalDev &&
+    auth.identity.emailVerified) {
+    const email = auth.user.email.trim().toLowerCase();
+    const subjects = [
+      ...(services.config.adminSubjects ?? []),
+      ...Object.keys(services.config.adminRoles ?? {}),
+    ];
+    for (const subject of subjects) {
+      if (subject === auth.user.id) continue;
+      const operator = await services.directory.getUser(subject);
+      if (operator?.email.trim().toLowerCase() === email) {
+        role = subjectRole(services, subject);
+        break;
+      }
+    }
+  }
   if (!role) {
     throw new ServiceError("admin_access_denied", 403);
   }
