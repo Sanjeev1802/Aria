@@ -28,7 +28,7 @@ export function PlanChart({ counts, creditsUsed }: {
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
           <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
           <Bar dataKey="workspaces" radius={[6, 6, 0, 0]} maxBarSize={96} isAnimationActive={false}>
-            <Cell fill="#5b7cf3" /><Cell fill="#a56cef" /><Cell fill="#23b7a1" />
+            <Cell fill="#7c8980" /><Cell fill="#c7d0c9" /><Cell fill="#9ce7b4" />
           </Bar>
         </BarChart>
       </ChartContainer>

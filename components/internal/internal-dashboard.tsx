@@ -119,7 +119,7 @@ export function InternalDashboard() {
         <div className="internal-top-actions"><Badge variant="outline" className="internal-env"><span />{overview?.internalRole.replaceAll("_", " ") || "Restricted access"}</Badge><ShieldCheck size={17} aria-label="Restricted access" /></div></header>
       <main className="internal-main">
         {loading ? <div className="internal-state">Loading ARIA operations…</div> : error && !overview
-          ? <div className="internal-state internal-error"><LockKeyhole size={26} /><h1>Internal access unavailable</h1><p>{error}</p><a href="/sign-in/?next=%2Finternal%2F">Sign in</a></div>
+          ? <div className="internal-state internal-error"><LockKeyhole size={26} /><h1>Internal access unavailable</h1><p>{error}</p><a href="/internal/sign-in/">Operator sign in</a></div>
           : overview && <>
             <div className="internal-heading"><div><span className="internal-eyebrow">PLATFORM OPERATIONS</span><h1>{sections.find(item => item.id === section)?.label}</h1>
               <p>{section === "overview" ? "Customers, workspaces, and usage at a glance." : section === "customers" ? "Find an account and review its access and usage." : section === "workspaces" ? "Plans, seats, and members across ARIA." : section === "plans" ? "Current entitlements and credit balances." : section === "operations" ? "Live configuration and operator guidance." : "Recent changes made through the internal console."}</p></div>
@@ -131,8 +131,8 @@ export function InternalDashboard() {
             {section === "overview" && <>
               <section className="internal-welcome" aria-label="Platform management">
                 <div className="internal-welcome-copy"><span className="internal-welcome-kicker"><CheckCircle2 size={14} /> ADMIN CONSOLE</span>
-                  <h2>Manage ARIA with clarity.</h2>
-                  <p>Review accounts, workspace plans, credit usage, and operator activity from one place.</p></div>
+                  <h2>One command center.<br />Complete visibility.</h2>
+                  <p>Accounts, workspaces, credit usage, and operator activity—each in its place.</p></div>
                 <div className="internal-welcome-links" aria-label="Quick actions">
                   <button onClick={() => setSection("customers")}>Customers <ArrowRight size={15} /></button>
                   <button onClick={() => setSection("workspaces")}>Workspaces <ArrowRight size={15} /></button>
