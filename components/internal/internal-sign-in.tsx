@@ -1,80 +1,163 @@
-"use client";
+"use client"
 
-import { useState, type FormEvent } from "react";
-import Link from "next/link";
-import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
-import { AriaMark } from "@/components/aria-mark";
-import { ARIA_IS_PREVIEW, ariaSignIn } from "@/lib/aria-session";
+import Link from "next/link"
+import { useRef, useState, type FormEvent } from "react"
+import { AriaMark } from "@/components/aria-mark"
+import { AuthBrandPanel } from "@/components/auth/auth-brand-panel"
+import { AuthPageFrame } from "@/components/auth/auth-page-frame"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { clearInputError, showInputError } from "@/lib/show-input-error"
+import { ARIA_IS_PREVIEW, ariaSignIn } from "@/lib/aria-session"
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
 
 export function InternalSignIn() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const emailWrapRef = useRef<HTMLDivElement>(null)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [pending, setPending] = useState(false)
+  const [errorText, setErrorText] = useState("")
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (pending) return;
-    setError("");
-    if (ARIA_IS_PREVIEW) {
-      setError("Operator sign-in requires a running ARIA server with real authentication.");
-      return;
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (pending) return
+    if (!isValidEmail(email) || password.trim().length < 1) {
+      setErrorText("Enter a valid email and password.")
+      showInputError(emailWrapRef.current)
+      return
     }
-    setPending(true);
+    if (ARIA_IS_PREVIEW) {
+      setErrorText("Operator sign-in requires a running ARIA server with real authentication.")
+      showInputError(emailWrapRef.current)
+      return
+    }
+    setErrorText("")
+    setPending(true)
     try {
-      const result = await ariaSignIn(email.trim(), password);
-      if (!result.ok) { setError(result.message); return; }
-      const access = await fetch("/api/admin/overview/", { credentials: "same-origin", cache: "no-store" });
-      if (!access.ok) {
-        const body = await access.json().catch(() => ({}));
-        setError(access.status === 403 ? "This account is signed in but is not authorized for ARIA Internal."
-          : body.message || "Internal access could not be verified. Try again.");
-        return;
+      const result = await ariaSignIn(email.trim(), password)
+      if (!result.ok) {
+        setErrorText(result.message)
+        showInputError(emailWrapRef.current)
+        return
       }
-      window.location.assign("/internal/");
+      const access = await fetch("/api/admin/overview/", {
+        credentials: "same-origin",
+        cache: "no-store",
+      })
+      if (!access.ok) {
+        const body = await access.json().catch(() => ({}))
+        setErrorText(
+          access.status === 403
+            ? "This account is signed in but is not authorized for ARIA Internal."
+            : body.message || "Internal access could not be verified. Try again.",
+        )
+        showInputError(emailWrapRef.current)
+        return
+      }
+      window.location.assign("/internal/")
     } catch {
-      setError("Could not reach ARIA. Check your connection and try again.");
+      setErrorText("Could not reach ARIA. Check your connection and try again.")
+      showInputError(emailWrapRef.current)
     } finally {
-      setPending(false);
+      setPending(false)
     }
   }
 
-  return <main className="internal-login">
-    <div className="internal-login-grid" aria-hidden="true" />
-    <header className="internal-login-header"><Link href="/" className="internal-login-brand" aria-label="ARIA home">
-      <AriaMark /><span>ARIA</span><i /> <small>INTERNAL</small></Link>
-      <span className="internal-login-classification"><ShieldCheck size={14} /> RESTRICTED ACCESS</span></header>
-    <div className="internal-login-layout">
-      <section className="internal-login-intro" aria-label="ARIA Internal">
-        <div className="internal-login-orbit"><span className="internal-login-orbit-core"><AriaMark /></span></div>
-        <span className="internal-login-index">01 / MISSION CONTROL</span>
-        <h1>Clarity at<br />every level<span>.</span></h1>
-        <p>The command center for ARIA accounts, workspaces, usage, and trusted operations.</p>
-        <div className="internal-login-readout"><span><i /> VERIFIED IDENTITY</span><span><i /> AUDITED ACTIONS</span></div>
-      </section>
-      <section className="internal-login-panel" aria-label="Operator sign in">
-        <div className="internal-login-panel-heading"><div className="internal-login-panel-icon"><LockKeyhole size={20} /></div>
-          <span>ARIA / INTERNAL ACCESS</span><h2>Operator sign in</h2>
-          <p>Use your authorized ARIA account to enter the console.</p></div>
-        <form onSubmit={submit}>
-          <label htmlFor="internal-email">Work email</label>
-          <input id="internal-email" type="email" autoComplete="username" inputMode="email" required value={email} suppressHydrationWarning
-            onChange={event => setEmail(event.target.value)} placeholder="name@company.com" />
-          <div className="internal-login-password-label"><label htmlFor="internal-password">Password</label>
-            <Link href="/forgot-password/">Forgot password?</Link></div>
-          <div className="internal-login-password"><input id="internal-password" type={showPassword ? "text" : "password"} suppressHydrationWarning
-            autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)}
-            placeholder="Enter your password" /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"}
-            aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
-          {error && <p className="internal-login-error" role="alert">{error}</p>}
-          <button className="internal-login-submit" type="submit" disabled={pending || !email.trim() || !password}>
-            {pending ? "Verifying access…" : "Enter console"}<ArrowRight size={18} /></button>
-        </form>
-        <div className="internal-login-panel-footer"><ShieldCheck size={16} /><span>Access is verified on every request. All changes are recorded.</span></div>
-      </section>
-    </div>
-    <footer className="internal-login-footer"><span>THE BINARY LABS / ARIA</span><Link href="/chat/">Return to ARIA <ArrowRight size={14} /></Link></footer>
-  </main>;
+  return (
+    <AuthPageFrame>
+      <div className="flex flex-col gap-6">
+        <Card className="overflow-hidden border-border/50 bg-transparent p-0 shadow-2xl">
+          <CardContent className="grid p-0 md:grid-cols-2">
+            <AuthBrandPanel />
+            <form className="bg-card p-6 md:p-8" onSubmit={onSubmit} noValidate>
+              <FieldGroup>
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <Link
+                    href="/"
+                    className="mb-1 flex items-center gap-2 font-semibold md:hidden"
+                    aria-label="ARIA home"
+                  >
+                    <AriaMark className="aria-auth-mobile-mark" />
+                    ARIA
+                  </Link>
+                  <p className="text-[10px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+                    ARIA / INTERNAL ACCESS
+                  </p>
+                  <h1 className="text-2xl font-bold">Operator sign in</h1>
+                  <p className="text-balance text-muted-foreground">
+                    Use your authorized ARIA account to enter the console.
+                  </p>
+                </div>
+                <Field>
+                  <div ref={emailWrapRef} className="t-input-wrap space-y-2">
+                    <FieldLabel htmlFor="internal-email">Work email</FieldLabel>
+                    <Input
+                      id="internal-email"
+                      type="email"
+                      autoComplete="username"
+                      inputMode="email"
+                      className="t-input"
+                      placeholder="name@company.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value)
+                        clearInputError(emailWrapRef.current)
+                        if (errorText) setErrorText("")
+                      }}
+                      required
+                    />
+                    {errorText ? (
+                      <p className="t-error-msg text-destructive text-sm" role="alert">
+                        {errorText}
+                      </p>
+                    ) : null}
+                  </div>
+                </Field>
+                <Field>
+                  <div className="flex items-center">
+                    <FieldLabel htmlFor="internal-password">Password</FieldLabel>
+                    <Link
+                      href="/forgot-password/"
+                      className="ml-auto text-sm underline-offset-4 hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <Input
+                    id="internal-password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field>
+                  <Button type="submit" disabled={pending}>
+                    {pending ? "Verifying access…" : "Enter console"}
+                  </Button>
+                </Field>
+                <FieldDescription className="text-center">
+                  <Link href="/chat/">Return to ARIA workspace</Link>
+                </FieldDescription>
+              </FieldGroup>
+            </form>
+          </CardContent>
+        </Card>
+        <FieldDescription className="px-6 text-center text-white/80">
+          Access is verified on every request. All changes are recorded.
+        </FieldDescription>
+      </div>
+    </AuthPageFrame>
+  )
 }

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react"
 import { AriaMark } from "@/components/aria-mark"
+import { AuthBrandPanel } from "@/components/auth/auth-brand-panel"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,17 +28,6 @@ const DEFAULT_ERROR = "Enter a valid email and password."
 function destinationFromQuery() {
   if (typeof window === "undefined") return "/chat/"
   return safeNextPath(new URLSearchParams(window.location.search).get("next"))
-}
-
-function AuthBrandPanel() {
-  return (
-    <div className="relative hidden min-h-[28rem] items-center justify-center overflow-hidden md:flex">
-      <Link href="/" aria-label="ARIA home" className="relative z-10 flex flex-col items-center gap-4 text-white">
-        <AriaMark className="aria-auth-panel-mark" />
-        <span className="text-lg font-semibold tracking-[0.22em]">ARIA</span>
-      </Link>
-    </div>
-  )
 }
 
 export function LoginForm({ className, ...props }: ComponentProps<"div">) {
