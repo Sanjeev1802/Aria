@@ -1,5 +1,7 @@
 # ARIA Internal dashboard
 
+See the [ARIA Internal PRD](docs/internal/prd.md) for product scope, acceptance criteria, and the delivery roadmap.
+
 `/internal/sign-in/` is the dedicated operator entry page. It uses ARIA's existing sign-in endpoint and verifies access against the internal overview API before opening `/internal/`; an ordinary signed-in ARIA user cannot enter the console. `/internal/` is a restricted operations dashboard for ARIA staff. Its shadcn-based layout has a collapsible sidebar, a top bar that stays visible while scrolling, live account and credit summaries, a plan chart, an audit panel, and searchable data tables. The graphite theme uses one ARIA green signal color and restrained chart accents. No example revenue, projects, or sample customers are shown. The sidebar footer shows the verified operator's name, internal role, and email.
 
 ## Access
