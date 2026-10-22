@@ -35,9 +35,20 @@ export function InternalSidebar({ section, onSectionChange, operator }: {
     </SidebarHeader>
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Platform</SidebarGroupLabel>
+        <SidebarGroupLabel>Workspace</SidebarGroupLabel>
         <SidebarMenu>
-          {sections.map(item => <SidebarMenuItem key={item.id}>
+          {sections.slice(0, 4).map(item => <SidebarMenuItem key={item.id}>
+            <SidebarMenuButton isActive={section === item.id} tooltip={item.label}
+              onClick={() => { onSectionChange(item.id); setOpenMobile(false); }}>
+              <item.icon /><span>{item.label}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>)}
+        </SidebarMenu>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>Governance</SidebarGroupLabel>
+        <SidebarMenu>
+          {sections.slice(4).map(item => <SidebarMenuItem key={item.id}>
             <SidebarMenuButton isActive={section === item.id} tooltip={item.label}
               onClick={() => { onSectionChange(item.id); setOpenMobile(false); }}>
               <item.icon /><span>{item.label}</span>

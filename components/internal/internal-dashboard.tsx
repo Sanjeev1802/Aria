@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, ArrowRight, LockKeyhole, Search, ShieldCheck, Users, Wallet, X } from "lucide-react";
+import { Activity, ArrowRight, CheckCircle2, LockKeyhole, Search, ShieldCheck, Users, Wallet, X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +90,10 @@ export function InternalDashboard() {
   const planCounts = useMemo(() => ({ free: overview?.workspaces.filter(w => w.plan === "free").length ?? 0,
     pro: overview?.workspaces.filter(w => w.plan === "pro").length ?? 0,
     team: overview?.workspaces.filter(w => w.plan === "team").length ?? 0 }), [overview]);
+  const creditTotals = useMemo(() => (overview?.workspaces ?? []).reduce((total, workspace) => ({
+    included: total.included + workspace.credits.included,
+    used: total.used + workspace.credits.used,
+  }), { included: 0, used: 0 }), [overview]);
   return <SidebarProvider className="internal-shell internal-dashboard" style={{
     "--sidebar-width": "calc(var(--spacing) * 72)", "--header-height": "calc(var(--spacing) * 12)",
   } as React.CSSProperties}>
@@ -111,12 +115,30 @@ export function InternalDashboard() {
             {overview.limited && <div className="internal-alert">Showing the first 500 customers or workspaces. Narrow the scope before using totals for reporting.</div>}
 
             {section === "overview" && <>
+              <section className="internal-welcome" aria-label="Platform management">
+                <div className="internal-welcome-copy"><span className="internal-welcome-kicker"><CheckCircle2 size={14} /> ADMIN CONSOLE</span>
+                  <h2>Manage ARIA with clarity.</h2>
+                  <p>Review accounts, workspace plans, credit usage, and operator activity from one place.</p></div>
+                <div className="internal-welcome-links" aria-label="Quick actions">
+                  <button onClick={() => setSection("customers")}>Customers <ArrowRight size={15} /></button>
+                  <button onClick={() => setSection("workspaces")}>Workspaces <ArrowRight size={15} /></button>
+                  <button onClick={() => setSection("activity")}>Audit log <ArrowRight size={15} /></button>
+                </div>
+              </section>
               <div className="internal-stats">
                 <Stat label="Customers" value={fmt.format(overview.summary.users)} detail={`${fmt.format(overview.summary.activeUsers)} active accounts`} icon={Users} tone="blue" />
                 <Stat label="Workspaces" value={fmt.format(overview.summary.workspaces)} detail="Across every plan" icon={Wallet} tone="violet" />
                 <Stat label="Team workspaces" value={fmt.format(overview.summary.teamWorkspaces)} detail="Shared plans" icon={ShieldCheck} tone="teal" />
                 <Stat label="Credits used" value={fmt.format(overview.summary.creditsUsed)} detail="Current UTC billing period" icon={Wallet} tone="orange" />
               </div>
+              <section className="internal-usage-overview" aria-label="Current credit usage">
+                <div><span className="internal-usage-label">CREDIT USAGE · CURRENT UTC MONTH</span><strong>{fmt.format(creditTotals.used)} <span>/ {fmt.format(creditTotals.included)} included</span></strong></div>
+                <div className="internal-usage-track" role="meter" aria-label="Credits used across listed workspaces" aria-valuemin={0}
+                  aria-valuemax={Math.max(creditTotals.included, creditTotals.used, 1)} aria-valuenow={creditTotals.used}>
+                  <span style={{ width: `${Math.min(100, creditTotals.included ? creditTotals.used / creditTotals.included * 100 : 0)}%` }} />
+                </div>
+                <span className="internal-usage-note">Across {fmt.format(overview.workspaces.length)} listed workspaces</span>
+              </section>
               <div className="internal-overview-grid">
                 <PlanChart counts={planCounts} creditsUsed={overview.summary.creditsUsed} />
                 <Card className="internal-activity-card"><CardHeader><CardDescription className="internal-card-kicker">OPERATOR LOG</CardDescription>
