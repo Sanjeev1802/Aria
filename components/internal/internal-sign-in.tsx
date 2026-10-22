@@ -5,6 +5,7 @@ import { useRef, useState, type FormEvent } from "react"
 import { AriaMark } from "@/components/aria-mark"
 import { AuthBrandPanel } from "@/components/auth/auth-brand-panel"
 import { AuthPageFrame } from "@/components/auth/auth-page-frame"
+import { PasswordInput } from "@/components/auth/password-input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -133,9 +134,8 @@ export function InternalSignIn() {
                       Forgot password?
                     </Link>
                   </div>
-                  <Input
+                  <PasswordInput
                     id="internal-password"
-                    type="password"
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
