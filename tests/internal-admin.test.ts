@@ -25,6 +25,31 @@ test("internal console denies customer roles and local preview requires explicit
   assert.equal((await requireInternalAdmin(request("alex"), services)).user.id, "local-alex");
 });
 
+test("local preview grants Cognito sign-in when the verified email already belongs to an allowlisted operator", async () => {
+  const store = new MemoryStore();
+  const local = await buildServices(config, { store }).directory.ensureAccount({
+    sub: "local_preview_operator", email: "sanjeev@thebinaryholdings.com", name: "Sanjeev",
+    emailVerified: true, authTime: 1,
+  });
+  const identity = { sub: "cognito-operator-1", email: "sanjeev@thebinaryholdings.com", name: "Sanjeev Kumar",
+    emailVerified: true, authTime: 2 };
+  const verifier = { verify: async () => identity };
+  const req = new Request("http://127.0.0.1:3000/api/admin/overview/", {
+    headers: { cookie: "aria_at=access; aria_id=id" },
+  });
+  const denied = buildServices({ ...config, adminSubjects: [local.id], adminLocalDev: false }, { store, verifier });
+  await assert.rejects(requireInternalAdmin(req, denied), { code: "admin_access_denied" });
+  const allowed = buildServices({ ...config, adminSubjects: [local.id] }, { store, verifier });
+  assert.equal((await requireInternalAdmin(req, allowed)).user.id, identity.sub);
+  assert.equal((await requireInternalAdmin(req, allowed)).internalRole, "super_admin");
+  const other = { ...identity, sub: "cognito-other-1", email: "other@example.com" };
+  const otherReq = new Request("http://127.0.0.1:3000/api/admin/overview/", {
+    headers: { cookie: "aria_at=access; aria_id=id" },
+  });
+  await assert.rejects(requireInternalAdmin(otherReq, buildServices({ ...config, adminSubjects: [local.id] },
+    { store, verifier: { verify: async () => other } })), { code: "admin_access_denied" });
+});
+
 test("production operator access requires a verified subject on the server allowlist", async () => {
   const store = new MemoryStore();
   const identity = { sub: "cognito-admin-1", email: "operator@example.com", name: "Operator",

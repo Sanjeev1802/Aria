@@ -14,6 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/auth/password-input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
 import { safeNextPath } from "@/lib/auth/safe-next-path"
 import { ARIA_IS_PREVIEW, ariaSignIn } from "@/lib/aria-session"
@@ -116,9 +117,8 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
                     </Link>
                   )}
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

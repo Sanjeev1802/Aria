@@ -37,13 +37,24 @@ const ERROR_MAP: Record<string, [string, number]> = {
   PasswordResetRequiredException: ["password_reset_required", 403],
 };
 
-function mapError(error: unknown): never {
+export function classifyCognitoError(error: unknown): [string, number] {
   const code = (error as { name?: string; code?: string })?.name
     || (error as { code?: string })?.code
     || "";
-  const mapped = ERROR_MAP[code];
-  if (mapped) throw new ServiceError(mapped[0], mapped[1]);
-  throw new ServiceError("identity_unavailable", 503);
+  const detail = String((error as { message?: string })?.message ?? "");
+  if (code === "InvalidParameterException" && /reset password|verified email|phone_number/i.test(detail)) {
+    return ["password_reset_unavailable", 400];
+  }
+  return ERROR_MAP[code] ?? ["identity_unavailable", 503];
+}
+
+function mapError(error: unknown): never {
+  const mapped = classifyCognitoError(error);
+  if (mapped[0] === "identity_unavailable") {
+    const name = (error as { name?: string })?.name || "unknown";
+    console.error(JSON.stringify({ level: "error", event: "identity_error", name }));
+  }
+  throw new ServiceError(mapped[0], mapped[1]);
 }
 
 function isPasswordAuthDisabled(error: unknown) {
@@ -129,7 +140,6 @@ export class CognitoIdentityProvider implements IdentityProvider {
       UserAttributes: [
         { Name: "email", Value: username },
         { Name: "name", Value: display },
-        { Name: "name.formatted", Value: display },
       ],
     })).catch(mapError);
     return { confirmationRequired: !result.UserConfirmed };
