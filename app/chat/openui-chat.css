@@ -1357,6 +1357,65 @@
   align-items: stretch;
 }
 
+.aria-openui-chat .aria-web-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.aria-openui-chat .aria-web-sources__label {
+  margin-right: 2px;
+  font-size: 12px;
+  color: var(--openui-text-neutral-secondary);
+}
+
+.aria-openui-chat .aria-web-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 12rem;
+  padding: 2px 10px 2px 2px;
+  border: 1px solid var(--aria-sidebar-border);
+  border-radius: 999px;
+  color: var(--openui-text-neutral-secondary);
+  font-size: 12px;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.aria-openui-chat .aria-web-source:hover,
+.aria-openui-chat .aria-web-source:focus-visible {
+  background: var(--openui-highlight-subtle);
+  color: var(--openui-text-neutral-primary);
+}
+
+.aria-openui-chat .aria-web-source:focus-visible {
+  outline: 2px solid var(--openui-text-neutral-primary);
+  outline-offset: 2px;
+}
+
+.aria-openui-chat .aria-web-source__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.aria-openui-chat .aria-web-source__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .aria-openui-chat .aria-openui-composer-field {
   display: flex;
   flex-direction: row;

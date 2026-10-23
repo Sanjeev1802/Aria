@@ -64,29 +64,40 @@ test("Claude model config defaults to Opus 5.5 list prices and honours overrides
   assert.throws(() => claudeModelConfig({ ANTHROPIC_MODEL_ID: "unknown-model" }), { code: "model_or_rates_not_configured" });
 });
 
-test("web search sources: only pages the answer cites, https only, deduplicated", async () => {
+test("web search sources: only pages the answer relies on, one per site, https only", async () => {
   const { extractWebSources } = await import("../lib/server/anthropic");
-  const result = (n: number) => ({ type: "web_search_result", title: `Result ${n}`, url: `https://example.org/${n}`, page_age: null, encrypted_content: "x" });
-  const content = [
-    { type: "server_tool_use", id: "s1", name: "web_search", input: { query: "q" } },
-    { type: "web_search_tool_result", tool_use_id: "s1", content: [1, 2, 3, 4, 5, 6].map(result)
-      .concat([{ ...result(7), url: "http://insecure.example/7" }, { ...result(8), url: "javascript:alert(1)" }]) },
-    { type: "text", text: "Answer", citations: [
-      { type: "web_search_result_location", url: "https://example.org/4", title: "Result 4", cited_text: "c", encrypted_index: "i" },
-      { type: "web_search_result_location", url: "https://example.org/4", title: "Result 4", cited_text: "again", encrypted_index: "j" }] },
-  ] as never[];
-  assert.deepEqual(extractWebSources(content).map(s => s.url), ["https://example.org/4"], "only the page the answer cited, once");
-  // Pages that were only seen in search results are not listed: a link the answer does not use would mislead.
-  assert.deepEqual(extractWebSources(content.filter((block: { type: string }) => block.type !== "text")), []);
-  // Insecure and script links are dropped even when cited.
-  const unsafe = extractWebSources([{ type: "text", text: "x", citations: [
-    { type: "web_search_result_location", url: "http://insecure.example/a", title: "a", cited_text: "c", encrypted_index: "i" },
-    { type: "web_search_result_location", url: "javascript:alert(1)", title: "b", cited_text: "c", encrypted_index: "i" }] }] as never[]);
-  assert.deepEqual(unsafe, []);
-  // A failed search returns an error object instead of a list of results.
-  const failed = extractWebSources([{ type: "web_search_tool_result", tool_use_id: "s2",
-    content: { type: "web_search_tool_result_error", error_code: "unavailable" } }] as never[]);
-  assert.deepEqual(failed, []);
+  const result = (url: string, title = url) => ({ type: "web_search_result", title, url, page_age: null, encrypted_content: "x" });
+  const search = { type: "web_search_tool_result", tool_use_id: "s1", content: [
+    result("https://en.wikipedia.org/wiki/Chief_Minister_of_Tamil_Nadu", "Chief Minister of Tamil Nadu"),
+    result("https://en.wikipedia.org/wiki/Cabinet", "Cabinet"),
+    result("https://www.bernama.com/en/news?id=1", "Bernama report"),
+    result("https://www.bankbazaar.com/chief-ministers.html", "List of chief ministers"),
+    result("http://www.britannica.com/biography/x", "Insecure Britannica"),
+    result("https://www.bbc.co.uk/news/1", "BBC"),
+  ] };
+  const text = (value: string, citations: unknown[] = []) => ({ type: "text", text: value, citations });
+  const urls = (content: unknown[]) => extractWebSources(content as never[]).map(s => s.url);
+
+  // 1. Formal citations win, and each site appears once.
+  assert.deepEqual(urls([search, text("Answer", [
+    { type: "web_search_result_location", url: "https://www.bernama.com/en/news?id=1", title: "Bernama", cited_text: "c", encrypted_index: "i" },
+    { type: "web_search_result_location", url: "https://www.bernama.com/en/news?id=2", title: "Bernama 2", cited_text: "c", encrypted_index: "j" }])]),
+  ["https://www.bernama.com/en/news?id=1"]);
+  // 2. No citations: sites the answer names in words, one chip per site, linking to the page whose title
+  //    matches the answer (the Chief Minister page, not "Cabinet"), even when it is not the first result.
+  const reordered = { ...search, content: [...search.content.slice(1, 2), ...search.content.slice(0, 1), ...search.content.slice(2)] };
+  assert.deepEqual(urls([reordered, text("According to Wikipedia, the chief minister of Tamil Nadu took office in May. Bernama and the BBC agree.")]),
+    ["https://en.wikipedia.org/wiki/Chief_Minister_of_Tamil_Nadu", "https://www.bernama.com/en/news?id=1", "https://www.bbc.co.uk/news/1"]);
+  // A site with several results and no title that matches the answer gets no chip rather than a wrong page.
+  assert.deepEqual(urls([search, text("According to Wikipedia, he took office in May.")]), []);
+  // 3. Results the answer never names, and insecure links, are not listed.
+  assert.deepEqual(urls([search, text("According to Britannica, he took office in May.")]), []);
+  assert.deepEqual(urls([search, text("He took office in May.")]), []);
+  // 4. A failed search returns an error object instead of results.
+  assert.deepEqual(urls([{ type: "web_search_tool_result", tool_use_id: "s2",
+    content: { type: "web_search_tool_result_error", error_code: "unavailable" } }, text("According to Wikipedia")]), []);
+  // 5. Cited links that are not https are dropped.
+  assert.deepEqual(urls([text("x", [{ type: "web_search_result_location", url: "javascript:alert(1)", title: "b", cited_text: "c", encrypted_index: "i" }])]), []);
 });
 
 test("Claude web search is billed per search, reserved up front, and never settles above the reservation", async () => {

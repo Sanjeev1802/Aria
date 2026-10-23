@@ -44,21 +44,56 @@ const MAX_SOURCE_LINKS = 5;
 /** A server-side search loop pauses after its iteration limit; resuming costs input again, so keep it short. */
 const MAX_PAUSE_RESUMES = 2;
 
+/** "en.wikipedia.org" -> "wikipedia", "bbc.co.uk" -> "bbc": the name an answer would use for a site. */
+function siteName(host: string) {
+  const parts = host.replace(/^www\./, "").toLowerCase().split(".");
+  const generic = new Set(["co", "com", "org", "net", "gov", "edu", "ac"]);
+  let at = parts.length - 2;
+  if (parts.length >= 3 && generic.has(parts[at])) at--;
+  return parts[Math.max(at, 0)] ?? "";
+}
+
 /**
- * The pages Claude's answer actually cites, as https links, deduplicated. Pages it merely saw in
- * search results are not listed: a link the answer does not rely on would mislead the reader.
+ * The pages the answer relies on, as https links, one per site: pages Claude formally cites, or,
+ * when the API attached no citations, search results whose site the answer names in words
+ * (the prompt asks for "according to Reuters"). Results the answer never uses are not listed:
+ * a link it does not rely on would mislead the reader.
  */
 export function extractWebSources(content: readonly Anthropic.Beta.BetaContentBlock[]): WebSource[] {
   const cited: WebSource[] = [];
+  const seen: WebSource[] = [];
+  let answer = "";
   for (const block of content) {
-    if (block.type !== "text") continue;
-    for (const citation of block.citations ?? []) {
-      if (citation.type === "web_search_result_location") cited.push({ title: citation.title ?? citation.url, url: citation.url, snippet: "" });
+    if (block.type === "text") {
+      answer += `${block.text}\n`;
+      for (const citation of block.citations ?? []) {
+        if (citation.type === "web_search_result_location") cited.push({ title: citation.title ?? citation.url, url: citation.url, snippet: "" });
+      }
+    } else if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
+      for (const result of block.content) seen.push({ title: result.title, url: result.url, snippet: "" });
     }
   }
+  const host = (source: WebSource) => { try { return new URL(source.url).hostname; } catch { return ""; } };
+  const answerLower = answer.toLowerCase();
+  // How many distinctive words of the page title the answer uses: picks the page it relied on.
+  const overlap = (source: WebSource) =>
+    [...new Set(source.title.toLowerCase().match(/[a-z0-9]{4,}/g) ?? [])].filter(word => answerLower.includes(word)).length;
+  const mentioned = new Map<string, WebSource[]>();
+  for (const source of seen) {
+    const name = siteName(host(source));
+    if (name.length >= 3 && /^[a-z0-9-]+$/.test(name) && new RegExp(`\\b${name}\\b`, "i").test(answer)) {
+      mentioned.set(name, [...(mentioned.get(name) ?? []), source]);
+    }
+  }
+  const named: WebSource[] = [];
+  for (const candidates of mentioned.values()) {
+    // One result from a site: take it. Several: the best title match, or none if nothing matches the answer.
+    const best = candidates.reduce((top, next) => overlap(next) > overlap(top) ? next : top);
+    if (candidates.length === 1 || overlap(best) > 0) named.push(best);
+  }
   const unique = new Map<string, WebSource>();
-  for (const source of cited) {
-    if (/^https:\/\//i.test(source.url) && !unique.has(source.url)) unique.set(source.url, source);
+  for (const source of cited.length ? cited : named) {
+    if (/^https:\/\//i.test(source.url) && host(source) && !unique.has(host(source))) unique.set(host(source), source);
   }
   return [...unique.values()].slice(0, MAX_SOURCE_LINKS);
 }

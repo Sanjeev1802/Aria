@@ -93,8 +93,9 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
     <div className="aria-openui-chat dark h-dvh w-full">
       <AriaAuthNotice />
       {profile.session.planSwitching && !profile.session.localDev ? (
-        <div role="status" className="pointer-events-none fixed left-1/2 top-16 z-50 -translate-x-1/2 whitespace-nowrap rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-200 sm:top-2">
-          You&apos;re in development mode · plan switching on
+        <div role="status" className="pointer-events-none fixed right-16 top-[14px] z-50 whitespace-nowrap rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-200 sm:left-1/2 sm:right-auto sm:top-2 sm:-translate-x-1/2">
+          <span className="sm:hidden">Development mode</span>
+          <span className="hidden sm:inline">You&apos;re in development mode · plan switching on</span>
         </div>
       ) : null}
       {banner ? (
