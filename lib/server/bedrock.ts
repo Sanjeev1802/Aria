@@ -8,6 +8,16 @@ import { ServiceError } from "./errors";
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || "us-east-1", maxAttempts: 1 });
 /** Ceiling for any plan; each plan may cap lower (see PLANS). */
 export const MAX_OUTPUT_TOKENS = 4096;
+/**
+ * Operator override for accounts with small Bedrock quotas. Bedrock may hold
+ * input + maxTokens against token quotas when a request starts, so a lower
+ * ceiling stretches a daily quota further. Plans can still cap lower.
+ */
+export function configuredMaxOutputTokens(env: Record<string, string | undefined> = process.env) {
+  const value = Number(env.ARIA_MAX_OUTPUT_TOKENS);
+  return Number.isInteger(value) && value >= 256 && value <= MAX_OUTPUT_TOKENS ? value : MAX_OUTPUT_TOKENS;
+}
+
 /** Low temperature keeps analysis steady; topP trims unlikely tokens without flattening prose. */
 const INFERENCE = { temperature: 0.3, topP: 0.9 };
 

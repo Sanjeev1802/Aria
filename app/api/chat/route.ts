@@ -1,4 +1,4 @@
-import { modelConfig, streamBedrock, MAX_OUTPUT_TOKENS } from "@/lib/server/bedrock";
+import { configuredMaxOutputTokens, modelConfig, streamBedrock } from "@/lib/server/bedrock";
 import { localTestModelConfig, streamFakeModel } from "@/lib/server/fake-model";
 import { chatHandler, run } from "@/lib/server/handlers";
 import { readConfig } from "@/lib/server/services";
@@ -13,7 +13,7 @@ export function POST(request: Request) {
   const config = readConfig();
   const deps = config.localIdentity
     ? { provider: streamFakeModel, modelConfig: localTestModelConfig, maxOutputTokens: 512 }
-    : { provider: streamBedrock, modelConfig, maxOutputTokens: MAX_OUTPUT_TOKENS };
+    : { provider: streamBedrock, modelConfig, maxOutputTokens: configuredMaxOutputTokens() };
   const publicSearch = config.searxngUrl ? createSearxngSearch(config.searxngUrl) : undefined;
   let searchWeb = publicSearch;
   if (publicSearch && config.elasticacheUrl) {

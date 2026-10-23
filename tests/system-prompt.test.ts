@@ -37,3 +37,12 @@ test("user-editable names cannot break out of the context line", () => {
   assert.doesNotMatch(user, /#/);
   assert.match(user, /workspace "Acme x+…"/, "the name's own quote is stripped; only the wrapper quotes remain");
 });
+
+test("operators can lower the answer ceiling, but not raise it past the hard limit", async () => {
+  const { MAX_OUTPUT_TOKENS, configuredMaxOutputTokens } = await import("../lib/server/bedrock");
+  assert.equal(configuredMaxOutputTokens({}), MAX_OUTPUT_TOKENS);
+  assert.equal(configuredMaxOutputTokens({ ARIA_MAX_OUTPUT_TOKENS: "1024" }), 1024);
+  for (const bad of ["99999", "100", "abc", "1024.5"]) {
+    assert.equal(configuredMaxOutputTokens({ ARIA_MAX_OUTPUT_TOKENS: bad }), MAX_OUTPUT_TOKENS, bad);
+  }
+});
