@@ -79,6 +79,7 @@ export function chatHandler(deps: ChatDeps) {
       modelId: model.id, rates: model.rates, provider: deps.provider, signal: request.signal,
       maxOutputTokens: Math.min(deps.maxOutputTokens, ctx.plan.maxOutputTokens),
       webSearch: body.webSearch ? deps.searchWeb : undefined,
+      webSearchAvailable: Boolean(s.config.searxngUrl && deps.searchWeb),
       session: { userName: ctx.user.name, workspaceName: ctx.workspace.name, planLabel: ctx.plan.label, role: ctx.membership.role },
       onComplete,
     });

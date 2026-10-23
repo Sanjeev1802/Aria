@@ -25,13 +25,15 @@ export async function createChatResponse(input: ChatInput, options: {
   ledger: CreditLedger; account: Account; modelId: string; rates: Rates;
   provider: StreamProvider; signal: AbortSignal; maxOutputTokens: number;
   webSearch?: WebSearchProvider;
+  /** True when a search backend is configured, even if this message did not turn it on. */
+  webSearchAvailable?: boolean;
   session?: PromptSession;
   onComplete?: (text: string) => Promise<void>;
 }): Promise<Response> {
   const { ledger, account, modelId, rates } = options;
   const workspaceId = account.workspaceId;
   const hash = createHash("sha256").update(JSON.stringify({ input, modelId, rates, prompt: PROMPT_VERSION, webSearch: Boolean(options.webSearch) })).digest("hex");
-  const runtime = runtimeContext({ now: new Date(), session: options.session, webSearch: Boolean(options.webSearch),
+  const runtime = runtimeContext({ now: new Date(), session: options.session, webSearch: Boolean(options.webSearch), webSearchAvailable: options.webSearchAvailable,
     maxOutputTokens: options.maxOutputTokens });
   const inputBound = (Buffer.byteLength(JSON.stringify(input.messages) + ARIA_SYSTEM_PROMPT + runtime, "utf8") +
     (options.webSearch ? MAX_WEB_CONTEXT_BYTES : 0)) * 2 + 2048;

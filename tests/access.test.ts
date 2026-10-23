@@ -79,6 +79,27 @@ test("development stage lets owners switch plans; without the switch it stays bi
   assert.equal(crossSite.status, 403, "still same-origin only");
 });
 
+test("chat tells the model whether the Web search button exists in this deployment", async () => {
+  const contexts: string[] = [];
+  const capture: StreamProvider = async function* (_input, _model, _signal, req) {
+    contexts.push(req.runtimeContext);
+    yield { text: "ok" };
+    yield { usage: { inputTokens: 40, outputTokens: 5 } };
+  };
+  const send = async (services: Services, handler: ReturnType<typeof chatHandler>, runId: string) => {
+    const w = tokensFor("alice");
+    const sent = await call(services, handler, request("/api/chat/", { tokens: w, body: chatBody(runId) }));
+    assert.equal(sent.status, 200);
+    await sent.response.text();
+  };
+  const modelConfig = (m: string) => ({ id: `${m}-test`, rates });
+  await send(testServices(), chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256 }), "run_nosearch_1");
+  await send(testServices({ searxngUrl: "http://search.internal" }),
+    chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256, searchWeb: async () => [] }), "run_search_avail_1");
+  assert.match(contexts[0], /Public web search: not available in this deployment/);
+  assert.match(contexts[1], /web search for this message: off \(the user can turn on the Web search button/);
+});
+
 async function inviteAndJoin(w: Awaited<ReturnType<typeof world>>, sub: string) {
   const invite = await call(w.s, membersPostHandler, request("/api/workspace/members/", { tokens: w.alice, body: { email: `${sub}@example.com` } }));
   assert.equal(invite.status, 201);
