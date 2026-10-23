@@ -14,12 +14,9 @@ import { getAriaPricingPlan, type AriaPlanId } from "@/lib/aria-current-plan";
 import { AriaWorkspaceSwitcher } from "@/components/account/aria-workspace-switcher";
 import { ARIA_IS_PREVIEW, ariaFetch, refreshAriaSession, useAriaProfile } from "@/lib/aria-session";
 import { avatarFromFile } from "@/lib/aria-profile-image";
-import {
-  loadAriaSidebarCredits,
-  type AriaSidebarCreditsSnapshot,
-} from "@/lib/aria-sidebar-credits-storage";
+import { loadAriaSidebarCredits } from "@/lib/aria-sidebar-credits-storage";
 import { Info, Sparkles, UserRound, Users } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -45,8 +42,6 @@ export function SettingsModalAccountPanel() {
   const fileInput = useRef<HTMLInputElement>(null);
   const initials = initialsFromName(name);
   const shownAvatar = draftAvatar === undefined ? avatar : draftAvatar ?? "";
-
-  useEffect(() => { if (!editing) setDraftName(name); }, [editing, name]);
 
   const cancel = () => {
     setEditing(false);
@@ -93,7 +88,7 @@ export function SettingsModalAccountPanel() {
               <p className="text-sm text-muted-foreground">@{handle}</p>
             </div>
             {!editing && !ARIA_IS_PREVIEW ? <Button type="button" variant="outline" size="sm" onClick={() => {
-              setError(""); setNotice(""); setEditing(true);
+              setError(""); setNotice(""); setDraftName(name); setEditing(true);
             }}>Edit profile</Button> : null}
           </div>
           {editing ? <div className="mt-5 space-y-4 border-t border-border/70 pt-5">
@@ -169,17 +164,15 @@ function BillingPlanIcon({ planId }: { planId: AriaPlanId | string }) {
   return <Icon className="aria-billing__icon" size={26} strokeWidth={1.5} aria-hidden />;
 }
 
+function subscribeToCredits(onChange: () => void) {
+  window.addEventListener("aria:credits-updated", onChange);
+  return () => window.removeEventListener("aria:credits-updated", onChange);
+}
+
 export function SettingsModalBillingPanel() {
   const { session } = useAriaProfile();
   const plan = getAriaPricingPlan(session.workspace?.plan);
-  const [credits, setCredits] = useState<AriaSidebarCreditsSnapshot>(() => loadAriaSidebarCredits());
-
-  useEffect(() => {
-    setCredits(loadAriaSidebarCredits());
-    const onUsage = () => setCredits(loadAriaSidebarCredits());
-    window.addEventListener("aria:credits-updated", onUsage);
-    return () => window.removeEventListener("aria:credits-updated", onUsage);
-  }, []);
+  const credits = useSyncExternalStore(subscribeToCredits, loadAriaSidebarCredits, loadAriaSidebarCredits);
 
   const { used, included } = credits;
   const remaining = Math.max(0, included - used);

@@ -249,10 +249,10 @@ export function ApiIllustration() {
             </div>
             <pre aria-label="Illustrative TypeScript SDK example"><code>
               <span className="pa-k">const</span> response = <span className="pa-k">await</span> aria.responses.<span className="pa-fn">create</span>{"({\n"}
-              {"  "}mode: <span className="pa-s">"intelligence"</span>,{"\n"}
+              {"  "}mode: <span className="pa-s">{"\"intelligence\""}</span>,{"\n"}
               {"  "}messages: [{"{\n"}
-              {"    "}role: <span className="pa-s">"user"</span>,{"\n"}
-              {"    "}content: <span className="pa-s">"What should we explore next?"</span>{"\n"}
+              {"    "}role: <span className="pa-s">{"\"user\""}</span>,{"\n"}
+              {"    "}content: <span className="pa-s">{"\"What should we explore next?\""}</span>{"\n"}
               {"  }"}],{"\n"}
               {"  "}stream: <span className="pa-k">true</span>{"\n"}
               {"});"}

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUp, Github, Linkedin } from "lucide-react";
+import Link from "next/link";
 import { AriaMark } from "@/components/aria-mark";
 
 type Props = {
@@ -18,10 +19,10 @@ export function AriaSiteFooter({ onBriefing }: Props) {
       <div className="aria-footer-inner">
         <div className="aria-footer-main">
           <div className="aria-footer-brand">
-            <a className="aria-footer-logo" href="/" aria-label="ARIA home">
+            <Link className="aria-footer-logo" href="/" aria-label="ARIA home">
               <AriaMark />
               <span>ARIA</span>
-            </a>
+            </Link>
             <p className="aria-footer-tagline">Think once. Know more.</p>
             <p className="aria-footer-blurb">
               Intelligence for teams who need trusted models, approved context, and one continuous thread
@@ -49,15 +50,15 @@ export function AriaSiteFooter({ onBriefing }: Props) {
             </div>
             <div className="aria-footer-col">
               <p className="aria-footer-col-title">Product</p>
-              <a href="/chat/">Workspace</a>
-              <a href="/#features">Features</a>
-              <a href="/#pricing">Pricing</a>
-              <a href="/#faq">FAQ</a>
+              <Link href="/chat/">Workspace</Link>
+              <Link href="/#features">Features</Link>
+              <Link href="/#pricing">Pricing</Link>
+              <Link href="/#faq">FAQ</Link>
             </div>
             <div className="aria-footer-col">
               <p className="aria-footer-col-title">Legal</p>
-              <a href="/terms/">Terms of Service</a>
-              <a href="/privacy/">Privacy Policy</a>
+              <Link href="/terms/">Terms of Service</Link>
+              <Link href="/privacy/">Privacy Policy</Link>
             </div>
           </nav>
         </div>

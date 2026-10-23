@@ -143,16 +143,10 @@ export function SettingsModalTeamPanel() {
   const [savingLimitId, setSavingLimitId] = useState<string | null>(null);
   const [limitError, setLimitError] = useState<{ id: string; message: string } | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (ARIA_IS_PREVIEW) { setWorkspace(previewTeamWorkspace()); setLoadError(null); return; }
-    try {
-      setWorkspace(await fetchAriaTeam());
-      setLoadError(null);
-    } catch (error) {
-      setWorkspace(null);
-      setLoadError((error as Error).message);
-    }
-  }, []);
+  const refresh = useCallback(() => (ARIA_IS_PREVIEW ? Promise.resolve(previewTeamWorkspace()) : fetchAriaTeam()).then(
+    next => { setWorkspace(next); setLoadError(null); },
+    (error: Error) => { setWorkspace(null); setLoadError(error.message); },
+  ), []);
 
   useEffect(() => {
     void refresh();

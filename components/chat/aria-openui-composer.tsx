@@ -37,6 +37,7 @@ export function AriaOpenUIComposer({
   const [webSearch, setWebSearch] = useState(false);
   const session = useAriaSession();
   const webSearchAvailable = Boolean(session.webSearchAvailable);
+  const webSearchOn = webSearchAvailable && webSearch;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,10 +61,6 @@ export function AriaOpenUIComposer({
     ? "openui-agent-desktop-welcome-composer__submit-button"
     : "openui-agent-thread-composer__submit-button";
 
-  useEffect(() => {
-    if (!webSearchAvailable && webSearch) { setWebSearch(false); selectAriaWebSearch(false); }
-  }, [webSearchAvailable, webSearch]);
-
   const canSend = Boolean(textContent.trim() || attachments.length) && !isRunning && !isLoadingMessages;
 
   const handleSubmit = useCallback(() => {
@@ -73,12 +70,12 @@ export function AriaOpenUIComposer({
     }
     const content = buildMessageContent(textContent, attachments);
     if (!content || isLoadingMessages) return;
-    selectAriaWebSearch(webSearchAvailable && webSearch);
+    selectAriaWebSearch(webSearchOn);
     processMessage({ role: "user", content });
     setTextContent("");
     setAttachments([]);
     setUploadError(null);
-  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent, webSearch, webSearchAvailable]);
+  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent, webSearchOn]);
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -87,11 +84,13 @@ export function AriaOpenUIComposer({
     input.style.height = `${Math.max(input.scrollHeight, 32)}px`;
   }, [textContent]);
 
-  useLayoutEffect(() => {
+  const [seenThreadId, setSeenThreadId] = useState(selectedThreadId);
+  if (selectedThreadId !== seenThreadId) {
+    setSeenThreadId(selectedThreadId);
     setTextContent("");
     setAttachments([]);
     setUploadError(null);
-  }, [selectedThreadId]);
+  }
 
   useEffect(() => {
     if (!isWelcome) return;
@@ -100,6 +99,8 @@ export function AriaOpenUIComposer({
       ? ""
       : new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
     const draft = fromLanding || fromQuery;
+    // takeLandingDraft consumes sessionStorage once, so it cannot run during render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (draft) setTextContent(draft);
   }, [isWelcome]);
 
@@ -143,11 +144,11 @@ export function AriaOpenUIComposer({
 
       {webSearchAvailable ? (
         <div className="aria-openui-composer-tools">
-          <button type="button" aria-pressed={webSearch}
-            className={cn("aria-openui-web-search-toggle", webSearch && "aria-openui-web-search-toggle--active")}
+          <button type="button" aria-pressed={webSearchOn}
+            className={cn("aria-openui-web-search-toggle", webSearchOn && "aria-openui-web-search-toggle--active")}
             title="Search the public web. Your question is sent to the configured search service; do not include private information."
             disabled={isRunning}
-            onClick={() => setWebSearch(value => !value)}>
+            onClick={() => setWebSearch(!webSearchOn)}>
             <Globe2 size={14} aria-hidden /> Web search
           </button>
         </div>

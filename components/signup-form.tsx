@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react"
+import { useRef, useState, type ComponentProps, type FormEvent } from "react"
 import { AriaMark } from "@/components/aria-mark"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
 import { safeNextPath } from "@/lib/auth/safe-next-path"
+import { useClientValue } from "@/hooks/use-client-value"
 import { ARIA_IS_PREVIEW, ariaConfirmSignUp, ariaResendCode, ariaSignIn, ariaSignUp } from "@/lib/aria-session"
 import { cn } from "cn"
 
@@ -51,11 +52,7 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
   const [awaitingCode, setAwaitingCode] = useState(false)
   const [code, setCode] = useState("")
   const [notice, setNotice] = useState<string | null>(null)
-  const [nextPath, setNextPath] = useState("/chat/")
-
-  useEffect(() => {
-    setNextPath(destinationFromQuery())
-  }, [])
+  const nextPath = useClientValue(destinationFromQuery, "/chat/")
 
   function fail(message: string) {
     setErrorText(message)

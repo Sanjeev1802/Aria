@@ -47,22 +47,21 @@ export function AriaOpenUIChat(props: AriaOpenUIChatProps = {}) {
 
 function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   const llm = useMemo(() => getAriaChatLLM(), []);
-  const { activeProjectRef } = useAriaProjects();
-  const threadStorage = useMemo(() => createAriaThreadStorage(() => activeProjectRef.current), [activeProjectRef]);
+  const { getActiveProjectId } = useAriaProjects();
+  const threadStorage = useMemo(() => createAriaThreadStorage(getActiveProjectId), [getActiveProjectId]);
   const router = useRouter();
   const profile = useAriaProfile();
   const sessionStatus = profile.session.status;
   const [navPath, setNavPath] = useState<string | undefined>(() => initialPath);
+  const [seenInitialPath, setSeenInitialPath] = useState(initialPath);
+  if (initialPath !== seenInitialPath) {
+    setSeenInitialPath(initialPath);
+    if (initialPath !== undefined) setNavPath(initialPath);
+  }
 
   const onNavigate = useCallback((next: string | undefined) => {
     setNavPath(next);
   }, []);
-
-  useEffect(() => {
-    if (initialPath !== undefined) {
-      setNavPath(initialPath);
-    }
-  }, [initialPath]);
 
   useEffect(() => watchAndRemoveOpenUIDevtools(), []);
 

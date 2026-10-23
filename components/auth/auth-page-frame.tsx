@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { type ReactNode } from "react"
 import { ShaderBackground } from "@/components/ui/kim"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { useClientValue } from "@/hooks/use-client-value"
 
 export function AuthPageFrame({
   children,
@@ -11,12 +12,8 @@ export function AuthPageFrame({
   children: ReactNode
   maxWidthClass?: string
 }) {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useClientValue(() => true, false)
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)")
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   return (
     <div className="dark relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-background p-6 text-foreground scheme-dark md:p-10">
