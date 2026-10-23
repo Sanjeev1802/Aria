@@ -1,6 +1,6 @@
-# ARIA system prompt — `aria-2026-10-23.1`
+# ARIA system prompt — `aria-2026-10-23.2`
 
-**Status:** implemented in `lib/server/system-prompt.ts` (prompt and `runtimeContext`), `lib/server/bedrock.ts` (inference settings), and `PLANS.maxOutputTokens` (Free 2,048 tokens; Pro and Team 4,096). Staging evaluation is still to do; see `PROMPT_EVALUATION.md`.
+**Status:** implemented (`.2` names the answering model per provider, for Claude with Nova fallback) in `lib/server/system-prompt.ts` (prompt and `runtimeContext`), `lib/server/bedrock.ts` (inference settings), and `PLANS.maxOutputTokens` (Free 2,048 tokens; Pro and Team 4,096). Staging evaluation is still to do; see `PROMPT_EVALUATION.md`.
 
 Replaces `aria-2026-10-20.3` in `lib/server/system-prompt.ts`. The trust, privacy, and evidence rules carry over unchanged in substance; what is new is **how ARIA shapes an answer**, plus a small per-request context block and inference settings that let the model actually produce decision-grade output.
 

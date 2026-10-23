@@ -15,8 +15,11 @@ export type ProviderRequest = {
   maxOutputTokens: number;
 };
 
+/** Set on the usage event when a different model than the one reserved for answered (provider fallback). */
+export type ServedBy = { modelId: string; rates: Rates };
+
 export type StreamProvider = (input: ChatInput, model: string, signal: AbortSignal, request: ProviderRequest) =>
-  AsyncIterable<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence" }>;
+  AsyncIterable<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence"; servedBy?: ServedBy }>;
 
 export async function createChatResponse(input: ChatInput, options: {
   ledger: CreditLedger; account: Account; modelId: string; rates: Rates;
@@ -64,6 +67,7 @@ export async function createChatResponse(input: ChatInput, options: {
       let text = "";
       let usage: Usage | undefined;
       let finishReason: "end_turn" | "max_tokens" | "stop_sequence" | undefined;
+      let servedBy: ServedBy | undefined;
       try {
         const results = options.webSearch ? await options.webSearch(searchQuery(input.messages.at(-1)!.content[0].text), signal) : [];
         const { context, sources } = boundedWebContext(results);
@@ -77,7 +81,7 @@ export async function createChatResponse(input: ChatInput, options: {
             text += event.text;
             if (text.length > 100_000) throw new Error("Output limit exceeded");
             content(JSON.stringify(event.text).slice(1, -1));
-          } else { usage = event.usage; finishReason = event.finishReason; }
+          } else { usage = event.usage; finishReason = event.finishReason; servedBy = event.servedBy; }
         }
         signal.throwIfAborted();
         if (!usage || !text.trim()) throw new Error("Response or usage missing");
@@ -98,7 +102,7 @@ export async function createChatResponse(input: ChatInput, options: {
         if (!cancelled) controller.close();
         return;
       }
-      const settlement = { charged: chargeUnits(usage, rates), inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, response: text };
+      const settlement = { charged: chargeUnits(usage, servedBy?.rates ?? rates), inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, response: text };
       if (!await settleWithRetry(ledger, workspaceId, input.id, settlement)) {
         // The answer was delivered; leave the hold for reconciliation rather than releasing it for free.
         logLedgerIssue("settlement_deferred", account, input.id);

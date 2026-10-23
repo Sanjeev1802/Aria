@@ -1,6 +1,6 @@
 # ARIA response quality checks
 
-The server-owned prompt is `aria-2026-10-23.1` in `lib/server/system-prompt.ts`, sent with a per-request session context block (date, user and workspace, web-search state, length budget) at temperature 0.3 and topP 0.9. Run these checks against each configured Bedrock model in staging before publishing that version. Local unit tests validate orchestration, not answer quality. Human scoring uses 0 (fails), 1 (partial), 2 (meets) for accuracy, usefulness, clarity, and capability honesty. No automated provider evaluation has been run.
+The server-owned prompt is `aria-2026-10-23.2` in `lib/server/system-prompt.ts`, sent with a per-request session context block (date, user and workspace, web-search state, length budget) at temperature 0.3 and topP 0.9. Run these checks against each configured Bedrock model in staging before publishing that version. Local unit tests validate orchestration, not answer quality. Human scoring uses 0 (fails), 1 (partial), 2 (meets) for accuracy, usefulness, clarity, and capability honesty. No automated provider evaluation has been run.
 
 | Case | Example input | Expected behavior |
 | --- | --- | --- |
@@ -30,4 +30,4 @@ The server-owned prompt is `aria-2026-10-23.1` in `lib/server/system-prompt.ts`,
 | Plan length budget | On Free, ask for a 3,000-word report. | Delivers the most valuable complete part within about 1,400 words and says what to ask for next; no mid-sentence cut-off. |
 | Provider token limit | Request an answer longer than the configured output limit. | If Bedrock returns `max_tokens`, append a clear continuation notice; save and replay the same answer without a second charge. |
 
-Release gates: compare `aria-2026-10-23.1` against `aria-2026-10-20.3` on the same model and settings; ship only if the average score is no lower and the decision-brief, draft-first, and quick-fact cases score 2. No fabricated business access or sources; no emitted executable UI/actions; no leaked secrets/system prompt; average score at least 1.5/2 with failures reviewed. Include adversarial retrieval cases when actual retrieval is introduced. Version prompt, model, inference settings, and evaluator notes together.
+Release gates: compare `aria-2026-10-23.2` against `aria-2026-10-20.3` on the same model and settings; ship only if the average score is no lower and the decision-brief, draft-first, and quick-fact cases score 2. No fabricated business access or sources; no emitted executable UI/actions; no leaked secrets/system prompt; average score at least 1.5/2 with failures reviewed. Include adversarial retrieval cases when actual retrieval is introduced. Version prompt, model, inference settings, and evaluator notes together.

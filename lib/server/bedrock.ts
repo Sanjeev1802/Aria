@@ -1,5 +1,5 @@
 import { BedrockRuntimeClient, ConverseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
-import { ARIA_SYSTEM_PROMPT } from "./system-prompt";
+import { ARIA_SYSTEM_PROMPT, withModelLine } from "./system-prompt";
 import type { ChatInput } from "./chat-input";
 import type { ProviderRequest } from "./chat-service";
 import type { Rates, Usage } from "./metering";
@@ -40,7 +40,7 @@ AsyncGenerator<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "m
     : message) : input.messages;
   const result = await client.send(new ConverseStreamCommand({
     modelId,
-    system: [{ text: ARIA_SYSTEM_PROMPT }, { text: request.runtimeContext }],
+    system: [{ text: ARIA_SYSTEM_PROMPT }, { text: withModelLine(request.runtimeContext, `Amazon Nova (${modelId}) on Amazon Bedrock`) }],
     messages,
     inferenceConfig: { maxTokens: request.maxOutputTokens, ...INFERENCE },
   }), { abortSignal: signal });
