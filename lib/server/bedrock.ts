@@ -1,11 +1,15 @@
 import { BedrockRuntimeClient, ConverseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
 import { ARIA_SYSTEM_PROMPT } from "./system-prompt";
 import type { ChatInput } from "./chat-input";
+import type { ProviderRequest } from "./chat-service";
 import type { Rates, Usage } from "./metering";
 import { ServiceError } from "./errors";
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || "us-east-1", maxAttempts: 1 });
-export const MAX_OUTPUT_TOKENS = 1024;
+/** Ceiling for any plan; each plan may cap lower (see PLANS). */
+export const MAX_OUTPUT_TOKENS = 4096;
+/** Low temperature keeps analysis steady; topP trims unlikely tokens without flattening prose. */
+const INFERENCE = { temperature: 0.3, topP: 0.9 };
 
 export function modelConfig(_model: ChatInput["model"]) {
   const id = process.env.ARIA_NOVA_MODEL_ID;
@@ -18,16 +22,17 @@ export function modelConfig(_model: ChatInput["model"]) {
   return { id, rates: { input, output, version } satisfies Rates };
 }
 
-export async function* streamBedrock(input: ChatInput, modelId: string, signal: AbortSignal, context?: string):
+export async function* streamBedrock(input: ChatInput, modelId: string, signal: AbortSignal, request: ProviderRequest):
 AsyncGenerator<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence" }> {
-  const messages = context ? input.messages.map((message, index) => index === input.messages.length - 1
-    ? { ...message, content: [...message.content, { text: `\n\n${context}` }] }
+  const { webContext } = request;
+  const messages = webContext ? input.messages.map((message, index) => index === input.messages.length - 1
+    ? { ...message, content: [...message.content, { text: `\n\n${webContext}` }] }
     : message) : input.messages;
   const result = await client.send(new ConverseStreamCommand({
     modelId,
-    system: [{ text: ARIA_SYSTEM_PROMPT }],
+    system: [{ text: ARIA_SYSTEM_PROMPT }, { text: request.runtimeContext }],
     messages,
-    inferenceConfig: { maxTokens: MAX_OUTPUT_TOKENS },
+    inferenceConfig: { maxTokens: request.maxOutputTokens, ...INFERENCE },
   }), { abortSignal: signal });
   if (!result.stream) throw new Error("Missing provider stream");
   let stopped = false;

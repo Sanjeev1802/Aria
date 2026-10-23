@@ -76,8 +76,10 @@ export function chatHandler(deps: ChatDeps) {
     await s.ledger.ensurePeriodGrant(ctx.workspace.id, ctx.workspace.plan);
     return createChatResponse(input, {
       ledger: s.ledger, account: { workspaceId: ctx.workspace.id, memberId: ctx.user.id, plan: ctx.workspace.plan },
-      modelId: model.id, rates: model.rates, provider: deps.provider, signal: request.signal, maxOutputTokens: deps.maxOutputTokens,
+      modelId: model.id, rates: model.rates, provider: deps.provider, signal: request.signal,
+      maxOutputTokens: Math.min(deps.maxOutputTokens, ctx.plan.maxOutputTokens),
       webSearch: body.webSearch ? deps.searchWeb : undefined,
+      session: { userName: ctx.user.name, workspaceName: ctx.workspace.name, planLabel: ctx.plan.label, role: ctx.membership.role },
       onComplete,
     });
   };

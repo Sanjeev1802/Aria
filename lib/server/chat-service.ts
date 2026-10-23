@@ -1,24 +1,36 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { ChatInput } from "./chat-input";
-import { ARIA_SYSTEM_PROMPT, PROMPT_VERSION } from "./system-prompt";
+import { ARIA_SYSTEM_PROMPT, PROMPT_VERSION, runtimeContext, type PromptSession } from "./system-prompt";
 import { chargeUnits, type Rates, type Usage } from "./metering";
 import { ServiceError } from "./errors";
 import type { Account, CreditLedger } from "./accounting/credit-ledger";
 import { MAX_WEB_CONTEXT_BYTES, WebSearchError, boundedWebContext, searchQuery, webSourceLinks, type WebSearchProvider } from "./web-search";
 
-export type StreamProvider = (input: ChatInput, model: string, signal: AbortSignal, context?: string) =>
+/** What the server adds to a model call beyond the conversation itself. */
+export type ProviderRequest = {
+  /** Second system block: date, who is asking, web-search state, and length budget. */
+  runtimeContext: string;
+  /** Untrusted numbered web excerpts, appended to the last user turn. */
+  webContext?: string;
+  maxOutputTokens: number;
+};
+
+export type StreamProvider = (input: ChatInput, model: string, signal: AbortSignal, request: ProviderRequest) =>
   AsyncIterable<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence" }>;
 
 export async function createChatResponse(input: ChatInput, options: {
   ledger: CreditLedger; account: Account; modelId: string; rates: Rates;
   provider: StreamProvider; signal: AbortSignal; maxOutputTokens: number;
   webSearch?: WebSearchProvider;
+  session?: PromptSession;
   onComplete?: (text: string) => Promise<void>;
 }): Promise<Response> {
   const { ledger, account, modelId, rates } = options;
   const workspaceId = account.workspaceId;
   const hash = createHash("sha256").update(JSON.stringify({ input, modelId, rates, prompt: PROMPT_VERSION, webSearch: Boolean(options.webSearch) })).digest("hex");
-  const inputBound = (Buffer.byteLength(JSON.stringify(input.messages) + ARIA_SYSTEM_PROMPT, "utf8") +
+  const runtime = runtimeContext({ now: new Date(), session: options.session, webSearch: Boolean(options.webSearch),
+    maxOutputTokens: options.maxOutputTokens });
+  const inputBound = (Buffer.byteLength(JSON.stringify(input.messages) + ARIA_SYSTEM_PROMPT + runtime, "utf8") +
     (options.webSearch ? MAX_WEB_CONTEXT_BYTES : 0)) * 2 + 2048;
   const units = chargeUnits({ inputTokens: inputBound, outputTokens: options.maxOutputTokens }, rates);
   const existing = await ledger.reserve(account, { id: input.id, hash, units, model: modelId, rateVersion: rates.version });
@@ -57,7 +69,9 @@ export async function createChatResponse(input: ChatInput, options: {
         const { context, sources } = boundedWebContext(results);
         if (options.webSearch && sources.length === 0) throw new WebSearchError("No public web results were found. No credits were charged. Try a different question or turn Web search off.");
         await ledger.markProviderStarted(workspaceId, input.id);
-        for await (const event of options.provider(input, modelId, signal, sources.length ? context : undefined)) {
+        for await (const event of options.provider(input, modelId, signal, {
+          runtimeContext: runtime, webContext: sources.length ? context : undefined, maxOutputTokens: options.maxOutputTokens,
+        })) {
           signal.throwIfAborted();
           if ("text" in event) {
             text += event.text;

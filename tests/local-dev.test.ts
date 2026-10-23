@@ -267,7 +267,8 @@ test("deterministic fake model usage is stable", async () => {
   const collect = async () => {
     const chunks: string[] = [];
     let usage: { inputTokens: number; outputTokens: number } | undefined;
-    for await (const event of streamFakeModel(input, "aria/local-test-nova", new AbortController().signal)) {
+    for await (const event of streamFakeModel(input, "aria/local-test-nova", new AbortController().signal,
+      { runtimeContext: "# Session context", maxOutputTokens: 512 })) {
       if ("text" in event) chunks.push(event.text);
       else usage = event.usage;
     }

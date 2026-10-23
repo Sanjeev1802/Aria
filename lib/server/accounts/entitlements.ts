@@ -13,13 +13,15 @@ export type Entitlement = {
   models: readonly ModelChoice[];
   apiAccess: boolean;
   teamManagement: boolean;
+  /** Longest single answer; Free stays lower so one reservation never blocks a small balance. */
+  maxOutputTokens: number;
 };
 
 /** Server-owned plan rules. Browser plan labels are display only. */
 export const PLANS: Record<PlanId, Entitlement> = {
-  free: { id: "free", label: "Free", monthlyUnits: 200_000, seats: 1, models: ["nova"], apiAccess: false, teamManagement: false },
-  pro: { id: "pro", label: "Pro", monthlyUnits: 6_000_000, seats: 1, models: ["nova"], apiAccess: true, teamManagement: false },
-  team: { id: "team", label: "Team", monthlyUnits: 20_000_000, seats: 5, models: ["nova"], apiAccess: true, teamManagement: true },
+  free: { id: "free", label: "Free", monthlyUnits: 200_000, seats: 1, models: ["nova"], apiAccess: false, teamManagement: false, maxOutputTokens: 2048 },
+  pro: { id: "pro", label: "Pro", monthlyUnits: 6_000_000, seats: 1, models: ["nova"], apiAccess: true, teamManagement: false, maxOutputTokens: 4096 },
+  team: { id: "team", label: "Team", monthlyUnits: 20_000_000, seats: 5, models: ["nova"], apiAccess: true, teamManagement: true, maxOutputTokens: 4096 },
 };
 
 export function isPlanId(value: unknown): value is PlanId {

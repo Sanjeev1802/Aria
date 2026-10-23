@@ -38,6 +38,27 @@ async function world() {
   return { s, alice, bob, teamWs, bobWs: bobSession.body!.workspace.id as string };
 }
 
+test("chat sends the session context and caps answer length by plan", async () => {
+  const w = await world();
+  const seen: { runtimeContext: string; maxOutputTokens: number }[] = [];
+  const capture: StreamProvider = async function* (_input, _model, _signal, req) {
+    seen.push({ runtimeContext: req.runtimeContext, maxOutputTokens: req.maxOutputTokens });
+    yield { text: "Hello" };
+    yield { usage: { inputTokens: 40, outputTokens: 10 } };
+  };
+  const handler = chatHandler({ provider: capture, modelConfig: m => ({ id: `${m}-test`, rates }), maxOutputTokens: 4096 });
+  for (const [tokens, runId] of [[w.alice, "run_ctx_team"], [w.bob, "run_ctx_free"]] as const) {
+    const sent = await call(w.s, handler, request("/api/chat/", { tokens, body: chatBody(runId) }));
+    assert.equal(sent.status, 200);
+    await sent.response.text();
+  }
+  assert.equal(seen[0].maxOutputTokens, 4096, "Team gets the full ceiling");
+  assert.match(seen[0].runtimeContext, /Team plan, role: owner/);
+  assert.equal(seen[1].maxOutputTokens, 2048, "Free is capped lower");
+  assert.match(seen[1].runtimeContext, /Free plan/);
+  assert.match(seen[1].runtimeContext, /Today's date: \d{4}-\d{2}-\d{2}/);
+});
+
 async function inviteAndJoin(w: Awaited<ReturnType<typeof world>>, sub: string) {
   const invite = await call(w.s, membersPostHandler, request("/api/workspace/members/", { tokens: w.alice, body: { email: `${sub}@example.com` } }));
   assert.equal(invite.status, 201);

@@ -167,7 +167,7 @@ test("web search supplies bounded excerpts and saves clickable source links with
     assert.equal(query, "Hello");
     return [{ title: "Example report", url: "https://example.org/report", snippet: "Published findings" }];
   };
-  const provider: StreamProvider = async function* (_input, _model, _signal, webContext) {
+  const provider: StreamProvider = async function* (_input, _model, _signal, { webContext }) {
     context = webContext ?? "";
     yield { text: "The report says this [1]." };
     yield { usage: { inputTokens: 120, outputTokens: 12 } };
