@@ -13,7 +13,7 @@ function hasAriaSession(request: NextRequest) {
   );
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (process.env.NEXT_PUBLIC_ARIA_PREVIEW === "true") return NextResponse.next();
   if (!isWorkspacePath(request.nextUrl.pathname)) return NextResponse.next();
   if (hasAriaSession(request)) return NextResponse.next();
