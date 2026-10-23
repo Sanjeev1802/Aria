@@ -79,25 +79,39 @@ test("development stage lets owners switch plans; without the switch it stays bi
   assert.equal(crossSite.status, 403, "still same-origin only");
 });
 
-test("chat tells the model whether the Web search button exists in this deployment", async () => {
-  const contexts: string[] = [];
+test("Claude searches on its own when the server allows it; nothing is offered when it cannot", async () => {
+  const seen: { tool?: { maxUses: number }; context: string }[] = [];
   const capture: StreamProvider = async function* (_input, _model, _signal, req) {
-    contexts.push(req.runtimeContext);
+    seen.push({ tool: req.webSearchTool, context: req.runtimeContext });
     yield { text: "ok" };
     yield { usage: { inputTokens: 40, outputTokens: 5 } };
   };
-  const send = async (services: Services, handler: ReturnType<typeof chatHandler>, runId: string) => {
-    const w = tokensFor("alice");
-    const sent = await call(services, handler, request("/api/chat/", { tokens: w, body: chatBody(runId) }));
-    assert.equal(sent.status, 200);
-    await sent.response.text();
-  };
   const modelConfig = (m: string) => ({ id: `${m}-test`, rates });
-  await send(testServices(), chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256 }), "run_nosearch_1");
-  await send(testServices({ searxngUrl: "http://search.internal" }),
-    chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256, searchWeb: async () => [] }), "run_search_avail_1");
-  assert.match(contexts[0], /Public web search: not available in this deployment/);
-  assert.match(contexts[1], /web search for this message: off \(the user can turn on the Web search button/);
+  const ask = (services: Services, handler: ReturnType<typeof chatHandler>, runId: string, extra: Record<string, unknown> = {}) =>
+    call(services, handler, request("/api/chat/", { tokens: tokensFor("alice"), body: chatBody(runId, extra) }));
+
+  // The session no longer advertises a search switch: there is no button to show.
+  const session = await call(testServices(), sessionHandler, request("/api/auth/session/", { tokens: tokensFor("alice") }));
+  assert.equal(session.body?.webSearchAvailable, undefined);
+
+  const none = await ask(testServices(), chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256 }), "run_ws_none_1");
+  assert.equal(none.status, 200);
+  await none.response.text();
+  assert.equal(seen[0].tool, undefined);
+  assert.match(seen[0].context, /Live web search is not available for this answer/);
+
+  // Without any message flag, a Claude deployment offers the search tool, capped per message.
+  const auto = await ask(testServices({ claudeWebSearchMaxUses: 1 }),
+    chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256, nativeSearch: { maxUses: 1 } }), "run_ws_auto_1");
+  assert.equal(auto.status, 200);
+  await auto.response.text();
+  assert.deepEqual(seen[1].tool, { maxUses: 1 });
+  assert.match(seen[1].context, /web_search tool/);
+
+  // An explicit search request is still refused when nothing can search.
+  const refused = await ask(testServices(), chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256 }), "run_ws_none_2", { webSearch: true });
+  assert.equal(refused.status, 503);
+  assert.equal(refused.body?.code, "web_search_unavailable");
 });
 
 async function inviteAndJoin(w: Awaited<ReturnType<typeof world>>, sub: string) {

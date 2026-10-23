@@ -15,7 +15,7 @@ export function getAriaChatLLM(): ChatLLM {
       // One ID per send; a session-refresh retry reuses it, so the server cannot charge twice.
       const response = await ariaFetch("/api/chat/", {
         method: "POST", signal,
-        body: JSON.stringify({ threadId, runId: crypto.randomUUID(), messages, webSearch: selectedWebSearch }),
+        body: JSON.stringify({ threadId, runId: crypto.randomUUID(), messages }),
       });
       if (!response.ok || !response.body) {
         window.dispatchEvent(new Event("aria:credits-updated"));
@@ -30,5 +30,3 @@ export function getAriaChatLLM(): ChatLLM {
   };
 }
 
-let selectedWebSearch = false;
-export function selectAriaWebSearch(enabled: boolean) { selectedWebSearch = enabled; }

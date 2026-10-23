@@ -6,11 +6,9 @@ import {
   type ComposerAttachment,
 } from "@/lib/aria-composer-attachments";
 import { useThread, useThreadList } from "@openuidev/react-headless";
-import { ArrowUp, Globe2, Plus, Square, X } from "lucide-react";
+import { ArrowUp, Plus, Square, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { selectAriaWebSearch } from "@/lib/aria-openui-llm";
 import { takeLandingDraft } from "@/lib/landing-draft";
-import { useAriaSession } from "@/lib/aria-session";
 import { cn } from "@/lib/utils";
 
 const IME_KEY_CODE = 229;
@@ -34,10 +32,6 @@ export function AriaOpenUIComposer({
   const [textContent, setTextContent] = useState("");
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [webSearch, setWebSearch] = useState(false);
-  const session = useAriaSession();
-  const webSearchAvailable = Boolean(session.webSearchAvailable);
-  const webSearchOn = webSearchAvailable && webSearch;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,12 +64,11 @@ export function AriaOpenUIComposer({
     }
     const content = buildMessageContent(textContent, attachments);
     if (!content || isLoadingMessages) return;
-    selectAriaWebSearch(webSearchOn);
     processMessage({ role: "user", content });
     setTextContent("");
     setAttachments([]);
     setUploadError(null);
-  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent, webSearchOn]);
+  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent]);
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -141,18 +134,6 @@ export function AriaOpenUIComposer({
       ) : null}
 
       {uploadError ? <p className="aria-openui-composer-error">{uploadError}</p> : null}
-
-      {webSearchAvailable ? (
-        <div className="aria-openui-composer-tools">
-          <button type="button" aria-pressed={webSearchOn}
-            className={cn("aria-openui-web-search-toggle", webSearchOn && "aria-openui-web-search-toggle--active")}
-            title="Search the public web. Your question is sent to the configured search service; do not include private information."
-            disabled={isRunning}
-            onClick={() => setWebSearch(!webSearchOn)}>
-            <Globe2 size={14} aria-hidden /> Web search
-          </button>
-        </div>
-      ) : null}
 
       <div
         className={cn(

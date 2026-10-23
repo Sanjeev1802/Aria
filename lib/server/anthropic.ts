@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ARIA_SYSTEM_PROMPT, withModelLine } from "./system-prompt";
-import type { Rates } from "./metering";
+import { WEB_SEARCH_UNITS_PER_REQUEST, type Rates } from "./metering";
+import type { WebSource } from "./web-search";
 import type { StreamProvider } from "./chat-service";
 import { ServiceError } from "./errors";
 
@@ -39,6 +40,29 @@ function anthropic() {
   return client ??= new Anthropic({ maxRetries: 1 });
 }
 
+const MAX_SOURCE_LINKS = 5;
+/** A server-side search loop pauses after its iteration limit; resuming costs input again, so keep it short. */
+const MAX_PAUSE_RESUMES = 2;
+
+/**
+ * The pages Claude's answer actually cites, as https links, deduplicated. Pages it merely saw in
+ * search results are not listed: a link the answer does not rely on would mislead the reader.
+ */
+export function extractWebSources(content: readonly Anthropic.Beta.BetaContentBlock[]): WebSource[] {
+  const cited: WebSource[] = [];
+  for (const block of content) {
+    if (block.type !== "text") continue;
+    for (const citation of block.citations ?? []) {
+      if (citation.type === "web_search_result_location") cited.push({ title: citation.title ?? citation.url, url: citation.url, snippet: "" });
+    }
+  }
+  const unique = new Map<string, WebSource>();
+  for (const source of cited) {
+    if (/^https:\/\//i.test(source.url) && !unique.has(source.url)) unique.set(source.url, source);
+  }
+  return [...unique.values()].slice(0, MAX_SOURCE_LINKS);
+}
+
 export const streamClaude: StreamProvider = async function* (input, modelId, signal, request) {
   const messages: Anthropic.Beta.BetaMessageParam[] = input.messages.map((message, index) => ({
     role: message.role,
@@ -48,40 +72,56 @@ export const streamClaude: StreamProvider = async function* (input, modelId, sig
       ...(request.webContext && index === input.messages.length - 1 ? [{ type: "text" as const, text: request.webContext }] : []),
     ],
   }));
-  const stream = anthropic().beta.messages.stream({
-    model: modelId,
-    max_tokens: request.maxOutputTokens,
-    // The static prompt is cached; the per-request context block follows it so it never invalidates the cache.
-    system: [
-      { type: "text", text: ARIA_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
-      { type: "text", text: withModelLine(request.runtimeContext, `Claude (${modelId}) by Anthropic`) },
-    ],
-    messages,
-    // Chat answers do well at low effort; thinking stays adaptive (it cannot be disabled on current models).
-    output_config: { effort: "low" },
-    ...(SERVER_FALLBACK_MODELS.has(modelId) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
-  }, { signal });
-
+  const search = request.webSearchTool;
   let streamedText = false;
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta.type === "text_delta" && event.delta.text) {
-      streamedText = true;
-      yield { text: event.delta.text };
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let searches = 0;
+  const sources: WebSource[] = [];
+  let message: Anthropic.Beta.BetaMessage;
+  for (let resumes = 0; ; resumes++) {
+    const stream = anthropic().beta.messages.stream({
+      model: modelId,
+      max_tokens: request.maxOutputTokens,
+      // The static prompt is cached; the per-request context block follows it so it never invalidates the cache.
+      system: [
+        { type: "text", text: ARIA_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+        { type: "text", text: withModelLine(request.runtimeContext, `Claude (${modelId}) by Anthropic`) },
+      ],
+      messages,
+      // Chat answers do well at low effort; thinking stays adaptive (it cannot be disabled on current models).
+      output_config: { effort: "low" },
+      // The basic search tool works on every Claude model and is the cheapest variant. max_uses caps the
+      // per-message fee; each search costs about $0.01.
+      ...(search ? { tools: [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: search.maxUses }] } : {}),
+      ...(SERVER_FALLBACK_MODELS.has(modelId) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+    }, { signal });
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta" && event.delta.text) {
+        streamedText = true;
+        yield { text: event.delta.text };
+      }
     }
+    message = await stream.finalMessage();
+    const usage = message.usage;
+    // Cached prompt tokens are billed as ordinary input: simpler, and never undercharges.
+    inputTokens += usage.input_tokens + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+    outputTokens += usage.output_tokens;
+    searches += usage.server_tool_use?.web_search_requests ?? 0;
+    for (const source of extractWebSources(message.content)) if (!sources.some(known => known.url === source.url)) sources.push(source);
+    if (message.stop_reason !== "pause_turn" || resumes >= MAX_PAUSE_RESUMES) break;
+    messages.push({ role: "assistant", content: message.content as Anthropic.Beta.BetaContentBlockParam[] });
   }
-  const message = await stream.finalMessage();
   if (message.stop_reason === "refusal") {
     // Every model in the fallback chain declined. Say so instead of an empty or half answer.
     yield { text: streamedText ? `\n\n${REFUSAL_NOTICE}` : REFUSAL_NOTICE };
   }
-  const usage = message.usage;
   yield {
-    usage: {
-      // Cached prompt tokens are billed as ordinary input: simpler, and never undercharges.
-      inputTokens: usage.input_tokens + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0),
-      outputTokens: usage.output_tokens,
-    },
-    finishReason: message.stop_reason === "max_tokens" ? "max_tokens"
+    usage: { inputTokens, outputTokens },
+    // Searches are billed per request on top of tokens.
+    extraUnits: searches * WEB_SEARCH_UNITS_PER_REQUEST,
+    sources: sources.slice(0, MAX_SOURCE_LINKS),
+    finishReason: message.stop_reason === "max_tokens" || message.stop_reason === "pause_turn" ? "max_tokens"
       : message.stop_reason === "stop_sequence" ? "stop_sequence" : "end_turn",
   };
 };

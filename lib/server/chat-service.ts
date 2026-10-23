@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { ChatInput } from "./chat-input";
 import { ARIA_SYSTEM_PROMPT, PROMPT_VERSION, runtimeContext, type PromptSession } from "./system-prompt";
-import { chargeUnits, type Rates, type Usage } from "./metering";
+import { chargeUnits, WEB_SEARCH_UNITS_PER_REQUEST, type Rates, type Usage } from "./metering";
 import { ServiceError } from "./errors";
 import type { Account, CreditLedger } from "./accounting/credit-ledger";
-import { MAX_WEB_CONTEXT_BYTES, WebSearchError, boundedWebContext, searchQuery, webSourceLinks, type WebSearchProvider } from "./web-search";
+import { MAX_WEB_CONTEXT_BYTES, WebSearchError, boundedWebContext, searchQuery, webSourceLinks, type WebSearchProvider, type WebSource } from "./web-search";
 
 /** What the server adds to a model call beyond the conversation itself. */
 export type ProviderRequest = {
@@ -12,6 +12,8 @@ export type ProviderRequest = {
   runtimeContext: string;
   /** Untrusted numbered web excerpts, appended to the last user turn. */
   webContext?: string;
+  /** Set when the provider may search the web itself (Claude's web search tool) if the question needs live facts. */
+  webSearchTool?: { maxUses: number };
   maxOutputTokens: number;
 };
 
@@ -19,25 +21,37 @@ export type ProviderRequest = {
 export type ServedBy = { modelId: string; rates: Rates };
 
 export type StreamProvider = (input: ChatInput, model: string, signal: AbortSignal, request: ProviderRequest) =>
-  AsyncIterable<{ text: string } | { usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence"; servedBy?: ServedBy }>;
+  AsyncIterable<{ text: string } | {
+    usage: Usage; finishReason?: "end_turn" | "max_tokens" | "stop_sequence"; servedBy?: ServedBy;
+    /** Charges beyond token usage, in ledger units (for example web search fees). */
+    extraUnits?: number;
+    /** Pages the provider used, shown to the user as links under the answer. */
+    sources?: WebSource[];
+  }>;
+
+/** Generous allowance for the tokens one web search adds to the prompt (results are a few thousand tokens). */
+const NATIVE_SEARCH_TOKENS_PER_USE = 15_000;
 
 export async function createChatResponse(input: ChatInput, options: {
   ledger: CreditLedger; account: Account; modelId: string; rates: Rates;
   provider: StreamProvider; signal: AbortSignal; maxOutputTokens: number;
   webSearch?: WebSearchProvider;
-  /** True when a search backend is configured, even if this message did not turn it on. */
-  webSearchAvailable?: boolean;
+  /** The provider searches the web itself, at most `maxUses` times per message. */
+  nativeSearch?: { maxUses: number };
   session?: PromptSession;
   onComplete?: (text: string) => Promise<void>;
 }): Promise<Response> {
   const { ledger, account, modelId, rates } = options;
   const workspaceId = account.workspaceId;
-  const hash = createHash("sha256").update(JSON.stringify({ input, modelId, rates, prompt: PROMPT_VERSION, webSearch: Boolean(options.webSearch) })).digest("hex");
-  const runtime = runtimeContext({ now: new Date(), session: options.session, webSearch: Boolean(options.webSearch), webSearchAvailable: options.webSearchAvailable,
+  const hash = createHash("sha256").update(JSON.stringify({ input, modelId, rates, prompt: PROMPT_VERSION, webSearch: Boolean(options.webSearch), nativeSearch: options.nativeSearch?.maxUses ?? 0 })).digest("hex");
+  const runtime = runtimeContext({ now: new Date(), session: options.session, webSearch: Boolean(options.webSearch), webSearchTool: Boolean(options.nativeSearch),
     maxOutputTokens: options.maxOutputTokens });
+  // Search results count as input tokens, and every search carries a fee: reserve the worst case up front.
+  const searchUses = options.nativeSearch?.maxUses ?? 0;
   const inputBound = (Buffer.byteLength(JSON.stringify(input.messages) + ARIA_SYSTEM_PROMPT + runtime, "utf8") +
-    (options.webSearch ? MAX_WEB_CONTEXT_BYTES : 0)) * 2 + 2048;
-  const units = chargeUnits({ inputTokens: inputBound, outputTokens: options.maxOutputTokens }, rates);
+    (options.webSearch ? MAX_WEB_CONTEXT_BYTES : 0)) * 2 + 2048 + searchUses * NATIVE_SEARCH_TOKENS_PER_USE;
+  const units = chargeUnits({ inputTokens: inputBound, outputTokens: options.maxOutputTokens }, rates) +
+    searchUses * WEB_SEARCH_UNITS_PER_REQUEST;
   const existing = await ledger.reserve(account, { id: input.id, hash, units, model: modelId, rateVersion: rates.version });
   if (existing && existing.status !== "completed") throw new ServiceError("request_already_processed_or_pending", 409);
   const abort = new AbortController();
@@ -70,6 +84,8 @@ export async function createChatResponse(input: ChatInput, options: {
       let usage: Usage | undefined;
       let finishReason: "end_turn" | "max_tokens" | "stop_sequence" | undefined;
       let servedBy: ServedBy | undefined;
+      let extraUnits = 0;
+      let providerSources: WebSource[] = [];
       try {
         const results = options.webSearch ? await options.webSearch(searchQuery(input.messages.at(-1)!.content[0].text), signal) : [];
         const { context, sources } = boundedWebContext(results);
@@ -77,13 +93,15 @@ export async function createChatResponse(input: ChatInput, options: {
         await ledger.markProviderStarted(workspaceId, input.id);
         for await (const event of options.provider(input, modelId, signal, {
           runtimeContext: runtime, webContext: sources.length ? context : undefined, maxOutputTokens: options.maxOutputTokens,
+          webSearchTool: options.nativeSearch,
         })) {
           signal.throwIfAborted();
           if ("text" in event) {
             text += event.text;
             if (text.length > 100_000) throw new Error("Output limit exceeded");
             content(JSON.stringify(event.text).slice(1, -1));
-          } else { usage = event.usage; finishReason = event.finishReason; servedBy = event.servedBy; }
+          } else { usage = event.usage; finishReason = event.finishReason; servedBy = event.servedBy;
+            extraUnits = event.extraUnits ?? 0; providerSources = event.sources ?? []; }
         }
         signal.throwIfAborted();
         if (!usage || !text.trim()) throw new Error("Response or usage missing");
@@ -92,8 +110,9 @@ export async function createChatResponse(input: ChatInput, options: {
           text += notice;
           content(JSON.stringify(notice).slice(1, -1));
         }
-        if (sources.length) {
-          const links = webSourceLinks(sources);
+        const shown = sources.length ? sources : providerSources;
+        if (shown.length) {
+          const links = webSourceLinks(shown);
           text += links;
           content(JSON.stringify(links).slice(1, -1));
         }
@@ -104,7 +123,9 @@ export async function createChatResponse(input: ChatInput, options: {
         if (!cancelled) controller.close();
         return;
       }
-      const settlement = { charged: chargeUnits(usage, servedBy?.rates ?? rates), inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, response: text };
+      // Never settle above the reservation: a long search result must not turn a delivered answer into a failed settlement.
+      const charged = Math.min(chargeUnits(usage, servedBy?.rates ?? rates) + extraUnits, units);
+      const settlement = { charged, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, response: text };
       if (!await settleWithRetry(ledger, workspaceId, input.id, settlement)) {
         // The answer was delivered; leave the hold for reconciliation rather than releasing it for free.
         logLedgerIssue("settlement_deferred", account, input.id);

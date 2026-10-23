@@ -27,5 +27,8 @@ export function POST(request: Request) {
     try { searchWeb = cachePublicSearch(publicSearch, getElastiCacheSearchCache(config.elasticacheUrl)); }
     catch { console.warn("ARIA public-search cache configuration is invalid; using live search"); }
   }
-  return run(request, chatHandler({ ...deps, searchWeb }));
+  // Claude searches the web itself, at most maxUses times, only when a question needs current facts.
+  const nativeSearch = !config.localIdentity && claudeConfigured() && (config.claudeWebSearchMaxUses ?? 0) > 0
+    ? { maxUses: config.claudeWebSearchMaxUses as number } : undefined;
+  return run(request, chatHandler({ ...deps, searchWeb, nativeSearch }));
 }

@@ -15,7 +15,6 @@ export type AriaSession = {
   status: "loading" | "authenticated" | "unauthenticated" | "unavailable" | "preview";
   environment?: "development" | "production";
   liveChat?: boolean;
-  webSearchAvailable?: boolean;
   user?: { id: string; email: string; name: string; avatar?: string | null };
   workspace?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole; seatLimit: number; seatsUsed: number };
   entitlements?: { models: AriaModelChoice[]; apiAccess: boolean; teamManagement: boolean; monthlyCredits: number };

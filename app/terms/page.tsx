@@ -66,8 +66,8 @@ export default function TermsPage() {
         <p>
           ARIA does not grant you a right to any particular model, region, or capacity. We may choose,
           replace, or limit the Amazon Nova model for quality, safety, cost, or
-          availability. Optional public web search, when enabled, looks up short public queries and is
-          not access to your organization’s private systems.
+          availability. When public web search is enabled, ARIA’s model may look up short public queries
+          to answer questions about current facts; it is not access to your organization’s private systems.
         </p>
       </section>
 
@@ -100,7 +100,7 @@ export default function TermsPage() {
           <li>Bypass rate limits, credit holds, authentication, or workspace permissions.</li>
           <li>Misrepresent ARIA’s answers as professional, legal, medical, or financial advice.</li>
           <li>Send secrets, payment card numbers, government ID numbers, or special-category data you are not allowed to process.</li>
-          <li>Use public web search for private documents, customer records, or confidential business files.</li>
+          <li>Put private documents, customer records, or confidential business files in messages when public web search is enabled.</li>
           <li>Resell access, scrape the service, or use outputs to train competing models except as allowed by law.</li>
         </ul>
       </section>

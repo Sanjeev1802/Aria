@@ -25,7 +25,12 @@ export function withFallback(primary: StreamProvider, backup: Backup): StreamPro
     }
     const config = backup.config();
     const servedBy: ServedBy = { modelId: config.id, rates: config.rates };
-    for await (const event of backup.provider(input, config.id, signal, request)) {
+    // The backup model cannot search; say so instead of letting it imply it did.
+    const backupRequest = request.webSearchTool
+      ? { ...request, webSearchTool: undefined,
+        runtimeContext: `${request.runtimeContext}\n- Web search failed for this message: answer without it and say live results could not be checked.` }
+      : request;
+    for await (const event of backup.provider(input, config.id, signal, backupRequest)) {
       yield "usage" in event ? { ...event, servedBy } : event;
     }
   };
