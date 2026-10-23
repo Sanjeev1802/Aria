@@ -14,7 +14,6 @@ import { signInHref } from "@/lib/auth/safe-next-path";
 import { AriaAuthNotice } from "@/components/auth/aria-auth-notice";
 import { ThinkingStatus } from "@/components/chat/thinking-status";
 import { AriaLocalUserSwitcher } from "@/components/dev/aria-local-user-switcher";
-import { AriaLocalPlanSwitcher } from "@/components/dev/aria-local-plan-switcher";
 import { AriaMark } from "@/components/aria-mark";
 import { AgentInterface, openuiChatLibrary } from "@openuidev/react-ui";
 import { AriaOpenUIAssistantMessage } from "@/components/chat/aria-openui-assistant-message";
@@ -93,6 +92,11 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   return (
     <div className="aria-openui-chat dark h-dvh w-full">
       <AriaAuthNotice />
+      {profile.session.planSwitching && !profile.session.localDev ? (
+        <div role="status" className="pointer-events-none fixed left-1/2 top-16 z-50 -translate-x-1/2 whitespace-nowrap rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-200 sm:top-2">
+          You&apos;re in development mode · plan switching on
+        </div>
+      ) : null}
       {banner ? (
         <div role="status" className="pointer-events-none fixed right-3 top-16 z-50 max-w-[calc(100%-1.5rem)] rounded-md bg-neutral-900 px-3 py-1 text-xs text-neutral-400 sm:top-2">
           {banner}
@@ -154,7 +158,6 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
           <AgentInterface.SidebarFooter>
             <div className="aria-openui-sidebar-footer-stack">
               <AriaLocalUserSwitcher />
-              <AriaLocalPlanSwitcher />
               <AriaOpenUISidebarCredits />
               <AriaOpenUISidebarUser
                 name={profile.name}

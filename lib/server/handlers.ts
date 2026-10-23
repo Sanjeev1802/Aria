@@ -102,6 +102,7 @@ export async function sessionHandler(request: Request, s: Services) {
     liveChat: s.config.liveChat || s.config.localIdentity,
     webSearchAvailable: Boolean(s.config.searxngUrl),
     localDev: Boolean(s.config.localIdentity),
+    planSwitching: Boolean(s.config.localIdentity || s.config.planSwitching),
     localUser: local?.slot,
     localUsers: s.config.localIdentity ? LOCAL_DEV_USER_LABELS : undefined,
     user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name, avatar: await s.directory.getAvatar(ctx.user.id) },

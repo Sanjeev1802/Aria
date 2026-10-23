@@ -7,12 +7,14 @@ import { requireWorkspace } from "./request-context";
 import type { Services } from "./services";
 import { ConditionFailed } from "./store/types";
 
-/** Local-demo only. Real plan changes must come from verified billing events. */
+/**
+ * Plan switching for local demos and the development stage only. Outside those,
+ * real plan changes must come from verified billing events.
+ */
 export async function localPlanHandler(request: Request, services: Services) {
-  if (!services.config.localIdentity || services.config.environment !== "development" ||
-    !["localhost", "127.0.0.1", "[::1]"].includes(new URL(request.url).hostname)) {
-    throw new ServiceError("local_development_only", 403);
-  }
+  const localDemo = services.config.localIdentity && services.config.environment === "development" &&
+    ["localhost", "127.0.0.1", "[::1]"].includes(new URL(request.url).hostname);
+  if (!localDemo && !services.config.planSwitching) throw new ServiceError("local_development_only", 403);
   const ctx = await requireWorkspace(request, services, "billing:manage");
   if (ctx.membership.role !== "owner") throw new ServiceError("permission_denied", 403);
   const body = await readJson(request);

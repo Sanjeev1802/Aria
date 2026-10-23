@@ -59,6 +59,26 @@ test("chat sends the session context and caps answer length by plan", async () =
   assert.match(seen[1].runtimeContext, /Today's date: \d{4}-\d{2}-\d{2}/);
 });
 
+test("development stage lets owners switch plans; without the switch it stays billing-only", async () => {
+  const { localPlanHandler } = await import("../lib/server/local-plan");
+  const off = testServices();
+  const offSession = await call(off, sessionHandler, request("/api/auth/session/", { tokens: tokensFor("alice") }));
+  assert.equal(offSession.body?.planSwitching, false);
+  const denied = await call(off, localPlanHandler, request("/api/auth/local-plan/", { tokens: tokensFor("alice"), body: { plan: "pro" } }));
+  assert.equal(denied.status, 403);
+
+  const dev = testServices({ planSwitching: true });
+  const devSession = await call(dev, sessionHandler, request("/api/auth/session/", { tokens: tokensFor("alice") }));
+  assert.equal(devSession.body?.planSwitching, true);
+  const switched = await call(dev, localPlanHandler, request("/api/auth/local-plan/", { tokens: tokensFor("alice"), body: { plan: "pro" } }));
+  assert.equal(switched.status, 200);
+  const after = await call(dev, sessionHandler, request("/api/auth/session/", { tokens: tokensFor("alice") }));
+  assert.equal(after.body?.workspace.plan, "pro");
+  const crossSite = await call(dev, localPlanHandler, request("/api/auth/local-plan/", {
+    tokens: tokensFor("alice"), body: { plan: "team" }, origin: "https://elsewhere.example" }));
+  assert.equal(crossSite.status, 403, "still same-origin only");
+});
+
 async function inviteAndJoin(w: Awaited<ReturnType<typeof world>>, sub: string) {
   const invite = await call(w.s, membersPostHandler, request("/api/workspace/members/", { tokens: w.alice, body: { email: `${sub}@example.com` } }));
   assert.equal(invite.status, 201);

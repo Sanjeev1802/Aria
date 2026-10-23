@@ -22,6 +22,12 @@ export type ServerConfig = {
   localIdentity: boolean;
   /** SQLite path for development when no DynamoDB table is configured. */
   localStorePath?: string;
+  /**
+   * Development-stage switch (ARIA_PLAN_SWITCHING=enabled): workspace owners may change
+   * their own plan to test every tier. Leave unset in preview, beta, and production,
+   * where plans change only through verified billing events.
+   */
+  planSwitching?: boolean;
   /** Operator switch for model calls once identity and accounting are verified together. */
   liveChat: boolean;
   /** Optional server-side SearXNG endpoint for explicit public-web searches. */
@@ -59,6 +65,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       ? (env.ARIA_LOCAL_STORE_PATH?.trim() || join(process.cwd(), ".aria", "local-dev.sqlite"))
       : undefined,
     liveChat: env.ARIA_LIVE_CHAT === "enabled",
+    planSwitching: env.ARIA_PLAN_SWITCHING === "enabled",
     searxngUrl: env.ARIA_SEARXNG_URL?.trim() || undefined,
     elasticacheUrl: env.ARIA_ELASTICACHE_URL?.trim() || undefined,
     emailService: env.EMAIL_SERVICE_URL?.trim() && env.EMAIL_SERVICE_API_KEY?.trim()

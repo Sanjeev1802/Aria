@@ -229,3 +229,11 @@ test("production cannot activate the local shared identity or run without identi
   try { assert.throws(() => getServices(), { code: "live_service_not_configured" }); }
   finally { process.env = prior; }
 });
+
+test("consecutive user turns left by a failed reply are merged instead of rejected", () => {
+  const parsed = parseChatInput({ runId: "request_merge", messages: [
+    { role: "user", content: "hi" }, { role: "user", content: "second try" }] });
+  assert.equal(parsed.messages.length, 1);
+  assert.deepEqual(parsed.messages[0].content.map(part => part.text), ["hi", "second try"]);
+  assert.throws(() => parseChatInput({ runId: "request_merge2", messages: [{ role: "assistant", content: "x" }, { role: "user", content: "y" }] }));
+});

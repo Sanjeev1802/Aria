@@ -7,10 +7,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardAction } from "@/components/ui/card";
 import { useAriaSession } from "@/lib/aria-session";
+import { switchAriaPlan } from "@/lib/aria-plan-switch";
+import type { AriaPlanId } from "@/lib/aria-current-plan";
+
+const PLAN_IDS: readonly string[] = ["free", "pro", "team"] satisfies AriaPlanId[];
+const isPlanId = (id: string): id is AriaPlanId => PLAN_IDS.includes(id);
 import { cn } from "@/lib/utils";
 import { useNav } from "@openuidev/react-ui";
 import { Check, Info, Sparkles, X } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const PRICING_FOOTNOTE = (
   <>
@@ -46,14 +51,29 @@ function upgradePlanName(plan: AriaPricingPlan): string {
   return plan.id === "team" ? "Max" : plan.name;
 }
 
-function ctaForPlan(plan: AriaPricingPlan, isCurrent: boolean): string {
+function ctaForPlan(plan: AriaPricingPlan, isCurrent: boolean, switching: boolean): string {
   if (isCurrent) return "Your current plan";
+  if (switching) return "Switching…";
   if (plan.id === "team") return "Get Max";
   return plan.cta;
 }
 
 export function AriaPricingView() {
-  const currentPlanId = useAriaSession().workspace?.plan;
+  const session = useAriaSession();
+  const currentPlanId = session.workspace?.plan;
+  // Development stage: the normal upgrade buttons change the plan instantly, with no charge.
+  const devSwitching = Boolean(session.planSwitching ?? session.localDev);
+  const canSwitch = devSwitching && session.workspace?.role === "owner";
+  const [switchingTo, setSwitchingTo] = useState<AriaPricingPlan["id"] | null>(null);
+  const [switchError, setSwitchError] = useState("");
+  const choosePlan = async (planId: AriaPricingPlan["id"]) => {
+    if (switchingTo || !isPlanId(planId)) return;
+    setSwitchingTo(planId);
+    setSwitchError("");
+    try { await switchAriaPlan(planId); }
+    catch (cause) { setSwitchError(cause instanceof Error ? cause.message : "Could not switch plans."); }
+    finally { setSwitchingTo(null); }
+  };
   const { navigate } = useNav();
   const close = useCallback(() => navigate(undefined), [navigate]);
 
@@ -118,10 +138,11 @@ export function AriaPricingView() {
                     isTeam && "aria-pricing__cta--featured",
                     plan.id === "free" && !isCurrent && "aria-pricing__cta--primary",
                   )}
-                  disabled={isCurrent}
+                  disabled={isCurrent || (canSwitch && switchingTo !== null)}
+                  onClick={canSwitch && !isCurrent ? () => void choosePlan(plan.id) : undefined}
                 >
                   {isTeam ? <Sparkles size={16} strokeWidth={1.75} aria-hidden /> : null}
-                  {ctaForPlan(plan, isCurrent)}
+                  {ctaForPlan(plan, isCurrent, switchingTo === plan.id)}
                 </button>
 
                 <p className="aria-pricing__price-line">
@@ -136,7 +157,14 @@ export function AriaPricingView() {
           })}
         </div>
 
-        <p className="aria-pricing__page-footnote">{PRICING_FOOTNOTE}</p>
+        {switchError ? <p className="aria-pricing__page-footnote" role="alert">{switchError}</p> : null}
+        <p className="aria-pricing__page-footnote">
+          {devSwitching
+            ? canSwitch
+              ? "Development mode: plan changes apply instantly and nothing is charged."
+              : "Development mode: only the workspace owner can change the plan."
+            : PRICING_FOOTNOTE}
+        </p>
         </div>
       </Card>
     </div>

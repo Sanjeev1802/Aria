@@ -26,6 +26,12 @@ export function parseChatInput(raw: unknown): ChatInput {
     return { role: message.role, content: [{ text }] };
   });
   if (messages[0].role !== "user" || messages.at(-1)?.role !== "user") throw new Error("Conversation must start and end with a user message");
-  for (let i=1; i<messages.length; i++) if (messages[i].role === messages[i-1].role) throw new Error("Message roles must alternate");
-  return { id: body.runId, model, messages } as ChatInput;
+  // A failed reply leaves two user turns in a row; merge same-role neighbours so the thread keeps working.
+  const turns: ChatInput["messages"] = [];
+  for (const message of messages) {
+    const previous = turns.at(-1);
+    if (previous?.role === message.role) previous.content.push(...message.content);
+    else turns.push({ role: message.role as "user" | "assistant", content: [...message.content] });
+  }
+  return { id: body.runId, model, messages: turns } as ChatInput;
 }
