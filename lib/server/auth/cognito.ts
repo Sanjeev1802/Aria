@@ -129,7 +129,6 @@ export class CognitoIdentityProvider implements IdentityProvider {
       UserAttributes: [
         { Name: "email", Value: username },
         { Name: "name", Value: display },
-        { Name: "name.formatted", Value: display },
       ],
     })).catch(mapError);
     return { confirmationRequired: !result.UserConfirmed };
