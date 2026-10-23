@@ -6,10 +6,14 @@ function isWorkspacePath(pathname: string) {
   return WORKSPACE.some((pattern) => pattern.test(pathname));
 }
 
+// Mirrors readConfig().localIdentity; the API still verifies every request.
+const LOCAL_DEV = process.env.NODE_ENV === "development" && process.env.ARIA_LOCAL_DEV === "true";
+
 function hasAriaSession(request: NextRequest) {
   return Boolean(
     request.cookies.get("aria_at")?.value
-    || request.cookies.get("__Host-aria_at")?.value,
+    || request.cookies.get("__Host-aria_at")?.value
+    || (LOCAL_DEV && request.cookies.get("aria_local_account")?.value),
   );
 }
 
