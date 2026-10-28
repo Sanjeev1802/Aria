@@ -157,8 +157,8 @@ export function InternalSettingsSectionPanel(props: InternalSettingsPanelProps) 
     return (
       <div className="internal-operator-profile__form">
         <p className="internal-operator-profile__hint">
-          Who can use ARIA Internal is configured on the server (identity allowlists). Customer workspace roles are
-          managed in the main ARIA app.
+          Super admins choose who is on the ARIA Team and what each person can change, from <strong>ARIA Team</strong> in
+          the sidebar. Customer workspace roles are managed in the main ARIA app.
         </p>
         <div className="internal-settings-role-table-wrap">
           <table className="internal-settings-role-table">

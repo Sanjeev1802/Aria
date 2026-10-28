@@ -8,7 +8,8 @@ import {
   type InternalSettingsSectionId,
 } from "./internal-settings-sections";
 import { InternalSettingsSectionPanel } from "./internal-settings-section-panels";
-import { internalRoleLabel, type InternalRole } from "./internal-operator-role";
+import { type InternalRole } from "./internal-operator-role";
+import { InternalProfileHero } from "./internal-profile-hero";
 import type { InternalColorScheme } from "./internal-theme-toggle";
 import type { InternalSection } from "./internal-section";
 
@@ -50,7 +51,6 @@ export function InternalSettingsPage({
     }
   }, [initialSection, nav]);
 
-  const initials = (operatorName || operatorEmail || "?").slice(0, 1).toUpperCase();
   const meta = resolveSettingsSectionMeta(section, superAdmin);
 
   return (
@@ -61,20 +61,10 @@ export function InternalSettingsPage({
         className="internal-operator-profile__menu internal-settings-profile__menu internal-profile-nav-pop"
         aria-label={superAdmin ? "Platform settings categories" : "Settings sections"}
       >
-        {superAdmin ? (
-          <div className="internal-platform-settings__sidebar-head">
-            <p className="internal-platform-settings__sidebar-eyebrow">Internal console</p>
-            <p className="internal-platform-settings__sidebar-title">Settings</p>
-          </div>
-        ) : (
-          <div className="internal-operator-profile__menu-head internal-settings-profile__menu-head">
-            <span className="internal-operator-profile__menu-avatar internal-settings-profile__menu-avatar" aria-hidden>
-              {initials}
-            </span>
-            <h2 className="internal-operator-profile__menu-name">{operatorName}</h2>
-            <p className="internal-operator-profile__menu-role">{internalRoleLabel(operatorRole)}</p>
-          </div>
-        )}
+        <div className="internal-platform-settings__sidebar-head">
+          <p className="internal-platform-settings__sidebar-eyebrow">Internal console</p>
+          <p className="internal-platform-settings__sidebar-title">Settings</p>
+        </div>
         <nav className="internal-operator-profile__nav internal-settings-profile__nav">
           {nav.map(item => {
             const Icon = item.icon;
@@ -119,6 +109,10 @@ export function InternalSettingsPage({
               <p className="internal-settings-section-header__description">{meta.description}</p>
             </header>
           )}
+
+          {!superAdmin && section === "general" ? (
+            <InternalProfileHero name={operatorName} email={operatorEmail} role={operatorRole} />
+          ) : null}
 
           <div className="internal-settings-profile__panel">
             <InternalSettingsSectionPanel

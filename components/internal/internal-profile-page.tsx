@@ -20,6 +20,7 @@ import {
   type InternalRole,
 } from "./internal-operator-role";
 import type { OperatorAuditEntry } from "./internal-operator-activity-list";
+import { InternalProfileHero } from "./internal-profile-hero";
 import { InternalReadonlyField } from "./internal-readonly-field";
 import { InternalSettingsFormFooter, InternalSettingsPrototypeNotice } from "./internal-settings-ui";
 
@@ -136,12 +137,9 @@ export function InternalProfilePage({
           className="internal-operator-profile__menu internal-settings-profile__menu internal-profile-nav-pop"
           aria-label="Profile sections"
         >
-          <div className="internal-operator-profile__menu-head internal-settings-profile__menu-head">
-            <span className="internal-operator-profile__menu-avatar internal-settings-profile__menu-avatar" aria-hidden>
-              {initials}
-            </span>
-            <h2 className="internal-operator-profile__menu-name">{name}</h2>
-            <p className="internal-operator-profile__menu-role">{internalRoleLabel(role)}</p>
+          <div className="internal-platform-settings__sidebar-head">
+            <p className="internal-platform-settings__sidebar-eyebrow">Operator account</p>
+            <p className="internal-platform-settings__sidebar-title">Your profile</p>
           </div>
           <nav className="internal-operator-profile__nav internal-settings-profile__nav">
             {staffNav.map(item => {
@@ -180,6 +178,7 @@ export function InternalProfilePage({
             <div className="internal-settings-profile__panel">
           {section === "personal" ? (
             <div className="internal-operator-profile__form">
+              <InternalProfileHero name={name} email={email} role={role} />
               <div className="internal-operator-profile__form-row">
                 <InternalReadonlyField label="Display name" value={name} />
                 <InternalReadonlyField label="Internal role" value={internalRoleLabel(role)} />
@@ -220,7 +219,7 @@ export function InternalProfilePage({
               </div>
             </div>
           ) : null}
-          <InternalSettingsFormFooter />
+          <p className="internal-operator-profile__hint">Your name and email come from ARIA sign-in, and your permissions come from the server.</p>
             </div>
           </div>
         </section>
