@@ -44,7 +44,7 @@ export function InternalPageHeader({
       </nav>
       <div className="internal-top-actions ml-auto flex flex-wrap items-center gap-2 sm:gap-3">
         {refreshLabel ? (
-          <span className="internal-status hidden whitespace-nowrap lg:inline-flex" role="status" aria-live="polite">
+          <span className="internal-status hidden whitespace-nowrap xl:inline-flex" role="status" aria-live="polite">
             <span className="internal-live" aria-hidden="true" />
             {refreshLabel.replace("Last refresh", "Updated")}
           </span>
