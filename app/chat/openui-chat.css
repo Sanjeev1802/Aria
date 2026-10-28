@@ -126,6 +126,9 @@
   .openui-agent-container:not(.openui-agent-container--mobile)
   .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed) {
   align-self: stretch;
+  /* react-ui sets height:100%; with the rail margins that overflows the viewport by the gap. */
+  height: auto;
+  min-height: 0;
   width: var(--openui-agent-sidebar-width);
   margin: var(--aria-sidebar-rail-gap) 0 var(--aria-sidebar-rail-gap) var(--aria-sidebar-rail-gap);
   padding: var(--aria-sidebar-inset-y) var(--aria-sidebar-inset-x) 8px;
@@ -145,6 +148,8 @@
   .openui-agent-container:not(.openui-agent-container--mobile)
   .openui-agent-sidebar-container--collapsed {
   align-self: stretch;
+  height: auto;
+  min-height: 0;
   margin: var(--aria-sidebar-rail-gap) 0 var(--aria-sidebar-rail-gap) var(--aria-sidebar-rail-gap);
   padding: var(--openui-space-m-l) 14px;
   border-radius: var(--aria-sidebar-panel-radius);

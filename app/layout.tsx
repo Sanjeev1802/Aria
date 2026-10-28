@@ -13,8 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // suppressHydrationWarning: inline theme scripts (e.g. the internal console) set <html> attributes before hydration.
   return (
-    <html lang="en" data-theme="dark" data-scroll-behavior="smooth" className={cn("font-sans", inter.variable)}>
+    <html lang="en" data-theme="dark" data-scroll-behavior="smooth" className={cn("font-sans", inter.variable)} suppressHydrationWarning>
       <body>
         <AriaHideDevChrome />
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
