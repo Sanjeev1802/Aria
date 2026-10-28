@@ -17,7 +17,6 @@ export type AriaOpenUISidebarNavProps = {
 
 export function AriaOpenUISidebarNav({ activePath, onNavigate }: AriaOpenUISidebarNavProps) {
   const switchToNewThread = useThreadList((s) => s.switchToNewThread);
-  const chatActive = activePath === undefined;
   const goNewChat = () => {
     openAriaOpenUISidebar();
     switchToNewThread();
@@ -32,16 +31,12 @@ export function AriaOpenUISidebarNav({ activePath, onNavigate }: AriaOpenUISideb
   return (
     <nav className="aria-openui-sidebar-nav" aria-label="Chat navigation">
       <ul className="aria-openui-sidebar-nav__stack">
-        <li className={cn(chatActive && "aria-openui-sidebar-nav__item--active")}>
+        <li>
           <button
             type="button"
-            className={cn(
-              "aria-openui-sidebar-icon-btn",
-              chatActive && "aria-openui-sidebar-icon-btn--active",
-            )}
+            className="aria-openui-sidebar-icon-btn"
             aria-label="New chat"
             title="New chat"
-            aria-current={chatActive ? "page" : undefined}
             onClick={goNewChat}
           >
             <SquarePen size={18} strokeWidth={1.75} aria-hidden />
@@ -52,7 +47,7 @@ export function AriaOpenUISidebarNav({ activePath, onNavigate }: AriaOpenUISideb
         {NAV_ITEMS.map(({ id, label, icon: Icon, path }) => {
           const active = activePath === path;
           return (
-            <li key={id} className={cn(active && "aria-openui-sidebar-nav__item--active")}>
+            <li key={id}>
               <button
                 type="button"
                 className={cn(
