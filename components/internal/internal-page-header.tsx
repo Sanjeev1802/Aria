@@ -35,7 +35,7 @@ export function InternalPageHeader({
       <SidebarTrigger className="-ml-1 shrink-0" />
       <Separator orientation="vertical" className="mr-1 hidden h-4 sm:block" />
       <p className="min-w-0 truncate text-sm font-semibold sm:hidden">{internalSectionLabel(section)}</p>
-      <nav className="internal-crumb hidden min-w-0 flex-1 text-xs sm:flex" aria-label="Breadcrumb">
+      <nav className="internal-crumb min-w-0 flex-1 overflow-hidden whitespace-nowrap text-xs max-sm:hidden!" aria-label="Breadcrumb">
         <span>ARIA Internal</span>
         <span aria-hidden>/</span>
         <span>{internalSectionBreadcrumb(section)}</span>
@@ -43,7 +43,7 @@ export function InternalPageHeader({
         <strong>{internalSectionLabel(section)}</strong>
       </nav>
       <div className="internal-top-actions ml-auto flex flex-wrap items-center gap-2 sm:gap-3">
-        {refreshLabel ? <span className="hidden text-xs text-muted-foreground md:inline">{refreshLabel}</span> : null}
+        {refreshLabel ? <span className="hidden whitespace-nowrap text-xs text-muted-foreground xl:inline">{refreshLabel}</span> : null}
         <Button type="button" variant="outline" size="sm" className="h-8" disabled={refreshing} onClick={onRefresh}>
           <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
           Refresh

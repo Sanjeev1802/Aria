@@ -9,7 +9,7 @@ import { AriaHelpView } from "@/components/workspace/aria-help-view";
 import { AriaPricingView } from "@/components/workspace/aria-pricing-view";
 import type { AriaWorkspacePath } from "@/lib/aria-workspace-paths";
 import { useRouter } from "next/navigation";
-import { refreshAriaSession, useAriaProfile, useAriaSession } from "@/lib/aria-session";
+import { ARIA_IS_PREVIEW, refreshAriaSession, useAriaProfile, useAriaSession } from "@/lib/aria-session";
 import { signInHref } from "@/lib/auth/safe-next-path";
 import { AriaAuthNotice } from "@/components/auth/aria-auth-notice";
 import { ThinkingStatus } from "@/components/chat/thinking-status";
@@ -30,6 +30,8 @@ import { getAriaChatLLM } from "@/lib/aria-openui-llm";
 import { createAriaThreadStorage } from "@/lib/aria-thread-storage";
 import { AriaProjectProvider, useAriaProjects } from "@/lib/aria-project-context";
 import { watchAndRemoveOpenUIDevtools } from "@/lib/remove-openui-devtools-dom";
+
+const SESSION_SYNC_MS = 15_000;
 
 export type AriaOpenUIChatProps = {
   /** Opens a workspace route on load (e.g. `pricing` from `/pricing/`). */
@@ -66,6 +68,25 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   useEffect(() => watchAndRemoveOpenUIDevtools(), []);
 
   useEffect(() => { void refreshAriaSession(); }, []);
+
+  // Live sync: plan, credit and AI-access changes made in the internal dashboard reach an open
+  // workspace within seconds, and again as soon as the tab regains focus.
+  useEffect(() => {
+    if (ARIA_IS_PREVIEW) return;
+    const sync = () => {
+      if (document.visibilityState !== "visible") return;
+      void refreshAriaSession({ force: true });
+      window.dispatchEvent(new Event("aria:credits-updated"));
+    };
+    const id = window.setInterval(sync, SESSION_SYNC_MS);
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, []);
 
   useEffect(() => {
     if (sessionStatus !== "unauthenticated") return;
@@ -171,28 +192,35 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
           </AgentInterface.SidebarFooter>
           </div>
         </AgentInterface.Sidebar>
-        {/* AgentInterface finds its slots among its direct children; a Fragment would hide them. */}
-        {chatBlocked ? (
-          <div className="aria-ai-access-gate" role="status">
-            <h2 className="aria-ai-access-gate__title">ARIA AI is not available</h2>
-            <p className="aria-ai-access-gate__lede">
-              You can still sign in and manage your account. Choose a subscription plan to use chat and intelligence features.
-            </p>
-            <button type="button" className="aria-ai-access-gate__cta" onClick={() => onNavigate("pricing")}>
-              View subscription plans
-            </button>
-          </div>
-        ) : null}
-        {chatBlocked ? null : (
-          <AgentInterface.Welcome glowAnimation={false}>
+        {/* AgentInterface finds its slots among its direct children (a Fragment would hide them), and
+            renders anything else as a stray column, so the access gate lives inside the slots. */}
+        <AgentInterface.Welcome glowAnimation={false}>
+          {chatBlocked ? (
+            <div className="aria-ai-access-gate" role="status">
+              <h2 className="aria-ai-access-gate__title">ARIA AI is not available</h2>
+              <p className="aria-ai-access-gate__lede">
+                You can still sign in and manage your account. Choose a subscription plan to use chat and intelligence features.
+              </p>
+              <button type="button" className="aria-ai-access-gate__cta" onClick={() => onNavigate("pricing")}>
+                View subscription plans
+              </button>
+            </div>
+          ) : (
             <AriaOpenUIWelcome userName={profile.name} />
-          </AgentInterface.Welcome>
-        )}
-        {chatBlocked ? null : (
-          <AgentInterface.Composer>
+          )}
+        </AgentInterface.Welcome>
+        <AgentInterface.Composer>
+          {aiAccessSuspended ? (
+            <div className="aria-ai-access-gate__bar" role="status">
+              <span>ARIA AI is not available on this account.</span>
+              <button type="button" className="aria-ai-access-gate__link" onClick={() => onNavigate("pricing")}>
+                View subscription plans
+              </button>
+            </div>
+          ) : (
             <AriaOpenUIComposer variant="thread" />
-          </AgentInterface.Composer>
-        )}
+          )}
+        </AgentInterface.Composer>
         <AgentInterface.ThreadHeader
           showChatTitle={false}
           showChatActions={false}

@@ -2,6 +2,7 @@
 
 import { InternalMetricCards } from "./internal-metric-cards";
 import { PlanChart } from "./plan-chart";
+import { UsageAnalytics } from "./usage-analytics";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type OverviewWorkspace = { plan: "free" | "pro" | "team"; createdAt?: number };
@@ -26,6 +27,8 @@ export function InternalOverviewView({
   return (
     <div className="internal-overview internal-page-stack">
       <InternalMetricCards summary={summary} />
+
+      <UsageAnalytics />
 
       <PlanChart counts={planCounts} workspaces={workspaces} />
 

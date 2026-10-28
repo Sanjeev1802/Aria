@@ -16,6 +16,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   // suppressHydrationWarning: inline theme scripts (e.g. the internal console) set <html> attributes before hydration.
   return (
     <html lang="en" data-theme="dark" data-scroll-behavior="smooth" className={cn("font-sans", inter.variable)} suppressHydrationWarning>
+      <head>
+        {/* Applies the saved internal-console colour scheme before first paint; styles are scoped to .internal-*. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("aria-internal-color-scheme");document.documentElement.dataset.internalTheme=t==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.internalTheme="light";}})();` }} />
+      </head>
       <body>
         <AriaHideDevChrome />
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>

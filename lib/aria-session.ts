@@ -15,6 +15,8 @@ export type AriaSession = {
   status: "loading" | "authenticated" | "unauthenticated" | "unavailable" | "preview";
   environment?: "development" | "production";
   liveChat?: boolean;
+  /** Present only for internal operators; the server decides. */
+  operator?: { role: "super_admin" | "support" | "billing" | "operations" };
   webSearchAvailable?: boolean;
   user?: { id: string; email: string; name: string; avatar?: string | null; aiAccessSuspended?: boolean };
   workspace?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole; seatLimit: number; seatsUsed: number };

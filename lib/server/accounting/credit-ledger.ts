@@ -217,7 +217,7 @@ export class CreditLedger {
           add: { reserved: -held, used: s.charged, available: held - s.charged } },
         this.eventWrite(workspaceId, id, "settle", s.charged, { memberId: member, period: String(row.period), createdAt: now }),
         { kind: "update", key: keys.activity(workspaceId, member, new Date(now).toISOString().slice(0, 10)),
-          add: { tokens: s.inputTokens + s.outputTokens } },
+          add: { tokens: s.inputTokens + s.outputTokens, requests: 1, credits: s.charged } },
         ...(row.memberMetered === true ? [{ kind: "update" as const, key: keys.memberBudget(workspaceId, member, String(row.period)),
           add: { reserved: -held, used: s.charged, exposure: s.charged - held } }] : []),
       ]);

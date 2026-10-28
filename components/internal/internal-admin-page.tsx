@@ -3,6 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { InternalSettingsGroup, InternalSettingsRow } from "./internal-settings-panel";
 import type { InternalSection } from "./internal-section";
+import { InternalOperatorsPanel } from "./internal-operators-panel";
 
 export function InternalAdminPage({ onNavigate }: { onNavigate: (section: InternalSection) => void }) {
   return (
@@ -18,6 +19,8 @@ export function InternalAdminPage({ onNavigate }: { onNavigate: (section: Intern
           <InternalSettingsRow label="Operations runbook" hint="Setup and reconciliation notes" onClick={() => onNavigate("operations")} />
         </InternalSettingsGroup>
       </div>
+
+      <InternalOperatorsPanel />
 
       <p className="internal-admin-page__footnote">
         <ArrowRight className="size-3.5 shrink-0" aria-hidden />

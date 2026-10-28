@@ -11,6 +11,7 @@ import type { AriaWorkspacePath } from "@/lib/aria-workspace-paths";
 import { openAriaOpenUISidebar } from "@/lib/aria-openui-sidebar-open";
 import {
   ChevronRight,
+  LayoutDashboard,
   LifeBuoy,
   LogOut,
   Settings,
@@ -19,7 +20,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ariaSignOut } from "@/lib/aria-session";
+import { ariaSignOut, useAriaSession } from "@/lib/aria-session";
 
 export type AriaOpenUISidebarUserProps = {
   name: string;
@@ -114,6 +115,8 @@ export function AriaOpenUISidebarUser({
   const collapsed = useSidebarCollapsed();
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  // The server only sends `operator` to internal operators, so customers never see the entry.
+  const isOperator = Boolean(useAriaSession().operator);
 
   const triggerBody = (
     <>
@@ -196,6 +199,15 @@ export function AriaOpenUISidebarUser({
 
           <DropdownMenuSeparator className="aria-openui-sidebar-user-menu__sep" />
 
+          {isOperator ? (
+            <DropdownMenuItem
+              className="aria-openui-sidebar-user-menu__item"
+              onSelect={() => router.push("/internal/")}
+            >
+              <LayoutDashboard size={18} strokeWidth={1.75} aria-hidden />
+              Internal dashboard
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem
             className="aria-openui-sidebar-user-menu__item"
             onSelect={() => go("help")}

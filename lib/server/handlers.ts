@@ -13,6 +13,7 @@ import { LOCAL_DEV_USER_LABELS, LOCAL_USER_COOKIE, resolveLocalUser } from "./lo
 import type { Rates } from "./metering";
 import { prepareThreadRun } from "./threads";
 import type { WebSearchProvider } from "./web-search";
+import { resolveInternalRole } from "./admin";
 
 export type ChatDeps = {
   provider: StreamProvider;
@@ -102,7 +103,9 @@ export async function sessionHandler(request: Request, s: Services) {
   const ctx = await requireWorkspace(request, s, "usage:read");
   const workspaces = await s.directory.listWorkspaces(ctx.user.id);
   const local = s.config.localIdentity ? resolveLocalUser(request) : undefined;
+  const operatorRole = await resolveInternalRole(s, ctx);
   return json({
+    operator: operatorRole ? { role: operatorRole } : undefined,
     environment: s.config.environment,
     liveChat: s.config.liveChat || s.config.localIdentity,
     localDev: Boolean(s.config.localIdentity),

@@ -22,13 +22,20 @@ function subjectRole(services: Services, subject: string): InternalRole | undefi
   return services.config.adminRoles?.[subject];
 }
 
+const operatorKey = (email: string) => ({ pk: "ADMIN#OPERATORS", sk: `EMAIL#${email}` });
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Roles a super admin can hand out from the console; super_admin itself stays server-configured. */
+export const GRANTABLE_ROLES = ["support", "billing", "operations"] as const;
+export type GrantableRole = typeof GRANTABLE_ROLES[number];
+
+type Authenticated = Awaited<ReturnType<typeof authenticate>>;
+
 /**
- * Internal operator access is bound to verified Cognito subjects, never a workspace role.
- * In local preview only, a Cognito sign-in is granted when its verified email already belongs
- * to an allowlisted operator (so demo operators keep access after signing in with Cognito).
+ * The operator role for an authenticated user, or undefined for customers.
+ * Order: configured super admins and scoped roles, development-only allowlists,
+ * then access a super admin granted from the console (bound to a verified email).
  */
-export async function requireInternalAdmin(request: Request, services: Services) {
-  const auth = await authenticate(request, services);
+export async function resolveInternalRole(services: Services, auth: Authenticated): Promise<InternalRole | undefined> {
   const localPreview = services.config.environment === "development" && services.config.localIdentity &&
     services.config.adminLocalDev && auth.user.id === "local-alex";
   let role: InternalRole | undefined = localPreview ? "super_admin" : subjectRole(services, auth.user.id);
@@ -52,6 +59,21 @@ export async function requireInternalAdmin(request: Request, services: Services)
       }
     }
   }
+  if (!role && auth.identity.emailVerified) {
+    const grant = await services.store.get(operatorKey(auth.user.email.trim().toLowerCase()));
+    if (grant && (GRANTABLE_ROLES as readonly string[]).includes(String(grant.role))) role = grant.role as InternalRole;
+  }
+  return role;
+}
+
+/**
+ * Internal operator access is bound to verified Cognito subjects, never a workspace role.
+ * In local preview only, a Cognito sign-in is granted when its verified email already belongs
+ * to an allowlisted operator (so demo operators keep access after signing in with Cognito).
+ */
+export async function requireInternalAdmin(request: Request, services: Services) {
+  const auth = await authenticate(request, services);
+  const role = await resolveInternalRole(services, auth);
   if (!role) {
     throw new ServiceError("admin_access_denied", 403);
   }
@@ -199,4 +221,94 @@ export async function executeAdminAction(services: Services, actorId: string, ac
     throw error;
   }
   return { result: "applied" as const };
+}
+
+export type OperatorGrant = { email: string; role: GrantableRole; grantedBy: string; at: number };
+
+export async function listOperators(services: Services): Promise<OperatorGrant[]> {
+  const rows = await services.store.query("ADMIN#OPERATORS", "EMAIL#", { limit: 200 });
+  return rows
+    .filter(row => (GRANTABLE_ROLES as readonly string[]).includes(String(row.role)))
+    .map(row => ({ email: String(row.email), role: row.role as GrantableRole, grantedBy: String(row.grantedBy), at: Number(row.at) }))
+    .sort((a, b) => a.email.localeCompare(b.email));
+}
+
+/** Super admins only (checked by the caller). Upserts the operator role for a verified email. */
+export async function grantOperator(services: Services, actorId: string, input: Record<string, unknown>) {
+  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+  if (!EMAIL_PATTERN.test(email) || email.length > 254 ||
+    !(GRANTABLE_ROLES as readonly string[]).includes(String(input.role))) throw new ServiceError("admin_invalid_operator", 400);
+  const role = input.role as GrantableRole;
+  const now = Date.now();
+  const id = `${now}-${Math.random().toString(36).slice(2, 8)}`;
+  await services.store.transact([
+    { kind: "put", item: { ...operatorKey(email), email, role, grantedBy: actorId, at: now } },
+    auditWrite(id, now, { action: "grant_operator", actorId, targetId: email, reason: `Operator role set to ${role}` }),
+  ]);
+  return { email, role, grantedBy: actorId, at: now } satisfies OperatorGrant;
+}
+
+export async function revokeOperator(services: Services, actorId: string, emailInput: unknown) {
+  const email = typeof emailInput === "string" ? emailInput.trim().toLowerCase() : "";
+  if (!EMAIL_PATTERN.test(email)) throw new ServiceError("admin_invalid_operator", 400);
+  if (!await services.store.get(operatorKey(email))) throw new ServiceError("admin_operator_not_found", 404);
+  const now = Date.now();
+  await services.store.transact([
+    { kind: "delete", key: operatorKey(email) },
+    auditWrite(`${now}-${Math.random().toString(36).slice(2, 8)}`, now,
+      { action: "revoke_operator", actorId, targetId: email, reason: "Operator access removed" }),
+  ]);
+}
+
+function auditWrite(id: string, now: number, entry: { action: string; actorId: string; targetId: string; reason: string }) {
+  const key = auditKey(id);
+  return { kind: "put" as const, item: { ...key, gsi2pk: "ADMIN#AUDIT",
+    gsi2sk: `${String(Number.MAX_SAFE_INTEGER - now).padStart(16, "0")}#${id}`, ...entry, at: now, result: "applied" } };
+}
+
+export const USAGE_WINDOWS = [7, 30, 90] as const;
+
+/**
+ * Workspace activity from the ledger's per-member daily rows. `requests` and `credits`
+ * are recorded from the day tracking began; earlier days show tokens only.
+ */
+export async function adminUsage(services: Services, days: number = 30, now = Date.now()) {
+  if (!(USAGE_WINDOWS as readonly number[]).includes(days)) throw new ServiceError("admin_invalid_usage_window", 400);
+  const dates = Array.from({ length: days }, (_, i) => new Date(now - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10));
+  const first = dates[0]!;
+  const workspaceKeys = await services.store.queryIndex("gsi2", "ADMIN#WORKSPACES", { limit: 500 });
+  const rows = await mapBatches(workspaceKeys, async key => {
+    const workspace = await services.directory.getWorkspace(String(key.pk).slice(3));
+    if (!workspace || isLocalDevFixtureUserId(workspace.ownerId)) return [];
+    const activity = await services.store.query(`WS#${workspace.id}`, "ACT#");
+    return activity.map(row => {
+      const [, member, date] = String(row.sk).split("#");
+      return { member: member!, date: date!, plan: workspace.plan, tokens: Number(row.tokens ?? 0),
+        requests: Number(row.requests ?? 0), credits: Number(row.credits ?? 0) / 1000 };
+    });
+  });
+  const perDay = new Map(dates.map(date => [date, { date, tokens: 0, requests: 0, credits: 0, members: new Set<string>() }]));
+  const perUser = new Map<string, { id: string; tokens: number; requests: number; credits: number }>();
+  const perPlan: Record<string, { tokens: number; requests: number; credits: number }> =
+    { free: { tokens: 0, requests: 0, credits: 0 }, pro: { tokens: 0, requests: 0, credits: 0 }, team: { tokens: 0, requests: 0, credits: 0 } };
+  for (const row of rows.flat()) {
+    const day = row.date >= first ? perDay.get(row.date) : undefined;
+    if (!day) continue;
+    day.tokens += row.tokens; day.requests += row.requests; day.credits += row.credits; day.members.add(row.member);
+    const user = perUser.get(row.member) ?? { id: row.member, tokens: 0, requests: 0, credits: 0 };
+    user.tokens += row.tokens; user.requests += row.requests; user.credits += row.credits; perUser.set(row.member, user);
+    const plan = perPlan[row.plan];
+    if (plan) { plan.tokens += row.tokens; plan.requests += row.requests; plan.credits += row.credits; }
+  }
+  const topUsers = await Promise.all([...perUser.values()].sort((a, b) => b.tokens - a.tokens).slice(0, 8).map(async user => {
+    const record = await services.directory.getUser(user.id);
+    return { ...user, email: record?.email ?? "Unknown user", name: record?.name ?? "" };
+  }));
+  const series = [...perDay.values()].map(({ members, ...day }) => ({ ...day, activeUsers: members.size }));
+  return {
+    days, series, topUsers, byPlan: perPlan,
+    totals: { tokens: series.reduce((n, d) => n + d.tokens, 0), requests: series.reduce((n, d) => n + d.requests, 0),
+      credits: series.reduce((n, d) => n + d.credits, 0), activeUsers: perUser.size },
+    limited: workspaceKeys.length === 500,
+  };
 }

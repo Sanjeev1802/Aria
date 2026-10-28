@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { MemoryStore } from "../lib/server/store/memory-store";
 import { buildServices } from "../lib/server/services";
 import { chatHandler, run, usageHandler } from "../lib/server/handlers";
-import { adminCustomer, adminOverview, assertAdminActionAllowed, executeAdminAction, parseAdminAction, requireInternalAdmin } from "../lib/server/admin";
+import { adminCustomer, adminOverview, adminUsage, assertAdminActionAllowed, executeAdminAction, grantOperator, listOperators, parseAdminAction, requireInternalAdmin, resolveInternalRole, revokeOperator } from "../lib/server/admin";
 import { INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "../lib/internal-audit-copy";
 import { isLocalDevFixtureUserId } from "../lib/local-user-shared";
 
@@ -195,4 +195,69 @@ test("operator actions are auditable and idempotent; downgrade respects occupied
   assert.ok(invite.inviteId);
   await assert.rejects(executeAdminAction(services, "local-alex", { ...upgrade, id: "plan-2", plan: "free" }),
     { code: "admin_plan_seats_exceeded" });
+});
+
+test("a super admin can delegate scoped operator access to a verified email, and revoke it", async () => {
+  const store = new MemoryStore();
+  const services = buildServices(config, { store });
+  await requireInternalAdmin(request("alex"), services);
+  await assert.rejects(requireInternalAdmin(request("blair"), services), { code: "admin_access_denied" });
+
+  const grant = await grantOperator(services, "local-alex", { email: " Blair@Localhost.test ", role: "billing" });
+  assert.deepEqual({ email: grant.email, role: grant.role }, { email: "blair@localhost.test", role: "billing" });
+  const operator = await requireInternalAdmin(request("blair"), services);
+  assert.equal(operator.internalRole, "billing");
+  assert.doesNotThrow(() => assertAdminActionAllowed(operator.internalRole, "set_plan"));
+  assert.throws(() => assertAdminActionAllowed(operator.internalRole, "disable_user"), { code: "admin_action_forbidden" });
+
+  await grantOperator(services, "local-alex", { email: "blair@localhost.test", role: "support" });
+  assert.equal((await requireInternalAdmin(request("blair"), services)).internalRole, "support");
+  assert.deepEqual((await listOperators(services)).map(o => [o.email, o.role]), [["blair@localhost.test", "support"]]);
+
+  await revokeOperator(services, "local-alex", "blair@localhost.test");
+  await assert.rejects(requireInternalAdmin(request("blair"), services), { code: "admin_access_denied" });
+  await assert.rejects(revokeOperator(services, "local-alex", "blair@localhost.test"), { code: "admin_operator_not_found" });
+  const actions = (await adminOverview(services)).activity.map(entry => entry.action);
+  // The three writes can share a millisecond, so ordering between them is not asserted.
+  assert.deepEqual(actions.slice(0, 3).sort(), ["grant_operator", "grant_operator", "revoke_operator"]);
+});
+
+test("operator grants reject super admin, bad roles and bad emails, and need a verified email", async () => {
+  const store = new MemoryStore();
+  const services = buildServices(config, { store });
+  await requireInternalAdmin(request("alex"), services);
+  for (const input of [
+    { email: "blair@localhost.test", role: "super_admin" }, { email: "blair@localhost.test", role: "root" },
+    { email: "not-an-email", role: "support" }, { email: 42, role: "support" }, {},
+  ]) await assert.rejects(grantOperator(services, "local-alex", input), { code: "admin_invalid_operator" });
+
+  await grantOperator(services, "local-alex", { email: "pending@example.com", role: "support" });
+  const user = await services.directory.ensureAccount({ sub: "cog-1", email: "pending@example.com", name: "Pending",
+    emailVerified: false, authTime: 1 });
+  const unverified = { identity: { sub: "cog-1", email: "pending@example.com", emailVerified: false, name: "Pending", authTime: 1 }, user };
+  assert.equal(await resolveInternalRole(services, unverified), undefined);
+  assert.equal(await resolveInternalRole(services, { ...unverified, identity: { ...unverified.identity, emailVerified: true } }), "support");
+});
+
+test("usage analytics aggregate the ledger's daily rows by day, user and plan within the window", async () => {
+  const store = new MemoryStore();
+  const services = buildServices(config, { store });
+  const now = Date.UTC(2026, 9, 28, 12);
+  const blair = await services.directory.ensureAccount({ sub: "cog-blair", email: "blair@example.com", name: "Blair",
+    emailVerified: true, authTime: 1 });
+  const ws = blair.personalWorkspaceId;
+  await store.transact([
+    { kind: "put", item: { pk: `WS#${ws}`, sk: "ACT#cog-blair#2026-10-28", tokens: 1200, requests: 3, credits: 4500 } },
+    { kind: "put", item: { pk: `WS#${ws}`, sk: "ACT#cog-blair#2026-10-27", tokens: 800, requests: 2, credits: 1500 } },
+    { kind: "put", item: { pk: `WS#${ws}`, sk: "ACT#cog-blair#2026-08-01", tokens: 9999, requests: 9, credits: 9000 } },
+    { kind: "put", item: { pk: `WS#${ws}`, sk: "ACT#cog-blair#2026-10-26", tokens: 50 } },
+  ]);
+  const usage = await adminUsage(services, 7, now);
+  assert.equal(usage.series.length, 7);
+  assert.equal(usage.series.at(-1)?.date, "2026-10-28");
+  assert.deepEqual(usage.series.at(-1), { date: "2026-10-28", tokens: 1200, requests: 3, credits: 4.5, activeUsers: 1 });
+  assert.deepEqual(usage.totals, { tokens: 2050, requests: 5, credits: 6, activeUsers: 1 });
+  assert.equal(usage.byPlan.free?.tokens, 2050);
+  assert.deepEqual(usage.topUsers.map(u => [u.id, u.email, u.tokens]), [["cog-blair", "blair@example.com", 2050]]);
+  await assert.rejects(adminUsage(services, 14, now), { code: "admin_invalid_usage_window" });
 });

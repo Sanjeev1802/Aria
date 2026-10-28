@@ -17,6 +17,8 @@ export const INTERNAL_AUDIT_ACTION_LABEL: Record<string, string> = {
   revoke_sessions: "Sessions revoked",
   set_plan: "Plan changed",
   grant_credits: "Credits granted",
+  grant_operator: "Operator access granted",
+  revoke_operator: "Operator access removed",
 };
 
 export function internalAuditReasonForSource(
