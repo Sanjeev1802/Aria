@@ -1,9 +1,7 @@
 "use client";
 
-import {
-  ARIA_PRICING_PLANS,
-  type AriaPricingPlan,
-} from "@/components/landing/aria-pricing-grid";
+import type { AriaPricingPlan } from "@/components/landing/aria-pricing-grid";
+import { useAriaSubscriptionPlans } from "@/lib/use-aria-subscription-plans";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction } from "@/components/ui/card";
 import { useAriaSession } from "@/lib/aria-session";
@@ -59,6 +57,7 @@ function ctaForPlan(plan: AriaPricingPlan, isCurrent: boolean, switching: boolea
 }
 
 export function AriaPricingView() {
+  const { plans } = useAriaSubscriptionPlans();
   const session = useAriaSession();
   const currentPlanId = session.workspace?.plan;
   // Development stage: the normal upgrade buttons change the plan instantly, with no charge.
@@ -106,7 +105,7 @@ export function AriaPricingView() {
         </header>
 
         <div className="aria-pricing__grid" role="list">
-          {ARIA_PRICING_PLANS.map((plan) => {
+          {plans.map((plan) => {
             const isCurrent = plan.id === currentPlanId;
             const isTeam = plan.id === "team";
             const isPro = plan.id === "pro";

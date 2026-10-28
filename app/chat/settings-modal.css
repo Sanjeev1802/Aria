@@ -49,6 +49,7 @@
 
 .aria-settings-modal-card {
   --aria-settings-nav-w: 240px;
+  --aria-settings-content-x: 1rem;
   --aria-settings-max-w: min(1060px, calc(100vw - 2 * var(--aria-settings-gutter)));
   --aria-settings-max-h: min(
     780px,
@@ -59,13 +60,15 @@
   width: 100%;
   max-width: var(--aria-settings-max-w);
   max-height: var(--aria-settings-max-h);
+  height: var(--aria-settings-max-h);
 }
 
 .aria-settings-modal-card__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
-  height: var(--aria-settings-max-h);
+  flex: 1;
+  height: 100%;
   min-height: 0;
 }
 
@@ -81,9 +84,16 @@
   flex-direction: column;
 }
 
+@media (min-width: 640px) {
+  .aria-settings-modal-card {
+    --aria-settings-content-x: 1.5rem;
+  }
+}
+
 @media (min-width: 768px) {
   .aria-settings-modal-card {
     --aria-settings-nav-w: 252px;
+    --aria-settings-content-x: 1.75rem;
     --aria-settings-max-w: min(1080px, calc(100vw - 2 * var(--aria-settings-gutter)));
     --aria-settings-max-h: min(
       800px,
@@ -129,6 +139,10 @@
     border-radius: 0;
   }
 
+  .aria-settings-modal-card {
+    height: 100dvh;
+  }
+
   .aria-settings-modal-card__grid {
     height: 100dvh;
   }
@@ -153,6 +167,7 @@
   display: flex;
   flex-direction: column;
   gap: 28px;
+  width: 100%;
   max-width: 40rem;
   padding-top: 4px;
 }
@@ -233,4 +248,373 @@
 
 .aria-personalization__chips--modal {
   grid-template-columns: 1fr;
+}
+
+/* ——— Settings → Usage (Shodai-style summary + activity table) ——— */
+.aria-usage-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.aria-usage-dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+@media (min-width: 900px) {
+  .aria-usage-dashboard__stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.aria-usage-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklch, var(--foreground) 10%, transparent);
+  background: color-mix(in oklch, var(--card) 88%, var(--background));
+}
+
+.aria-usage-stat__label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--muted-foreground);
+}
+
+.aria-usage-stat__value {
+  margin: 6px 0 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.aria-usage-stat__meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
+.aria-usage-dashboard__meter {
+  height: 6px;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--foreground) 10%, transparent);
+}
+
+.aria-usage-dashboard__meter-bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: oklch(0.58 0.19 285);
+}
+
+.aria-usage-dashboard__sheet {
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklch, var(--foreground) 12%, transparent);
+  background: color-mix(in oklch, var(--card) 94%, white 6%);
+  box-shadow: 0 1px 0 color-mix(in oklch, white 6%, transparent);
+  overflow: hidden;
+}
+
+.aria-usage-dashboard__toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+@media (min-width: 768px) {
+  .aria-usage-dashboard__toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 16px;
+  }
+}
+
+.aria-usage-dashboard__toolbar-start {
+  min-width: 0;
+}
+
+.aria-usage-dashboard__sheet-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.aria-usage-dashboard__sheet-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
+.aria-usage-dashboard__toolbar-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .aria-usage-dashboard__toolbar-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    width: auto;
+  }
+}
+
+.aria-usage-dashboard__search {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 480px) {
+  .aria-usage-dashboard__search {
+    width: min(240px, 42vw);
+  }
+}
+
+.aria-usage-dashboard__search-icon {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+}
+
+.aria-usage-dashboard__search-input {
+  width: 100%;
+  padding-left: 2rem;
+}
+
+.aria-usage-dashboard__select-wrap {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .aria-usage-dashboard__select-wrap {
+    width: auto;
+  }
+}
+
+.aria-usage-dashboard__select {
+  height: 36px;
+  width: 100%;
+  min-width: 0;
+  appearance: none;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklch, var(--foreground) 14%, transparent);
+  background: var(--background);
+  padding: 0 32px 0 2rem;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--foreground);
+  outline: none;
+}
+
+@media (min-width: 480px) {
+  .aria-usage-dashboard__select {
+    width: auto;
+    min-width: 11.5rem;
+  }
+}
+
+.aria-usage-dashboard__select:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in oklch, oklch(0.58 0.19 285) 45%, transparent);
+}
+
+.aria-usage-dashboard__table-wrap {
+  overflow-x: auto;
+}
+
+.aria-usage-dashboard__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.aria-usage-dashboard__table th {
+  padding: 10px 18px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  background: color-mix(in oklch, var(--foreground) 4%, transparent);
+  border-bottom: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
+  white-space: nowrap;
+}
+
+.aria-usage-dashboard__table th.col-numeric,
+.aria-usage-dashboard__table td.col-numeric {
+  text-align: right;
+}
+
+.aria-usage-dashboard__table th.col-status,
+.aria-usage-dashboard__table td.col-status {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.aria-usage-dashboard__table th.col-plan,
+.aria-usage-dashboard__table td.col-plan {
+  white-space: nowrap;
+}
+
+.aria-usage-dashboard__table td {
+  padding: 12px 18px;
+  vertical-align: middle;
+  border-bottom: 1px solid color-mix(in oklch, var(--foreground) 6%, transparent);
+  color: var(--foreground);
+}
+
+.aria-usage-dashboard__table td.col-status {
+  vertical-align: middle;
+}
+
+.aria-usage-dashboard__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.aria-usage-dashboard__table tbody tr:hover td {
+  background: color-mix(in oklch, oklch(0.58 0.19 285) 6%, transparent);
+}
+
+.aria-usage-dashboard__date {
+  display: block;
+  font-weight: 500;
+}
+
+.aria-usage-dashboard__date-iso {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+.aria-usage-dashboard__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  vertical-align: middle;
+}
+
+.aria-usage-dashboard__badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.aria-usage-dashboard__badge--active {
+  color: oklch(0.45 0.14 155);
+  background: color-mix(in oklch, oklch(0.62 0.16 155) 14%, transparent);
+}
+
+.aria-usage-dashboard__badge--idle {
+  color: var(--muted-foreground);
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.aria-usage-dashboard__empty {
+  padding: 28px 18px !important;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+.aria-usage-dashboard__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+.aria-usage-dashboard__footer-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.aria-usage-dashboard__pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aria-usage-dashboard__page-label {
+  min-width: 3.5rem;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.aria-usage-dashboard__hint {
+  margin: 0;
+  padding: 12px 18px 16px;
+  border-top: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 767px) {
+  .aria-usage-dashboard__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .aria-usage-dashboard__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .aria-usage-dashboard__pagination {
+    justify-content: center;
+  }
+}
+
+.aria-usage-dashboard__link {
+  color: oklch(0.62 0.16 285);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

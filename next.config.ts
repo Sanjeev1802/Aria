@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const openuiDevtoolsStub = path.join(rootDir, "lib/openui-devtools-stub.tsx");
+/** Turbopack cannot resolve Windows absolute paths in resolveAlias. */
+const openuiDevtoolsStubForTurbopack = "./lib/openui-devtools-stub.tsx";
 
 const config: NextConfig = {
   output: "standalone",
@@ -15,7 +17,7 @@ const config: NextConfig = {
   devIndicators: false,
   turbopack: {
     resolveAlias: {
-      "@openuidev/devtools": openuiDevtoolsStub,
+      "@openuidev/devtools": openuiDevtoolsStubForTurbopack,
     },
   },
   webpack: (webpackConfig) => {

@@ -1,5 +1,6 @@
 import { ServiceError } from "../errors";
-import { entitlementFor, periodFor, type PlanId } from "../accounts/entitlements";
+import { periodFor, type PlanId } from "../accounts/entitlements";
+import { monthlyUnitsForPlan } from "../subscription-catalog";
 import { ConditionFailed, notExists, type Item, type Key, type Store, type Write } from "../store/types";
 
 export type Account = { workspaceId: string; memberId: string; plan: PlanId };
@@ -48,7 +49,7 @@ export class CreditLedger {
     const now = this.clock();
     const period = periodFor(now);
     if (await this.store.get(keys.period(workspaceId, period))) return period;
-    const units = entitlementFor(plan).monthlyUnits;
+    const units = await monthlyUnitsForPlan(this.store, plan);
     try {
       await this.store.transact([
         { kind: "put", when: [notExists], item: { ...keys.period(workspaceId, period),

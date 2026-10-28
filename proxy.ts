@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { LOCAL_ACCOUNT_COOKIE } from "@/lib/local-user-shared";
 
 const WORKSPACE = [/^\/chat(\/|$)/, /^\/profile(\/|$)/, /^\/pricing(\/|$)/];
 
@@ -13,7 +14,7 @@ function hasAriaSession(request: NextRequest) {
   return Boolean(
     request.cookies.get("aria_at")?.value
     || request.cookies.get("__Host-aria_at")?.value
-    || (LOCAL_DEV && request.cookies.get("aria_local_account")?.value),
+    || (LOCAL_DEV && request.cookies.get(LOCAL_ACCOUNT_COOKIE)?.value),
   );
 }
 

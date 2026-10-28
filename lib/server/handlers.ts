@@ -109,7 +109,8 @@ export async function sessionHandler(request: Request, s: Services) {
     planSwitching: Boolean(s.config.localIdentity || s.config.planSwitching),
     localUser: local?.slot,
     localUsers: s.config.localIdentity ? LOCAL_DEV_USER_LABELS : undefined,
-    user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name, avatar: await s.directory.getAvatar(ctx.user.id) },
+    user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name, avatar: await s.directory.getAvatar(ctx.user.id),
+      aiAccessSuspended: ctx.user.aiAccessSuspended },
     workspace: { id: ctx.workspace.id, name: ctx.workspace.name, plan: ctx.plan.id, planLabel: ctx.plan.label,
       role: ctx.membership.role, seatLimit: ctx.workspace.seatLimit, seatsUsed: ctx.workspace.seatsUsed },
     entitlements: { models: ctx.plan.models, apiAccess: ctx.plan.apiAccess, teamManagement: ctx.plan.teamManagement,
@@ -231,9 +232,16 @@ export async function signInHandler(request: Request, s: Services) {
   const email = str(body.email), password = str(body.password, 256);
   if (!email || !password) throw new ServiceError("invalid_credentials", 401);
   if (s.config.localIdentity && s.idp instanceof LocalIdentityProvider) {
+    const normalized = email.trim().toLowerCase();
+    if (s.config.adminEmails?.includes(normalized)) {
+      await s.idp.ensureDevOperatorAccount(normalized, password);
+    }
     await s.idp.signIn(email, password);
     const response = json({ ok: true, mode: "local" });
-    return withCookies(response, [localAccountCookie(email)]);
+    return withCookies(response, [
+      localAccountCookie(email),
+      `${LOCAL_USER_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0`,
+    ]);
   }
   const { idp } = requireIdp(s);
   return startSession(s, await idp.signIn(email, password));
@@ -246,11 +254,21 @@ export async function signUpHandler(request: Request, s: Services) {
   const email = str(body.email), password = str(body.password, 256);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) throw new ServiceError("invalid_auth_request", 400);
   const idp = requireAnyIdp(s);
-  if (s.config.localIdentity && idp instanceof LocalIdentityProvider) {
-    return json(await idp.signUp(email, password, str(body.name, 100)));
+  try {
+    if (s.config.localIdentity && idp instanceof LocalIdentityProvider) {
+      return json(await idp.signUp(email, password, str(body.name, 100)));
+    }
+    const { idp: cognitoIdp } = requireIdp(s);
+    return json(await cognitoIdp.signUp(email, password, str(body.name, 100)));
+  } catch (error) {
+    if (!(error instanceof ServiceError) || error.code !== "account_exists") throw error;
+    try {
+      await idp.resendCode(email);
+      return json({ confirmationRequired: true });
+    } catch {
+      throw error;
+    }
   }
-  const { idp: cognitoIdp } = requireIdp(s);
-  return json(await cognitoIdp.signUp(email, password, str(body.name, 100)));
 }
 
 export async function confirmHandler(request: Request, s: Services) {
@@ -273,7 +291,15 @@ export async function forgotPasswordHandler(request: Request, s: Services) {
   const body = await readJson(request);
   const email = str(body.email);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ServiceError("invalid_email", 400);
-  await idp.forgotPassword(email);
+  try {
+    await idp.forgotPassword(email);
+  } catch (error) {
+    if (error instanceof ServiceError && error.code === "password_reset_unavailable") {
+      await idp.resendCode(email).catch(() => undefined);
+      throw new ServiceError("account_not_confirmed", 403);
+    }
+    throw error;
+  }
   return json({ ok: true });
 }
 

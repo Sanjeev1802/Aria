@@ -42,6 +42,14 @@ export type ServerConfig = {
   /** OneWave transactional email, configured only on the server. */
   emailService?: { url: string; apiKey: string };
   secureCookies: boolean;
+  /** Verified Cognito subjects allowed into the internal operator console. */
+  adminSubjects?: string[];
+  /** Additional verified subjects with scoped internal roles. */
+  adminRoles?: Record<string, "support" | "billing" | "operations">;
+  /** Loopback-only preview for local development; grants Alex the operator role. */
+  adminLocalDev?: boolean;
+  /** Development-only operator emails; super admin with adminLocalDev. */
+  adminEmails?: string[];
 };
 
 export type Services = {
@@ -80,6 +88,14 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     emailService: env.EMAIL_SERVICE_URL?.trim() && env.EMAIL_SERVICE_API_KEY?.trim()
       ? { url: env.EMAIL_SERVICE_URL.trim(), apiKey: env.EMAIL_SERVICE_API_KEY.trim() } : undefined,
     secureCookies: environment === "production",
+    adminSubjects: (env.ARIA_ADMIN_SUBS || "").split(",").map(value => value.trim()).filter(Boolean),
+    adminRoles: Object.fromEntries((env.ARIA_ADMIN_ROLES || "").split(",").map(entry => entry.trim().split(":"))
+      .filter((parts): parts is [string, "support" | "billing" | "operations"] =>
+        parts.length === 2 && Boolean(parts[0]) && ["support", "billing", "operations"].includes(parts[1]))),
+    adminLocalDev: environment === "development" && env.ARIA_ADMIN_LOCAL_DEV === "true",
+    adminEmails: environment === "development"
+      ? (env.ARIA_ADMIN_EMAILS || "").split(",").map(value => value.trim().toLowerCase()).filter(Boolean)
+      : undefined,
   };
 }
 
@@ -112,11 +128,15 @@ export function buildServices(config: ServerConfig, overrides: Partial<Services>
     config, store,
     directory: overrides.directory ?? new AccountDirectory(store),
     ledger: overrides.ledger ?? new CreditLedger(store),
-    verifier: overrides.verifier ?? (config.cognito ? cognitoVerifier(config.cognito) : undefined),
-    idp: overrides.idp ?? (config.cognito
-      ? new CognitoIdentityProvider({ region: config.region, ...config.cognito })
-      : config.localIdentity
-        ? new LocalIdentityProvider(store)
+    verifier: overrides.verifier ?? (config.localIdentity
+      ? undefined
+      : config.cognito
+        ? cognitoVerifier(config.cognito)
+        : undefined),
+    idp: overrides.idp ?? (config.localIdentity
+      ? new LocalIdentityProvider(store)
+      : config.cognito
+        ? new CognitoIdentityProvider({ region: config.region, ...config.cognito })
         : undefined),
     inviteEmail: overrides.inviteEmail ?? (config.emailService
       ? createOneWaveInviteSender(config.emailService.url, config.emailService.apiKey)

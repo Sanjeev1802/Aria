@@ -44,6 +44,42 @@ export class LocalIdentityProvider implements IdentityProvider {
     return this.store.get(this.key(email));
   }
 
+  /**
+   * Loopback-only: create or activate a dev operator and sync the password from env allowlist sign-in.
+   * Skips email confirmation so internal operators can sign in immediately.
+   */
+  async ensureDevOperatorAccount(email: string, password: string) {
+    if (password.length < 8) throw new ServiceError("weak_password", 400);
+    const normalized = normalize(email);
+    if (FIXED[normalized]) return;
+    const row = await this.read(normalized);
+    const name = normalized.split("@")[0] || "Operator";
+    if (
+      row
+      && row.status === "active"
+      && typeof row.passwordHash === "string"
+      && verifyPassword(password, row.passwordHash)
+    ) {
+      return;
+    }
+    if (!row) {
+      await this.store.transact([{
+        kind: "put", item: {
+          pk: this.key(normalized).pk, sk: this.key(normalized).sk,
+          sub: this.newId(), email: normalized, name: name.slice(0, 100),
+          status: "active", passwordHash: hashPassword(password),
+        }, when: [{ field: "pk", op: "notExists" }],
+      }]);
+      return;
+    }
+    await this.store.transact([{
+      kind: "update", key: this.key(normalized),
+      set: { status: "active", passwordHash: hashPassword(password), name: String(row.name ?? name).slice(0, 100) },
+      remove: ["confirmCode", "confirmExpiresAt", "resetCode", "resetExpiresAt"],
+      when: [{ field: "pk", op: "exists" }],
+    }]);
+  }
+
   async signIn(email: string, password: string): Promise<AuthTokens> {
     const normalized = normalize(email);
     if (FIXED[normalized]) {

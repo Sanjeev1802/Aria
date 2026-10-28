@@ -1,7 +1,13 @@
 import { ARIA_IS_PREVIEW, ariaFetch } from "@/lib/aria-session";
 
 export type AriaSidebarCreditsSnapshot = {
-  used: number; included: number; planLabel: string; reserved?: number; available?: number;
+  used: number;
+  included: number;
+  planLabel: string;
+  reserved?: number;
+  available?: number;
+  period?: string;
+  activity?: Record<string, number>;
 };
 let snapshot: AriaSidebarCreditsSnapshot = { used: 0, included: 0, planLabel: "Not connected" };
 let activity: Record<string, number> = {};
@@ -17,9 +23,16 @@ export async function refreshAriaUsage(): Promise<AriaSidebarCreditsSnapshot> {
     if (response.status === 401) throw new Error("Signed out");
     if (!response.ok) throw new Error("Usage unavailable");
     const result = await response.json();
-    snapshot = { used: result.used, included: result.included, reserved: result.reserved,
-      available: result.available, planLabel: result.planLabel };
     activity = result.activity ?? {};
+    snapshot = {
+      used: result.used,
+      included: result.included,
+      reserved: result.reserved,
+      available: result.available,
+      planLabel: result.planLabel,
+      period: result.period,
+      activity,
+    };
   } catch (error) {
     snapshot = { used: 0, included: 0, planLabel: (error as Error).message === "Signed out" ? "Signed out" : "Usage unavailable" };
     activity = {};

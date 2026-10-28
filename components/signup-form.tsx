@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState, type ComponentProps, type FormEvent } from "react"
+import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react"
 import { AriaMark } from "@/components/aria-mark"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
 import { Button } from "@/components/ui/button"
@@ -13,13 +13,15 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/auth/password-input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
+import { meetsPasswordPolicy, PASSWORD_HINT } from "@/lib/auth/password-policy"
 import { safeNextPath } from "@/lib/auth/safe-next-path"
 import { useClientValue } from "@/hooks/use-client-value"
 import { ARIA_IS_PREVIEW, ariaConfirmSignUp, ariaResendCode, ariaSignIn, ariaSignUp } from "@/lib/aria-session"
 import { cn } from "cn"
 
-const DEFAULT_ERROR = "Use a valid email and matching passwords of at least 8 characters."
+const DEFAULT_ERROR = `Use a valid email, matching passwords, and ${PASSWORD_HINT.toLowerCase()}`
 
 function destinationFromQuery() {
   if (typeof window === "undefined") return "/chat/"
@@ -54,6 +56,13 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
   const [notice, setNotice] = useState<string | null>(null)
   const nextPath = useClientValue(destinationFromQuery, "/chat/")
 
+  useEffect(() => {
+    // One-time prefill from ?email=, applied after hydration so the input stays controlled.
+    const preset = new URLSearchParams(window.location.search).get("email")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (preset) setEmail(preset)
+  }, [])
+
   function fail(message: string) {
     setErrorText(message)
     showInputError(emailWrapRef.current)
@@ -77,7 +86,7 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
       return
     }
     const valid =
-      isValidEmail(email) && password.trim().length >= 8 && password === confirmPassword
+      isValidEmail(email) && meetsPasswordPolicy(password) && password === confirmPassword
     if (!valid) {
       fail(DEFAULT_ERROR)
       return
@@ -178,9 +187,8 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
                 <Field className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field>
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
+                    <PasswordInput
                       id="password"
-                      type="password"
                       autoComplete="new-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -189,9 +197,8 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
-                    <Input
+                    <PasswordInput
                       id="confirm-password"
-                      type="password"
                       autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -199,7 +206,7 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
                     />
                   </Field>
                 </Field>
-                <FieldDescription>Must be at least 8 characters long.</FieldDescription>
+                <FieldDescription>{PASSWORD_HINT}</FieldDescription>
               </Field>
               )}
               <Field>

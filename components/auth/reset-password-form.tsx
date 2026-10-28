@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/auth/password-input";
 import { ariaResetPassword } from "@/lib/aria-session";
 import { clearInputError, showInputError } from "@/lib/show-input-error";
 
@@ -54,7 +55,7 @@ export function ResetPasswordForm() {
                 <FieldLabel htmlFor="code">Reset code</FieldLabel>
                 <Input id="code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} required />
                 <FieldLabel htmlFor="password">New password</FieldLabel>
-                <Input id="password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <PasswordInput id="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 <p className="t-error-msg text-sm text-destructive" role="alert">{error}</p>
               </div>
             </Field>

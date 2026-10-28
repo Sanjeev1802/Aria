@@ -24,6 +24,8 @@ export function ThinkingStates({ states, sizerLabel, className = "", runOnce = f
   const indexRef = useRef(0);
   const timerRef = useRef<number | null>(null);
   const doneRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   const initial = states[0] ?? "Thinking…";
   const sizer = sizerLabel ?? states.reduce((a, b) => (a.length >= b.length ? a : b), initial);
@@ -32,7 +34,7 @@ export function ThinkingStates({ states, sizerLabel, className = "", runOnce = f
     if (!states.length) return;
 
     if (runOnce && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const id = window.setTimeout(() => onComplete?.(), 120);
+      const id = window.setTimeout(() => onCompleteRef.current?.(), 120);
       return () => window.clearTimeout(id);
     }
 
@@ -52,7 +54,7 @@ export function ThinkingStates({ states, sizerLabel, className = "", runOnce = f
 
         if (runOnce && indexRef.current >= states.length - 1) {
           doneRef.current = true;
-          onComplete?.();
+          onCompleteRef.current?.();
           return;
         }
 
@@ -91,7 +93,7 @@ export function ThinkingStates({ states, sizerLabel, className = "", runOnce = f
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
-  }, [states, runOnce, onComplete]);
+  }, [states, runOnce]);
 
   return (
     <span className={`t-think ${className}`.trim()} role="status" ref={boxRef}>

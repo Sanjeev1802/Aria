@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRef, useState, type ComponentProps, type FormEvent } from "react"
 import { AriaMark } from "@/components/aria-mark"
+import { AuthBrandPanel } from "@/components/auth/auth-brand-panel"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,10 +14,11 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/auth/password-input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
 import { safeNextPath } from "@/lib/auth/safe-next-path"
 import { useClientValue } from "@/hooks/use-client-value"
-import { ARIA_IS_PREVIEW, ariaSignIn } from "@/lib/aria-session"
+import { ARIA_IS_PREVIEW, ariaSignIn, refreshAriaSession } from "@/lib/aria-session"
 import { cn } from "cn"
 
 function isValidEmail(value: string) {
@@ -28,17 +30,6 @@ const DEFAULT_ERROR = "Enter a valid email and password."
 function destinationFromQuery() {
   if (typeof window === "undefined") return "/chat/"
   return safeNextPath(new URLSearchParams(window.location.search).get("next"))
-}
-
-function AuthBrandPanel() {
-  return (
-    <div className="relative hidden min-h-[28rem] items-center justify-center overflow-hidden md:flex">
-      <Link href="/" aria-label="ARIA home" className="relative z-10 flex flex-col items-center gap-4 text-white">
-        <AriaMark className="aria-auth-panel-mark" />
-        <span className="text-lg font-semibold tracking-[0.22em]">ARIA</span>
-      </Link>
-    </div>
-  )
 }
 
 export function LoginForm({ className, ...props }: ComponentProps<"div">) {
@@ -69,6 +60,7 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
       showInputError(emailWrapRef.current)
       return
     }
+    void refreshAriaSession({ force: true })
     setBootstrap(true)
   }
 
@@ -123,9 +115,8 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
                     </Link>
                   )}
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

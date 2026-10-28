@@ -15,7 +15,8 @@ export type AriaSession = {
   status: "loading" | "authenticated" | "unauthenticated" | "unavailable" | "preview";
   environment?: "development" | "production";
   liveChat?: boolean;
-  user?: { id: string; email: string; name: string; avatar?: string | null };
+  webSearchAvailable?: boolean;
+  user?: { id: string; email: string; name: string; avatar?: string | null; aiAccessSuspended?: boolean };
   workspace?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole; seatLimit: number; seatsUsed: number };
   entitlements?: { models: AriaModelChoice[]; apiAccess: boolean; teamManagement: boolean; monthlyCredits: number };
   workspaces?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole }[];
@@ -42,6 +43,7 @@ const LOADING: AriaSession = { status: "loading" };
 let state: AriaSession = ARIA_IS_PREVIEW ? PREVIEW_SESSION : LOADING;
 const listeners = new Set<() => void>();
 let inflight: Promise<AriaSession> | null = null;
+let lastSessionRefreshAt = 0;
 
 function setState(next: AriaSession) {
   state = next;
@@ -92,16 +94,37 @@ export async function ariaFetch(path: string, init: RequestInit = {}): Promise<R
   return response;
 }
 
-export function refreshAriaSession(): Promise<AriaSession> {
+const SESSION_FETCH_MS = 12_000;
+
+export function refreshAriaSession(options: { force?: boolean } = {}): Promise<AriaSession> {
   if (ARIA_IS_PREVIEW) return Promise.resolve(state);
+  const now = Date.now();
+  if (
+    !options.force
+    && inflight === null
+    && state.status === "authenticated"
+    && now - lastSessionRefreshAt < 2_000
+  ) {
+    return Promise.resolve(state);
+  }
   inflight ??= (async () => {
     try {
-      const response = await ariaFetch("/api/auth/session/");
-      if (response.ok) setState({ status: "authenticated", ...(await response.json()) });
+      const headers = new Headers();
+      // Prefer the signed-in account cookie; do not attach the dev user switcher header on session load.
+      const response = await Promise.race([
+        fetch("/api/auth/session/", { credentials: "same-origin", cache: "no-store", headers }),
+        new Promise<Response>((_, reject) => {
+          window.setTimeout(() => reject(new Error("session_timeout")), SESSION_FETCH_MS);
+        }),
+      ]);
+      if (response.ok) {
+        lastSessionRefreshAt = Date.now();
+        setState({ status: "authenticated", ...(await response.json()) });
+      }
       else if (response.status === 401) setState({ status: "unauthenticated" });
       else setState({ status: "unavailable" });
     } catch {
-      setState({ status: "unavailable" });
+      /* timeout or network — leave state unchanged; chat will retry session load */
     } finally {
       inflight = null;
     }
@@ -134,6 +157,7 @@ export const ariaResetPassword = (email: string, code: string, password: string)
 
 export async function ariaSignOut() {
   if (!ARIA_IS_PREVIEW) await authPost("/api/auth/sign-out/", {});
+  lastSessionRefreshAt = 0;
   setState(ARIA_IS_PREVIEW ? PREVIEW_SESSION : { status: "unauthenticated" });
 }
 
