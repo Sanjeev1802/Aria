@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { LOCAL_ACCOUNT_COOKIE } from "@/lib/local-user-shared";
 
 const WORKSPACE = [/^\/chat(\/|$)/, /^\/profile(\/|$)/, /^\/pricing(\/|$)/];
 
@@ -7,10 +8,10 @@ function isWorkspacePath(pathname: string) {
 }
 
 function hasAriaSession(request: NextRequest) {
-  return Boolean(
-    request.cookies.get("aria_at")?.value
-    || request.cookies.get("__Host-aria_at")?.value,
-  );
+  if (request.cookies.get("aria_at")?.value || request.cookies.get("__Host-aria_at")?.value) return true;
+  // Local email/password sign-in sets an HttpOnly account cookie, not Cognito tokens.
+  if (process.env.NODE_ENV === "development" && request.cookies.get(LOCAL_ACCOUNT_COOKIE)?.value) return true;
+  return false;
 }
 
 export function middleware(request: NextRequest) {

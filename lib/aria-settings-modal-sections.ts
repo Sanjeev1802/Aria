@@ -1,12 +1,19 @@
 import type { AriaWorkspacePath } from "@/lib/aria-workspace-paths";
 
-export type AriaSettingsModalSection = "account" | "team" | "privacy" | "billing" | "data";
+export type AriaSettingsModalSection =
+  | "account"
+  | "team"
+  | "privacy"
+  | "billing"
+  | "usage"
+  | "data";
 
 export const SETTINGS_MODAL_PATHS: Record<AriaSettingsModalSection, AriaWorkspacePath> = {
   account: "settings",
   team: "settings",
   privacy: "settings",
   billing: "settings",
+  usage: "settings",
   data: "settings",
 };
 

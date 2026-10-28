@@ -124,6 +124,13 @@ html[data-theme="dark"] {
   transition: opacity 450ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.workspace-bootstrap--sign-in {
+  --think-hold: 480ms;
+  --think-swap: 140ms;
+  --think-gap: 40ms;
+  transition: opacity 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .workspace-bootstrap.is-exiting {
   opacity: 0;
   pointer-events: none;

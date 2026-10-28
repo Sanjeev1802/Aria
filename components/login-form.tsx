@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/auth/password-input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
 import { safeNextPath } from "@/lib/auth/safe-next-path"
-import { ARIA_IS_PREVIEW, ariaSignIn } from "@/lib/aria-session"
+import { ARIA_IS_PREVIEW, ariaSignIn, refreshAriaSession } from "@/lib/aria-session"
 import { cn } from "cn"
 
 function isValidEmail(value: string) {
@@ -63,6 +63,7 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
       showInputError(emailWrapRef.current)
       return
     }
+    void refreshAriaSession({ force: true })
     setBootstrap(true)
   }
 

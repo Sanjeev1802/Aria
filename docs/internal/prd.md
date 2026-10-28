@@ -1,7 +1,7 @@
 # ARIA Internal — Product Requirements Document
 
 **Version:** 1.0  
-**Updated:** 22 October 2026  
+**Updated:** 25 October 2026  
 **Status:** Implemented foundation; production readiness and extended features remain  
 **Branch:** `Aria-Internal-Dashbord`  
 **Product entry:** `/internal/sign-in/` → `/internal/`
@@ -47,10 +47,10 @@ All permissions must be checked on the server for every request. Hiding a button
 | Area | Available now | Current boundary |
 | --- | --- | --- |
 | Operator login | Email/password sign-in, password visibility, server authorization check, denied-access state | Uses existing ARIA identity service; real Cognito staging verification remains |
-| Overview | Account/workspace counts, active account count, Team count, current credit usage, plan chart, recent activity | Snapshot of listed records; no historical adoption or revenue metrics |
+| Overview | Account/workspace counts, active account count, Team count, current credit usage, workspace distribution chart, customer investigation table | Snapshot of listed records; no historical adoption or revenue metrics |
 | Customers | Search by name/email/ID, status filter, profile drawer | Up to 500 indexed accounts; filters operate on loaded records |
 | Workspaces | Search by workspace or owner, plan filter, owner links, seat and credit information | Up to 500 indexed workspaces; detailed review opens through the owner profile |
-| Plans and credits | Plan changes, balance visibility, grants of up to 100 credits per action | Manual entitlements, not payment processing |
+| Subscription | ARIA pricing catalog (Pro/Team copy, price, credits, seats); per-customer plan changes via Customers / Teams | Manual entitlements, not payment processing |
 | Account controls | Enable, disable, revoke sessions | Role restricted and reason required |
 | Audit activity | Recent operator actions with actor, target available in API, reason, time, and result | Overview API returns the latest 12 records; no full history browser |
 | Operations | Configuration guidance and reconciliation command | Not a live infrastructure health monitor |
@@ -69,14 +69,34 @@ After successful authentication, the server must verify internal authorization b
 - **Overview:** current platform snapshot and shortcuts to common tasks.
 - **Customers:** find an account, inspect memberships, and use authorized account controls.
 - **Workspaces:** inspect ownership, plan, seat capacity, and usage.
-- **Plans & credits:** review balances and perform permitted entitlement changes.
+- **Subscription:** edit Free, Pro, and Team plan copy and allowances shown on ARIA pricing (super admin save; billing retains per-customer plan changes elsewhere).
 
 ### Governance navigation
 
 - **Audit activity:** review administrative changes and their outcomes.
 - **Operations:** operator guidance today; verified service telemetry in a later release.
+- **Admin:** shortcuts to customer operations, entitlements, and runbook pages (not a second settings app).
+- **Settings / Your profile:** operator console preferences and personal sign-in — not customer platform configuration.
+- **Settings (super admin):** General (platform information, regional settings, snapshot defaults), Appearance (console theme), Token rules. Not in Internal: notification preferences, platform behaviour / maintenance (main ARIA product or ops).
 
 The sidebar footer displays the operator's name, internal role, and email. The top bar stays visible during page scrolling and must not cover modal controls or mobile navigation.
+
+### Enterprise admin categories — what applies to ARIA Internal
+
+Many products bundle “admin settings” into one screen. ARIA Internal is an **operator console** for staff investigating and changing **customer accounts**. The list below maps common admin modules to what belongs here versus the main ARIA app or infrastructure.
+
+| Category | Useful for ARIA Internal? | Where it lives today | Notes |
+| --- | --- | --- | --- |
+| **1. User & admin management** | **Partial** | **Customers** (disable/enable, revoke sessions); **Plans & credits** (plans, grants); **Settings → Teams** (super admin: all workspaces + owner enable/disable); operator access via **server config** (not self-service UI) | Customer **creation** and Team invites stay in the customer app. Internal **operator invite/role assignment UI** is Phase 3. |
+| **2. Roles & permissions** | **Yes (internal only)** | **Settings → Users & roles** (read-only matrix); `requireInternalAdmin` + role checks on every API | Four internal roles today. Not a general permission builder; customer workspace roles are out of scope here. |
+| **3. Security & authentication** | **Partial** | **Sign-in** (`/internal/sign-in/`), **Settings → Security** and **Your profile → Login & password**; customer **revoke sessions** on **Customers** | Org-wide password policy, mandatory MFA enforcement, and session-timeout **configuration** are identity/ops decisions (Phase 2 MFA policy), not console settings screens. |
+| **4. Platform configuration** | **Minimal** | **Settings → General** (console name, environment, snapshot scope); **Appearance** (light/dark for this console only) | Application logo, customer default language, maintenance mode, and product-wide preferences belong to the **main ARIA product**, not Internal. |
+| **5. Integrations & API** | **No (for now)** | — | Webhooks, provider keys, and AI model routing are product/infrastructure surfaces. Phase 4 may add **operator-facing API key admin** when customer APIs exist; not part of current Internal settings. |
+| **6. Notifications & email** | **No** | — | System email templates and notification rules are not configured through Internal. Operators use normal comms tools; security alerts are an ops/identity concern. |
+| **7. Audit logs & activity** | **Yes** | **Audit activity** sidebar; audit rows on **POST /api/admin/actions/**; bounded window in overview API | Covers **administrator actions** (plan, credits, enable/disable, revoke) with reason and result. Full history, login-event streams, and export are planned (Phase 3 / retention policy). |
+| **8. Data, backup & retention** | **No (UI)** | **Operations** runbook references; **Settings → General** documents snapshot limits (500 records) | Backups, retention, exports, and deletion policy are **platform operations**, not operator self-service screens in this console. |
+
+**Rule of thumb:** If the task is “find a customer, understand workspaces/credits, make an authorized change, verify in audit,” it belongs in Internal. If it is “run the whole product, email stack, or cloud backup,” it does not — document ownership elsewhere (`INTERNAL_ADMIN_SETUP.md`, identity provider, storage ops).
 
 ## 6. Functional requirements and acceptance criteria
 
@@ -214,7 +234,7 @@ Dedicated operator login, restricted APIs, role-scoped actions, current overview
 
 ### Phase 3 — Complete operator workflows (planned)
 
-Server-side search/pagination, full audit history, workspace details, controlled staff-role administration, support notes, and verified service monitoring. Each module requires permissions and acceptance tests before release.
+Server-side search/pagination, full audit history, workspace details, **controlled internal operator administration** (invite/remove operators, assign internal roles — category 1), support notes, and verified service monitoring. Each module requires permissions and acceptance tests before release. Categories 5, 6, and 8 remain outside Internal unless product leadership explicitly expands scope.
 
 ### Phase 4 — Billing and analytics (planned, dependency gated)
 

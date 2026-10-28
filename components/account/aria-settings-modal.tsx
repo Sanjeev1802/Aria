@@ -6,6 +6,7 @@ import {
   SettingsModalDataPanel,
   SettingsModalPrivacyPanel,
 } from "@/components/account/aria-settings-modal-panels";
+import { SettingsModalUsagePanel } from "@/components/account/aria-settings-usage-panel";
 import { SettingsModalTeamPanel } from "@/components/account/aria-settings-modal-team-panel";
 import { useAriaSession } from "@/lib/aria-session";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ import {
 } from "@/lib/aria-settings-modal-sections";
 import { cn } from "@/lib/utils";
 import { useNav } from "@openuidev/react-ui";
-import { ChevronDown, CreditCard, Database, Search, Shield, UserRound, Users, X } from "lucide-react";
+import { ChevronDown, CreditCard, Database, Gauge, Search, Shield, UserRound, Users, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -40,6 +41,7 @@ const BASE_NAV: NavItem[] = [
   { id: "account", label: "Account", group: "Settings", icon: UserRound },
   { id: "privacy", label: "Privacy", group: "Settings", icon: Shield },
   { id: "billing", label: "Billing", group: "Settings", icon: CreditCard },
+  { id: "usage", label: "Usage", group: "Settings", icon: Gauge },
   { id: "data", label: "Data controls", group: "Workspace", icon: Database },
 ];
 
@@ -48,6 +50,7 @@ const SECTION_TITLES: Record<AriaSettingsModalSection, string> = {
   team: "Team",
   privacy: "Privacy",
   billing: "Billing",
+  usage: "Usage",
   data: "Data controls",
 };
 
@@ -61,6 +64,8 @@ function panelForSection(section: AriaSettingsModalSection) {
       return <SettingsModalPrivacyPanel />;
     case "billing":
       return <SettingsModalBillingPanel />;
+    case "usage":
+      return <SettingsModalUsagePanel />;
     case "data":
       return <SettingsModalDataPanel />;
   }
@@ -106,8 +111,9 @@ export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) 
       BASE_NAV[0],
       BASE_NAV[1],
       BASE_NAV[2],
-      teamItem,
       BASE_NAV[3],
+      teamItem,
+      BASE_NAV[4],
     ];
   }, [teamActive]);
 
@@ -139,7 +145,7 @@ export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) 
   return (
     <div className="aria-settings-modal-overlay" role="presentation" onClick={close}>
       <Card
-        className="aria-settings-modal-card relative z-[1] gap-0 overflow-hidden bg-card p-0 shadow-2xl ring-foreground/15"
+        className="aria-settings-modal-card relative z-[1] flex h-full max-h-[var(--aria-settings-max-h)] min-h-0 flex-col gap-0 overflow-hidden bg-card p-0 py-0 shadow-2xl ring-foreground/15"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -152,7 +158,7 @@ export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) 
         </CardAction>
 
         <div className="aria-settings-modal-card__grid">
-          <aside className="aria-settings-modal-card__nav flex flex-col gap-3 border-b border-border/60 bg-muted/40 p-3 pr-12 md:border-r md:border-b-0 md:pr-3">
+          <aside className="aria-settings-modal-card__nav flex min-h-0 flex-col gap-3 border-b border-border/60 bg-muted/40 p-3 pr-12 md:h-full md:border-r md:border-b-0 md:pr-3">
             <div className="relative md:hidden">
               <label htmlFor="aria-settings-section" className="sr-only">Settings section</label>
               <select id="aria-settings-section" value={active}
@@ -213,8 +219,8 @@ export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) 
           </aside>
 
           <div className="aria-settings-modal-card__main">
-            <CardHeader className="shrink-0 border-b border-border/60 pb-4">
-              <CardTitle className="text-lg">{SECTION_TITLES[active]}</CardTitle>
+            <CardHeader className="shrink-0 border-b border-border/60 px-4 pt-5 pb-4 sm:px-6 md:px-7">
+              <CardTitle className="text-lg leading-tight">{SECTION_TITLES[active]}</CardTitle>
               <CardDescription className="sr-only">
                 {SECTION_TITLES[active]} settings for your ARIA workspace
               </CardDescription>

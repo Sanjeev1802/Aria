@@ -10,7 +10,6 @@ import {
 export const sections = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "customers", label: "Customers", icon: Users },
-  { id: "workspaces", label: "Workspaces", icon: LayoutDashboard },
   { id: "plans", label: "Plans & credits", icon: Wallet },
   { id: "activity", label: "Audit activity", icon: Activity },
   { id: "operations", label: "Operations", icon: ShieldCheck },

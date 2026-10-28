@@ -80,5 +80,6 @@ export async function requireWorkspace(request: Request, services: Services, per
   const requested = request.headers.get(WORKSPACE_HEADER);
   const { workspace, membership } = await services.directory.resolveWorkspace(auth.user, requested);
   requirePermission(membership.role, permission);
+  if (permission === "chat") services.directory.assertAiAccess(auth.user);
   return { ...auth, workspace, membership, plan: entitlementFor(workspace.plan) };
 }

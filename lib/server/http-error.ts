@@ -23,6 +23,7 @@ const messages: Record<string,string> = {
   session_revoked: "You were signed out. Sign in again.",
   invalid_session: "Your session is not valid. Sign in again.",
   account_disabled: "This account is disabled. Contact your workspace administrator.",
+  ai_access_suspended: "ARIA AI is not available on this account. Choose a subscription plan to continue.",
   invalid_origin: "This request did not come from the ARIA app.",
   local_development_only: "Local development identity only works on localhost.",
   invalid_plan: "Choose Free, Pro, or Team.",

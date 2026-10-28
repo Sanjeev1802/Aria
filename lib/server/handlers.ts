@@ -102,7 +102,8 @@ export async function sessionHandler(request: Request, s: Services) {
     localDev: Boolean(s.config.localIdentity),
     localUser: local?.slot,
     localUsers: s.config.localIdentity ? LOCAL_DEV_USER_LABELS : undefined,
-    user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name, avatar: await s.directory.getAvatar(ctx.user.id) },
+    user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name, avatar: await s.directory.getAvatar(ctx.user.id),
+      aiAccessSuspended: ctx.user.aiAccessSuspended },
     workspace: { id: ctx.workspace.id, name: ctx.workspace.name, plan: ctx.plan.id, planLabel: ctx.plan.label,
       role: ctx.membership.role, seatLimit: ctx.workspace.seatLimit, seatsUsed: ctx.workspace.seatsUsed },
     entitlements: { models: ctx.plan.models, apiAccess: ctx.plan.apiAccess, teamManagement: ctx.plan.teamManagement,
@@ -224,9 +225,16 @@ export async function signInHandler(request: Request, s: Services) {
   const email = str(body.email), password = str(body.password, 256);
   if (!email || !password) throw new ServiceError("invalid_credentials", 401);
   if (s.config.localIdentity && s.idp instanceof LocalIdentityProvider) {
+    const normalized = email.trim().toLowerCase();
+    if (s.config.adminEmails?.includes(normalized)) {
+      await s.idp.ensureDevOperatorAccount(normalized, password);
+    }
     await s.idp.signIn(email, password);
     const response = json({ ok: true, mode: "local" });
-    return withCookies(response, [localAccountCookie(email)]);
+    return withCookies(response, [
+      localAccountCookie(email),
+      `${LOCAL_USER_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0`,
+    ]);
   }
   const { idp } = requireIdp(s);
   return startSession(s, await idp.signIn(email, password));

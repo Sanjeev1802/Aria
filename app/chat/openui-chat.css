@@ -11,9 +11,21 @@
   --aria-sidebar-section-label-size: 12px;
   --aria-sidebar-border: color-mix(in oklch, var(--openui-text-neutral-primary) 10%, transparent);
   --aria-sidebar-hover: var(--openui-highlight-subtle);
+  --aria-sidebar-glass-bg: color-mix(in oklch, oklch(0.22 0.02 260) 72%, transparent);
+  --aria-sidebar-glass-border: color-mix(in oklch, var(--openui-text-neutral-primary) 14%, transparent);
+  --aria-sidebar-active-surface: oklch(0.96 0.01 260);
+  --aria-sidebar-active-text: oklch(0.22 0.02 260);
+  --aria-sidebar-active-collapsed: oklch(0.32 0.02 260);
+  --aria-sidebar-rail-gap: 12px;
+  --aria-sidebar-panel-radius: 22px;
+  --aria-sidebar-active-scoop: 14px;
   color-scheme: dark;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(120% 80% at 0% 0%, oklch(0.24 0.035 260 / 0.55), transparent 55%),
+    radial-gradient(90% 70% at 100% 100%, oklch(0.2 0.02 280 / 0.35), transparent 50%),
+    var(--background);
 }
 
 .aria-openui-chat,
@@ -70,13 +82,15 @@
 
 .aria-openui-chat .aria-openui-sidebar-logo--expand {
   margin: 0;
-  padding: 6px;
-  border: 0;
-  border-radius: var(--aria-sidebar-item-radius);
-  background: transparent;
+  padding: 8px;
+  border: 1px solid var(--aria-sidebar-glass-border);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--openui-text-neutral-primary) 6%, transparent);
   color: var(--openui-text-neutral-primary);
   cursor: pointer;
-  transition: background 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .aria-openui-chat .aria-openui-sidebar-logo--expand:hover {
@@ -108,14 +122,39 @@
   display: contents;
 }
 
-.aria-openui-chat .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed) {
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed) {
+  align-self: stretch;
   width: var(--openui-agent-sidebar-width);
+  margin: var(--aria-sidebar-rail-gap) 0 var(--aria-sidebar-rail-gap) var(--aria-sidebar-rail-gap);
   padding: var(--aria-sidebar-inset-y) var(--aria-sidebar-inset-x) 8px;
   gap: var(--openui-space-s);
+  border-radius: var(--aria-sidebar-panel-radius);
+  border: 1px solid var(--aria-sidebar-glass-border);
+  background: var(--aria-sidebar-glass-bg);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--openui-text-neutral-primary) 8%, transparent),
+    0 12px 40px color-mix(in oklch, black 28%, transparent);
+  overflow: visible;
 }
 
-.aria-openui-chat .openui-agent-sidebar-container--collapsed {
-  padding: var(--openui-space-m-l) 18px;
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed {
+  align-self: stretch;
+  margin: var(--aria-sidebar-rail-gap) 0 var(--aria-sidebar-rail-gap) var(--aria-sidebar-rail-gap);
+  padding: var(--openui-space-m-l) 14px;
+  border-radius: var(--aria-sidebar-panel-radius);
+  border: 1px solid var(--aria-sidebar-glass-border);
+  background: var(--aria-sidebar-glass-bg);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--openui-text-neutral-primary) 8%, transparent),
+    0 12px 40px color-mix(in oklch, black 28%, transparent);
 }
 
 .aria-openui-chat .aria-openui-sidebar-top {
@@ -138,6 +177,13 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .openui-agent-sidebar-content:not(.openui-agent-sidebar-content--collapsed) {
+  overflow: visible;
 }
 
 /* Collapsed desktop: icon rail (New chat, Library, History) + hide projects/recents. */
@@ -439,6 +485,11 @@
   display: none !important;
 }
 
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile) {
+  align-items: stretch;
+}
+
 /* Chat panel uses full width (no reserved workspace column) */
 .aria-openui-chat .openui-agent-thread-container {
   flex: 1;
@@ -447,6 +498,17 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-thread-container {
+  align-self: stretch;
+  margin: var(--aria-sidebar-rail-gap) var(--aria-sidebar-rail-gap) var(--aria-sidebar-rail-gap) 0;
+  border-radius: var(--aria-sidebar-panel-radius);
+  border: 1px solid color-mix(in oklch, var(--openui-text-neutral-primary) 8%, transparent);
+  background: color-mix(in oklch, var(--aria-sidebar-active-surface) 6%, var(--background));
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--openui-text-neutral-primary) 5%, transparent);
 }
 
 .aria-openui-chat .openui-agent-thread-container > .openui-agent-thread-wrapper {
@@ -495,6 +557,19 @@
   width: 100%;
 }
 
+.aria-openui-chat .aria-openui-sidebar-nav__stack > li {
+  width: 100%;
+  min-width: 0;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__stack
+  > li {
+  overflow: visible;
+}
+
 .aria-openui-chat .aria-openui-sidebar-icon-btn {
   display: flex;
   align-items: center;
@@ -517,6 +592,106 @@
 
 .aria-openui-chat .aria-openui-sidebar-icon-btn:hover {
   background: var(--aria-sidebar-hover);
+}
+
+/* Primary nav active: icon rail (collapsed) vs pill + scoops (expanded) */
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container--collapsed
+  .aria-openui-sidebar-icon-btn--active {
+  background: var(--aria-sidebar-active-collapsed);
+  color: var(--openui-text-neutral-primary);
+  border-radius: 999px;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__item--active {
+  position: relative;
+  z-index: 2;
+  margin-block: 3px;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__item--active
+  .aria-openui-sidebar-icon-btn--active {
+  position: relative;
+  z-index: 1;
+  margin-right: calc(-1 * var(--aria-sidebar-inset-x));
+  padding-right: calc(var(--aria-sidebar-item-pad-x) + var(--aria-sidebar-inset-x));
+  border-radius: 999px 0 0 999px;
+  background: var(--aria-sidebar-active-surface);
+  color: var(--aria-sidebar-active-text);
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__item--active
+  .aria-openui-sidebar-icon-btn--active
+  svg {
+  opacity: 1;
+  color: var(--aria-sidebar-active-text);
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__item--active
+  .aria-openui-sidebar-icon-btn--active::before,
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__item--active
+  .aria-openui-sidebar-icon-btn--active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  width: var(--aria-sidebar-active-scoop);
+  height: var(--aria-sidebar-active-scoop);
+  pointer-events: none;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__item--active
+  .aria-openui-sidebar-icon-btn--active::before {
+  top: calc(-1 * var(--aria-sidebar-active-scoop));
+  border-bottom-right-radius: var(--aria-sidebar-active-scoop);
+  box-shadow: calc(var(--aria-sidebar-active-scoop) / 2)
+    calc(var(--aria-sidebar-active-scoop) / 2) 0 calc(var(--aria-sidebar-active-scoop) / 2)
+    var(--aria-sidebar-active-surface);
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__item--active
+  .aria-openui-sidebar-icon-btn--active::after {
+  bottom: calc(-1 * var(--aria-sidebar-active-scoop));
+  border-top-right-radius: var(--aria-sidebar-active-scoop);
+  box-shadow: calc(var(--aria-sidebar-active-scoop) / 2)
+    calc(-1 * var(--aria-sidebar-active-scoop) / 2) 0 calc(var(--aria-sidebar-active-scoop) / 2)
+    var(--aria-sidebar-active-surface);
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav {
+  overflow: visible;
+}
+
+.aria-openui-chat
+  .openui-agent-container:not(.openui-agent-container--mobile)
+  .openui-agent-sidebar-container:not(.openui-agent-sidebar-container--collapsed)
+  .aria-openui-sidebar-nav__item--active
+  .aria-openui-sidebar-icon-btn--active:hover {
+  background: var(--aria-sidebar-active-surface);
 }
 
 .aria-openui-chat .aria-openui-sidebar-icon-btn--active {
@@ -546,6 +721,7 @@
   gap: 18px;
   padding-top: 8px;
   margin-top: 0;
+  overflow: hidden;
 }
 
 .aria-openui-chat .aria-openui-recents {
@@ -1673,4 +1849,47 @@ body:has(.aria-create-project-dialog__card) [data-slot="dialog-overlay"] {
 
 .aria-create-project-dialog__submit:active {
   transform: scale(0.98);
+}
+
+.aria-ai-access-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+  max-width: 28rem;
+  margin: auto;
+  padding: 2rem 1.5rem;
+  text-align: left;
+}
+
+.aria-ai-access-gate__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.aria-ai-access-gate__lede {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: oklch(0.72 0 0);
+}
+
+.aria-ai-access-gate__cta {
+  margin-top: 4px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: oklch(0.78 0 0);
+  color: oklch(0.18 0 0);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.aria-ai-access-gate__cta:hover {
+  opacity: 0.92;
 }

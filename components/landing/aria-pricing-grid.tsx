@@ -1,83 +1,29 @@
 "use client";
 
+import {
+  ARIA_SUBSCRIPTION_PLAN_IDS,
+  DEFAULT_ARIA_SUBSCRIPTION_PLANS,
+  toPricingPlan,
+  type AriaPricingPlan,
+} from "@/lib/aria-subscription-plans";
+import { useAriaSubscriptionPlans } from "@/lib/use-aria-subscription-plans";
 import { ArrowRight, Check, Info } from "lucide-react";
 
-export type AriaPricingPlan = {
-  id: string;
-  name: string;
-  /** Short title on the in-app upgrade cards */
-  headline: string;
-  price: string;
-  priceSuffix: string;
-  isNew?: boolean;
-  highlights: string;
-  features: { text: string; hint?: string }[];
-  cta: string;
-};
+export type { AriaPricingPlan };
 
-export const ARIA_PRICING_PLANS: AriaPricingPlan[] = [
-  {
-    id: "free",
-    name: "Free",
-    headline: "Everyday workspace",
-    price: "0",
-    priceSuffix: "/mo",
-    highlights: "200 credits/mo · General workspace · Amazon Nova · Personal use",
-    features: [
-      { text: "Everyday AI conversations in General mode" },
-      { text: "Conversation history stored in your browser (preview)" },
-      { text: "Amazon Nova through Bedrock" },
-      { text: "Personal exploration — no card required" },
-      { text: "Upgrade anytime for Intelligence & API" },
-    ],
-    cta: "Get Free",
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    headline: "Intelligence & API",
-    price: "12",
-    priceSuffix: "/mo",
-    highlights: "6,000 credits/mo · ARIA Intelligence · Amazon Nova · Developer API",
-    features: [
-      { text: "Everything in Free" },
-      { text: "ARIA Intelligence with source-linked answers (preview UI)" },
-      { text: "Higher monthly credit allowance" },
-      { text: "Developer API access with scoped keys (planned)" },
-      { text: "File uploads in workspace flows" },
-      { text: "Commercial use for solo operators & freelancers" },
-    ],
-    cta: "Get Pro",
-  },
-  {
-    id: "team",
-    name: "Team",
-    headline: "Built for teams",
-    price: "39",
-    priceSuffix: "/workspace/mo",
-    isNew: true,
-    highlights: "20,000 shared credits/mo · 5 seats · Admin controls · Team API keys",
-    features: [
-      { text: "Everything in Pro for your workspace" },
-      { text: "Five seats included (+ additional seats at Pro rate)" },
-      { text: "Shared credit pool and usage visibility" },
-      { text: "Admin invites, roles, and approved data connections" },
-      { text: "Project-scoped API keys for shipping together" },
-      { text: "Team-wide commercial license (preview terms)" },
-      { text: "Priority support channel when ARIA launches", hint: "Planned for GA" },
-    ],
-    cta: "Get Team",
-  },
-];
+export const ARIA_PRICING_PLANS: AriaPricingPlan[] = ARIA_SUBSCRIPTION_PLAN_IDS.map(id =>
+  toPricingPlan(DEFAULT_ARIA_SUBSCRIPTION_PLANS[id]),
+);
 
 type Props = {
   onSelectPlan: (planId: string, cta: string) => void;
 };
 
 export function AriaPricingGrid({ onSelectPlan }: Props) {
+  const { plans } = useAriaSubscriptionPlans();
   return (
     <div className="aria-pricing-compare" role="list">
-      {ARIA_PRICING_PLANS.map((plan) => (
+      {plans.map((plan) => (
         <article key={plan.id} className="aria-pricing-tier" role="listitem">
           <header className="aria-pricing-tier-head">
             <h3 className="aria-pricing-tier-name">{plan.name}</h3>

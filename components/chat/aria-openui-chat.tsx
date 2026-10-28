@@ -13,7 +13,6 @@ import { refreshAriaSession, useAriaProfile, useAriaSession } from "@/lib/aria-s
 import { signInHref } from "@/lib/auth/safe-next-path";
 import { AriaAuthNotice } from "@/components/auth/aria-auth-notice";
 import { ThinkingStatus } from "@/components/chat/thinking-status";
-import { AriaLocalUserSwitcher } from "@/components/dev/aria-local-user-switcher";
 import { AriaLocalPlanSwitcher } from "@/components/dev/aria-local-plan-switcher";
 import { AriaMark } from "@/components/aria-mark";
 import { AgentInterface, openuiChatLibrary } from "@openuidev/react-ui";
@@ -52,7 +51,9 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   const router = useRouter();
   const profile = useAriaProfile();
   const sessionStatus = profile.session.status;
+  const aiAccessSuspended = Boolean(profile.session.user?.aiAccessSuspended);
   const [navPath, setNavPath] = useState<string | undefined>(() => initialPath);
+  const onChatHome = navPath === undefined;
 
   const onNavigate = useCallback((next: string | undefined) => {
     setNavPath(next);
@@ -154,7 +155,6 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
           </AgentInterface.SidebarContent>
           <AgentInterface.SidebarFooter>
             <div className="aria-openui-sidebar-footer-stack">
-              <AriaLocalUserSwitcher />
               <AriaLocalPlanSwitcher />
               <AriaOpenUISidebarCredits />
               <AriaOpenUISidebarUser
@@ -168,12 +168,26 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
           </AgentInterface.SidebarFooter>
           </div>
         </AgentInterface.Sidebar>
-        <AgentInterface.Welcome glowAnimation={false}>
-          <AriaOpenUIWelcome userName={profile.name} />
-        </AgentInterface.Welcome>
-        <AgentInterface.Composer>
-          <AriaOpenUIComposer variant="thread" />
-        </AgentInterface.Composer>
+        {aiAccessSuspended && onChatHome ? (
+          <div className="aria-ai-access-gate" role="status">
+            <h2 className="aria-ai-access-gate__title">ARIA AI is not available</h2>
+            <p className="aria-ai-access-gate__lede">
+              You can still sign in and manage your account. Choose a subscription plan to use chat and intelligence features.
+            </p>
+            <button type="button" className="aria-ai-access-gate__cta" onClick={() => onNavigate("pricing")}>
+              View subscription plans
+            </button>
+          </div>
+        ) : (
+          <>
+            <AgentInterface.Welcome glowAnimation={false}>
+              <AriaOpenUIWelcome userName={profile.name} />
+            </AgentInterface.Welcome>
+            <AgentInterface.Composer>
+              <AriaOpenUIComposer variant="thread" />
+            </AgentInterface.Composer>
+          </>
+        )}
         <AgentInterface.ThreadHeader
           showChatTitle={false}
           showChatActions={false}

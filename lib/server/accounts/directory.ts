@@ -3,14 +3,25 @@ import { ServiceError } from "../errors";
 import { ConditionFailed, notExists, type Item, type Key, type Store, type Write } from "../store/types";
 import type { CreditLedger } from "../accounting/credit-ledger";
 import { entitlementFor, isPlanId, isRole, periodFor, requirePermission, PLANS, type PlanId, type Role } from "./entitlements";
+import { monthlyUnitsForPlan, seatLimitForPlan } from "../subscription-catalog";
 
 /** Claims taken from a verified identity token. Never from request bodies. */
 export type Identity = { sub: string; email: string; emailVerified: boolean; name: string; authTime: number };
 export type UserRecord = {
   id: string; email: string; name: string; status: "active" | "disabled";
+  /** When true, the customer can sign in but cannot use ARIA AI until access is restored. */
+  aiAccessSuspended: boolean;
   personalWorkspaceId: string; defaultWorkspaceId: string; sessionsRevokedAfter: number;
 };
-export type WorkspaceRecord = { id: string; name: string; plan: PlanId; seatLimit: number; seatsUsed: number; ownerId: string };
+export type WorkspaceRecord = {
+  id: string;
+  name: string;
+  plan: PlanId;
+  seatLimit: number;
+  seatsUsed: number;
+  ownerId: string;
+  createdAt?: number;
+};
 export type Membership = { workspaceId: string; userId: string; role: Role; email: string; name: string };
 export type MemberView = { id: string; name: string; email: string; role: Role; status: "active" | "pending" | "expired"; expiresAt?: number };
 
@@ -44,7 +55,7 @@ export class AccountDirectory {
     const name = identity.name || email.split("@")[0] || "ARIA user";
     try {
       await this.store.transact([
-        { kind: "put", when: [notExists], item: { ...k.user(identity.sub), email, name, status: "active",
+        { kind: "put", when: [notExists], item: { ...k.user(identity.sub), email, name, status: "active", aiAccessSuspended: false,
           personalWorkspaceId: workspaceId, defaultWorkspaceId: workspaceId, sessionsRevokedAfter: 0, createdAt: now,
           gsi2pk: "ADMIN#USERS", gsi2sk: `${String(now).padStart(13, "0")}#${identity.sub}` } },
         { kind: "put", when: [notExists], item: { ...k.workspace(workspaceId), workspaceId, name: `${name}'s workspace`,
@@ -62,8 +73,12 @@ export class AccountDirectory {
   async getUser(sub: string): Promise<UserRecord | undefined> {
     const row = await this.store.get(k.user(sub));
     if (!row) return undefined;
-    return { id: sub, email: String(row.email), name: String(row.name),
-      status: row.status === "active" ? "active" : "disabled",
+    const signInBlocked = row.signInBlocked === true;
+    const legacyAiOff = !signInBlocked && row.status !== "active";
+    const status: UserRecord["status"] = signInBlocked ? "disabled" : "active";
+    const aiAccessSuspended = row.aiAccessSuspended === true || legacyAiOff;
+    return { id: sub, email: String(row.email), name: String(row.name), status,
+      aiAccessSuspended,
       personalWorkspaceId: String(row.personalWorkspaceId), defaultWorkspaceId: String(row.defaultWorkspaceId),
       sessionsRevokedAfter: Number(row.sessionsRevokedAfter ?? 0) };
   }
@@ -74,13 +89,18 @@ export class AccountDirectory {
     if (identity.authTime <= user.sessionsRevokedAfter) throw new ServiceError("session_revoked", 401);
   }
 
+  assertAiAccess(user: UserRecord) {
+    if (user.aiAccessSuspended) throw new ServiceError("ai_access_suspended", 403);
+  }
+
   /** Invalidates every token whose sign-in happened at or before `atSeconds`. */
   async revokeSessions(sub: string, atSeconds = Math.floor(this.clock() / 1000)) {
     await this.store.transact([{ kind: "update", key: k.user(sub), set: { sessionsRevokedAfter: atSeconds }, when: [{ field: "pk", op: "exists" }] }]);
   }
 
   async setUserStatus(sub: string, status: "active" | "disabled") {
-    await this.store.transact([{ kind: "update", key: k.user(sub), set: { status }, when: [{ field: "pk", op: "exists" }] }]);
+    await this.store.transact([{ kind: "update", key: k.user(sub),
+      set: { status, signInBlocked: status === "disabled" }, when: [{ field: "pk", op: "exists" }] }]);
   }
 
   async updateProfile(sub: string, patch: { name?: string; avatar?: string | null }) {
@@ -110,8 +130,17 @@ export class AccountDirectory {
     const row = await this.store.get(k.workspace(workspaceId));
     if (!row) return undefined;
     if (!isPlanId(row.plan)) throw new ServiceError("workspace_plan_invalid", 500);
-    return { id: workspaceId, name: String(row.name), plan: row.plan, seatLimit: Number(row.seatLimit),
-      seatsUsed: Number(row.seatsUsed), ownerId: String(row.ownerId) };
+    return {
+      id: workspaceId,
+      name: String(row.name),
+      plan: row.plan,
+      seatLimit: Number(row.seatLimit),
+      seatsUsed: Number(row.seatsUsed),
+      ownerId: String(row.ownerId),
+      ...(typeof row.createdAt === "number" && Number.isFinite(row.createdAt)
+        ? { createdAt: Number(row.createdAt) }
+        : {}),
+    };
   }
 
   async getMembership(workspaceId: string, userId: string): Promise<Membership | undefined> {
@@ -297,11 +326,16 @@ export class AccountDirectory {
     if (!workspace) throw new ServiceError("workspace_not_found", 404);
     if (await this.store.get(k.entitlementEvent(workspaceId, change.eventId))) return "duplicate" as const;
     const period = await ledger.ensurePeriodGrant(workspaceId, workspace.plan);
-    const delta = PLANS[change.plan].monthlyUnits - PLANS[workspace.plan].monthlyUnits;
+    const [newUnits, oldUnits, seatLimit] = await Promise.all([
+      monthlyUnitsForPlan(this.store, change.plan),
+      monthlyUnitsForPlan(this.store, workspace.plan),
+      seatLimitForPlan(this.store, change.plan),
+    ]);
+    const delta = newUnits - oldUnits;
     const writes: Write[] = [
       { kind: "put", when: [notExists], item: { ...k.entitlementEvent(workspaceId, change.eventId),
         plan: change.plan, previousPlan: workspace.plan, occurredAt: change.occurredAt, appliedAt: this.clock() } },
-      { kind: "update", key: k.workspace(workspaceId), set: { plan: change.plan, seatLimit: PLANS[change.plan].seats, entitlementAt: change.occurredAt },
+      { kind: "update", key: k.workspace(workspaceId), set: { plan: change.plan, seatLimit, entitlementAt: change.occurredAt },
         when: [{ field: "plan", op: "=", value: workspace.plan },
           { any: [{ field: "entitlementAt", op: "notExists" }, { field: "entitlementAt", op: "<", value: change.occurredAt }] }] },
       ...(delta > 0 && period === periodFor(this.clock()) ? ledger.grantWrites(workspaceId, period, delta, `plan:${change.eventId}`) : []),

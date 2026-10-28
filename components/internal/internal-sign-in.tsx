@@ -148,7 +148,10 @@ export function InternalSignIn() {
                   </Button>
                 </Field>
                 <FieldDescription className="text-center">
-                  <Link href="/chat/">Return to ARIA workspace</Link>
+                  Need an account?{" "}
+                  <Link href="/sign-up/?next=%2Finternal%2F">Create one</Link>
+                  {" · "}
+                  <Link href="/chat/">Return to workspace</Link>
                 </FieldDescription>
               </FieldGroup>
             </form>

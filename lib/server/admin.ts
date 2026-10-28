@@ -1,8 +1,11 @@
 import { ServiceError } from "./errors";
 import { authenticate } from "./request-context";
-import { isPlanId, PLANS, type PlanId } from "./accounts/entitlements";
+import { isPlanId, type PlanId } from "./accounts/entitlements";
+import { seatLimitForPlan } from "./subscription-catalog";
 import { ConditionFailed, notExists } from "./store/types";
 import type { Services } from "./services";
+import { internalAuditReasonForSource, INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "@/lib/internal-audit-copy";
+import { isLocalDevFixtureUserId } from "@/lib/local-user-shared";
 
 const auditKey = (id: string) => ({ pk: "ADMIN#AUDIT", sk: `ACTION#${id}` });
 const validId = (value: unknown) => typeof value === "string" && /^[\w:.-]{1,128}$/.test(value);
@@ -32,16 +35,20 @@ export async function requireInternalAdmin(request: Request, services: Services)
   if (!role && services.config.environment === "development" && services.config.adminLocalDev &&
     auth.identity.emailVerified) {
     const email = auth.user.email.trim().toLowerCase();
-    const subjects = [
-      ...(services.config.adminSubjects ?? []),
-      ...Object.keys(services.config.adminRoles ?? {}),
-    ];
-    for (const subject of subjects) {
-      if (subject === auth.user.id) continue;
-      const operator = await services.directory.getUser(subject);
-      if (operator?.email.trim().toLowerCase() === email) {
-        role = subjectRole(services, subject);
-        break;
+    if (services.config.adminEmails?.includes(email)) {
+      role = "super_admin";
+    } else {
+      const subjects = [
+        ...(services.config.adminSubjects ?? []),
+        ...Object.keys(services.config.adminRoles ?? {}),
+      ];
+      for (const subject of subjects) {
+        if (subject === auth.user.id) continue;
+        const operator = await services.directory.getUser(subject);
+        if (operator?.email.trim().toLowerCase() === email) {
+          role = subjectRole(services, subject);
+          break;
+        }
       }
     }
   }
@@ -54,7 +61,7 @@ export async function requireInternalAdmin(request: Request, services: Services)
 export function assertAdminActionAllowed(role: InternalRole, type: AdminAction["type"]) {
   if (role === "super_admin") return;
   if (role === "billing" && ["set_plan", "grant_credits"].includes(type)) return;
-  if (role === "operations" && ["disable_user", "enable_user", "revoke_sessions"].includes(type)) return;
+  if (role === "operations" && ["disable_user", "revoke_sessions"].includes(type)) return;
   throw new ServiceError("admin_action_forbidden", 403);
 }
 
@@ -67,15 +74,16 @@ export async function adminOverview(services: Services) {
   const audit = (await Promise.all(auditKeys.map(row => services.store.get({ pk: String(row.pk), sk: String(row.sk) }))))
     .filter(row => row !== undefined);
   const users = (await mapBatches(userKeys, row => services.directory.getUser(String(row.pk).slice(5))))
-    .filter(user => user !== undefined)
+    .filter(user => user !== undefined && !isLocalDevFixtureUserId(user.id))
     .map(user => ({ id: user.id, email: user.email, name: user.name, status: user.status,
-      personalWorkspaceId: user.personalWorkspaceId }));
+      aiAccessSuspended: user.aiAccessSuspended, personalWorkspaceId: user.personalWorkspaceId }));
   const workspaces = (await mapBatches(workspaceKeys, async row => {
     const workspace = await services.directory.getWorkspace(String(row.pk).slice(3));
     if (!workspace) return undefined;
     const balance = await services.ledger.balance(workspace.id);
     return { ...workspace, credits: balance };
-  })).filter(workspace => workspace !== undefined);
+  }))
+    .filter(workspace => workspace !== undefined && !isLocalDevFixtureUserId(workspace.ownerId));
   return {
     users, workspaces,
     summary: {
@@ -108,15 +116,26 @@ export type AdminAction = {
 };
 
 export function parseAdminAction(body: Record<string, unknown>): AdminAction {
-  if (!validId(body.id) || !validId(body.targetId) || typeof body.reason !== "string" ||
-    body.reason.trim().length < 8 || body.reason.length > 500 ||
-    !["disable_user", "enable_user", "revoke_sessions", "set_plan", "grant_credits"].includes(String(body.type)) ||
-    (body.type === "set_plan" && !isPlanId(body.plan)) ||
-    (body.type === "grant_credits" && (typeof body.credits !== "number" || !Number.isSafeInteger(body.credits * 1000) ||
+  const type = String(body.type);
+  if (!validId(body.id) || !validId(body.targetId) ||
+    !["disable_user", "enable_user", "revoke_sessions", "set_plan", "grant_credits"].includes(type) ||
+    (type === "set_plan" && !isPlanId(body.plan)) ||
+    (type === "grant_credits" && (typeof body.credits !== "number" || !Number.isSafeInteger(body.credits * 1000) ||
       body.credits <= 0 || body.credits > 100))) throw new ServiceError("admin_invalid_action", 400);
-  return { id: body.id as string, targetId: body.targetId as string, reason: body.reason.trim(),
-    type: body.type as AdminAction["type"], ...(isPlanId(body.plan) ? { plan: body.plan } : {}),
-    ...(body.type === "grant_credits" ? { credits: body.credits as number } : {}) };
+
+  const source = body.source === INTERNAL_AUDIT_SOURCE_AI_ACCESS ? INTERNAL_AUDIT_SOURCE_AI_ACCESS : undefined;
+  let reason: string | undefined;
+  if (source === INTERNAL_AUDIT_SOURCE_AI_ACCESS) {
+    if (type !== "disable_user" && type !== "enable_user") throw new ServiceError("admin_invalid_action", 400);
+    reason = internalAuditReasonForSource(type, source);
+  } else if (typeof body.reason === "string") {
+    reason = body.reason.trim();
+  }
+  if (!reason || reason.length < 8 || reason.length > 500) throw new ServiceError("admin_invalid_action", 400);
+
+  return { id: body.id as string, targetId: body.targetId as string, reason,
+    type: type as AdminAction["type"], ...(isPlanId(body.plan) ? { plan: body.plan } : {}),
+    ...(type === "grant_credits" ? { credits: body.credits as number } : {}) };
 }
 
 export async function executeAdminAction(services: Services, actorId: string, action: AdminAction) {
@@ -154,7 +173,8 @@ export async function executeAdminAction(services: Services, actorId: string, ac
   if (action.type === "set_plan") {
     const workspace = await services.directory.getWorkspace(action.targetId);
     if (!workspace) throw new ServiceError("workspace_not_found", 404);
-    if (workspace.seatsUsed > PLANS[action.plan!].seats) throw new ServiceError("admin_plan_seats_exceeded", 409);
+    const seatLimit = await seatLimitForPlan(services.store, action.plan!);
+    if (workspace.seatsUsed > seatLimit) throw new ServiceError("admin_plan_seats_exceeded", 409);
     const result = await services.directory.applyEntitlement(services.ledger, action.targetId,
       { plan: action.plan!, eventId: `admin:${action.id}`, occurredAt: now });
     await services.store.transact([{ kind: "put", item: { ...audit, result }, when: [notExists] }]);
@@ -162,9 +182,11 @@ export async function executeAdminAction(services: Services, actorId: string, ac
   }
   const user = await services.directory.getUser(action.targetId);
   if (!user) throw new ServiceError("admin_customer_not_found", 404);
-  const update: Record<string, string | number> = action.type === "revoke_sessions"
+  const update: Record<string, string | number | boolean> = action.type === "revoke_sessions"
     ? { sessionsRevokedAfter: Math.floor(now / 1000) }
-    : { status: action.type === "disable_user" ? "disabled" : "active" };
+    : action.type === "disable_user"
+      ? { aiAccessSuspended: true, status: "active", signInBlocked: false }
+      : { aiAccessSuspended: false, status: "active", signInBlocked: false };
   try {
     await services.store.transact([
       { kind: "update", key: { pk: `USER#${user.id}`, sk: "PROFILE" }, set: update,
