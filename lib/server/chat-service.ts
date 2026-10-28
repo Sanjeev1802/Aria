@@ -119,6 +119,7 @@ export async function createChatResponse(input: ChatInput, options: {
       } catch (error) {
         // Incomplete/cancelled responses are not customer-billed; AWS may still bill us.
         await ledger.fail(workspaceId, input.id).catch(() => logLedgerIssue("release_deferred", account, input.id));
+        if (!signal.aborted) await ledger.recordModelUse({ modelId: servedBy?.modelId ?? modelId, fallback: Boolean(servedBy), ok: false });
         emit(chatFailure(error));
         if (!cancelled) controller.close();
         return;
@@ -131,6 +132,7 @@ export async function createChatResponse(input: ChatInput, options: {
         logLedgerIssue("settlement_deferred", account, input.id);
       }
       await options.onComplete?.(text).catch(() => logLedgerIssue("thread_save_deferred", account, input.id));
+      await ledger.recordModelUse({ modelId: servedBy?.modelId ?? modelId, fallback: Boolean(servedBy), ok: true });
       finish();
       if (!cancelled) controller.close();
     },

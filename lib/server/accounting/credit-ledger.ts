@@ -2,6 +2,7 @@ import { ServiceError } from "../errors";
 import { periodFor, type PlanId } from "../accounts/entitlements";
 import { monthlyUnitsForPlan } from "../subscription-catalog";
 import { ConditionFailed, notExists, type Item, type Key, type Store, type Write } from "../store/types";
+import { recordModelUse, type ModelUseEntry } from "../model-usage";
 
 export type Account = { workspaceId: string; memberId: string; plan: PlanId };
 export type ReservationRequest = { id: string; hash: string; units: number; model: string; rateVersion: string };
@@ -254,6 +255,11 @@ export class CreditLedger {
       throw error;
     }
     await this.releaseLock(workspaceId, String(row.memberId), id);
+  }
+
+  /** Best-effort: which model answered, for the internal console. Never affects the request. */
+  async recordModelUse(entry: ModelUseEntry) {
+    await recordModelUse(this.store, entry, this.clock()).catch(() => undefined);
   }
 
   async activity(workspaceId: string, memberId: string) {

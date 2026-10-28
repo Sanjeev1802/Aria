@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { MemoryStore } from "../lib/server/store/memory-store";
 import { buildServices } from "../lib/server/services";
 import { chatHandler, run, usageHandler } from "../lib/server/handlers";
-import { adminCustomer, adminOverview, adminUsage, assertAdminActionAllowed, executeAdminAction, grantOperator, listOperators, parseAdminAction, requireInternalAdmin, resolveInternalRole, revokeOperator } from "../lib/server/admin";
+import { adminCustomer, adminModels, adminOverview, adminUsage, assertAdminActionAllowed, executeAdminAction, grantOperator, listOperators, parseAdminAction, requireInternalAdmin, resolveInternalRole, revokeOperator } from "../lib/server/admin";
+import { providerOf, readModelUsage, recordModelUse } from "../lib/server/model-usage";
 import { INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "../lib/internal-audit-copy";
 import { isLocalDevFixtureUserId } from "../lib/local-user-shared";
 
@@ -260,4 +261,75 @@ test("usage analytics aggregate the ledger's daily rows by day, user and plan wi
   assert.equal(usage.byPlan.free?.tokens, 2050);
   assert.deepEqual(usage.topUsers.map(u => [u.id, u.email, u.tokens]), [["cog-blair", "blair@example.com", 2050]]);
   await assert.rejects(adminUsage(services, 14, now), { code: "admin_invalid_usage_window" });
+});
+
+test("model status shows what is configured and what actually served chat", async () => {
+  const store = new MemoryStore();
+  const local = buildServices(config, { store });
+  const services = { ...local, config: { ...local.config, localIdentity: false } };
+  const env = { ANTHROPIC_API_KEY: "test-key", ANTHROPIC_MODEL_ID: "claude-haiku-5-5", ARIA_NOVA_MODEL_ID: "amazon.nova-lite-v1:0",
+    ARIA_RATE_VERSION: "v1", ARIA_NOVA_INPUT_USD_PER_MILLION: "0.06", ARIA_NOVA_OUTPUT_USD_PER_MILLION: "0.24" };
+
+  assert.deepEqual([providerOf("claude-opus-5-5"), providerOf("us.amazon.nova-lite-v1:0"), providerOf("aria/local-test-nova")],
+    ["claude", "bedrock", "local"]);
+
+  const idle = await adminModels(services, Date.now(), env);
+  assert.equal(idle.state, "idle");
+  assert.deepEqual(idle.config.primary, { provider: "claude", modelId: "claude-haiku-5-5" });
+  assert.deepEqual(idle.config.fallback, { configured: true, modelId: "amazon.nova-lite-v1:0" });
+
+  await recordModelUse(store, { modelId: "claude-haiku-5-5", fallback: false, ok: true });
+  const active = await adminModels(services, Date.now(), env);
+  assert.equal(active.state, "active");
+  assert.deepEqual(active.serving, { provider: "claude", modelId: "claude-haiku-5-5" });
+
+  await recordModelUse(store, { modelId: "amazon.nova-lite-v1:0", fallback: true, ok: true });
+  const fallback = await adminModels(services, Date.now(), env);
+  assert.equal(fallback.state, "fallback");
+  assert.equal(fallback.serving?.provider, "bedrock");
+  assert.deepEqual(fallback.usage.totals, { claude: 1, bedrock: 1, local: 0, fallback: 1, failed: 0 });
+
+  await recordModelUse(store, { modelId: "claude-haiku-5-5", fallback: false, ok: false });
+  const failing = await adminModels(services, Date.now(), env);
+  assert.equal(failing.state, "failing");
+  assert.equal(failing.usage.totals.failed, 1);
+  assert.equal(failing.serving?.provider, "claude");
+
+  assert.equal((await adminModels(services, Date.now(), {})).state, "not_configured");
+  assert.equal((await adminModels(services, Date.now(), { ...env, ARIA_NOVA_MODEL_ID: "" })).config.fallback.configured, false);
+});
+
+test("a completed chat request is counted against the model that answered it", async () => {
+  const store = new MemoryStore();
+  const services = buildServices(config, { store });
+  const blair = await services.directory.ensureAccount({ sub: "local-blair", email: "blair@localhost.test", name: "Blair",
+    emailVerified: true, authTime: 1 });
+  const answering = chatHandler({
+    provider: async function* () { yield { text: "ok" }; yield { usage: { inputTokens: 10, outputTokens: 5 } }; },
+    modelConfig: model => ({ id: `${model}-admin-test`, rates: { input: 1, output: 1, version: "test" } }),
+    maxOutputTokens: 32,
+  });
+  const failing = chatHandler({
+    provider: async function* () { yield { text: "partial" }; },
+    modelConfig: model => ({ id: `${model}-admin-test`, rates: { input: 1, output: 1, version: "test" } }),
+    maxOutputTokens: 32,
+  });
+  const ask = async (handler: typeof answering, runId: string) => {
+    const response = await run(localCustomerRequest("/api/chat/", "blair", {
+      workspace: blair.personalWorkspaceId,
+      body: { runId, model: "nova", messages: [{ role: "user", content: "Hi" }] },
+    }), handler, services);
+    assert.equal(response.status, 200);
+    await response.text();
+  };
+  await ask(answering, "model-count-1");
+  let usage = await readModelUsage(store);
+  assert.deepEqual(usage.totals, { claude: 0, bedrock: 1, local: 0, fallback: 0, failed: 0 });
+  assert.equal(usage.last?.modelId, "nova-admin-test");
+  assert.equal(usage.last?.ok, true);
+
+  await ask(failing, "model-count-2");
+  usage = await readModelUsage(store);
+  assert.deepEqual(usage.totals, { claude: 0, bedrock: 1, local: 0, fallback: 0, failed: 1 });
+  assert.equal(usage.last?.ok, false);
 });

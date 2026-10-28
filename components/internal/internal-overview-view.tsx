@@ -2,6 +2,7 @@
 
 import { InternalMetricCards } from "./internal-metric-cards";
 import { PlanChart } from "./plan-chart";
+import { ModelStatusSection } from "./model-status";
 import { UsageAnalytics } from "./usage-analytics";
 import { Card } from "@/components/ui/card";
 
@@ -35,6 +36,8 @@ export function InternalOverviewView({
         </header>
         <InternalMetricCards summary={summary} />
       </section>
+
+      <ModelStatusSection />
 
       <UsageAnalytics />
 

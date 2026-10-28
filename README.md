@@ -126,6 +126,7 @@ Without the required configuration, the production chat API returns `503` by des
 
 The operator console lives at `/internal/`, with a dedicated sign-in at `/internal/sign-in/`. Operators who are signed in to ARIA also see **Internal dashboard** in the workspace user menu. The server tells the browser someone is an operator only when they are, and every admin route re-verifies access.
 
+- **AI model.** A live chip in the top bar and an Overview section show which model is answering — Claude, Amazon Bedrock (Nova) or the local test model — whether the fallback is ready, whether web search is on, and how the last seven days split between providers.
 - **Overview.** Platform totals, live usage analytics (requests, tokens, credits and active users over 7, 30 or 90 days, top users and usage by plan), plan distribution, and a customer search.
 - **Customers and plans.** Customer and workspace profiles, plan and credit visibility, and Pro and Team pricing copy.
 - **Controls.** Change a plan, grant small credit adjustments, suspend or restore ARIA AI for a customer, and revoke sessions. Every action is audited.

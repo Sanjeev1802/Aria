@@ -3,7 +3,9 @@ import { authenticate } from "./request-context";
 import { isPlanId, type PlanId } from "./accounts/entitlements";
 import { seatLimitForPlan } from "./subscription-catalog";
 import { ConditionFailed, notExists } from "./store/types";
-import type { Services } from "./services";
+import type { ServerConfig, Services } from "./services";
+import { claudeConfigured, DEFAULT_CLAUDE_MODEL } from "./anthropic";
+import { readModelUsage, type ModelProvider } from "./model-usage";
 import { internalAuditReasonForSource, INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "@/lib/internal-audit-copy";
 import { isLocalDevFixtureUserId } from "@/lib/local-user-shared";
 
@@ -311,4 +313,43 @@ export async function adminUsage(services: Services, days: number = 30, now = Da
       credits: series.reduce((n, d) => n + d.credits, 0), activeUsers: perUser.size },
     limited: workspaceKeys.length === 500,
   };
+}
+
+export type ModelState = "not_configured" | "idle" | "active" | "fallback" | "failing";
+
+function novaStatus(env: Record<string, string | undefined>) {
+  const modelId = env.ARIA_NOVA_MODEL_ID?.trim() || undefined;
+  const configured = Boolean(modelId && env.ARIA_RATE_VERSION?.trim()
+    && Number(env.ARIA_NOVA_INPUT_USD_PER_MILLION) > 0 && Number(env.ARIA_NOVA_OUTPUT_USD_PER_MILLION) > 0);
+  return { modelId, configured };
+}
+
+/** What the server is set up to use, read from its own configuration (never exposes keys). */
+export function modelConfigStatus(config: ServerConfig, env: Record<string, string | undefined> = process.env) {
+  const nova = novaStatus(env);
+  const claude = claudeConfigured(env);
+  const primary: { provider: ModelProvider; modelId: string } | null = config.localIdentity
+    ? { provider: "local", modelId: "aria/local-test-nova" }
+    : claude ? { provider: "claude", modelId: env.ANTHROPIC_MODEL_ID?.trim() || DEFAULT_CLAUDE_MODEL }
+      : nova.configured ? { provider: "bedrock", modelId: nova.modelId! } : null;
+  return {
+    primary,
+    fallback: { configured: claude && !config.localIdentity && nova.configured, modelId: nova.modelId },
+    webSearch: { enabled: claude && (config.claudeWebSearchMaxUses ?? 0) > 0, maxUses: config.claudeWebSearchMaxUses ?? 0 },
+    liveChat: config.liveChat || config.localIdentity,
+    environment: config.environment,
+  };
+}
+
+/** Which model is answering chat: configuration plus what actually served the most recent requests. */
+export async function adminModels(services: Services, now = Date.now(), env: Record<string, string | undefined> = process.env) {
+  const config = modelConfigStatus(services.config, env);
+  const usage = await readModelUsage(services.store, 7, now);
+  const { last } = usage;
+  const state: ModelState = !config.primary ? "not_configured"
+    : !last ? "idle"
+      : !last.ok ? "failing"
+        : last.fallback ? "fallback" : "active";
+  const serving = last?.ok ? { provider: last.provider, modelId: last.modelId } : config.primary;
+  return { config, usage, state, serving };
 }
