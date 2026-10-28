@@ -52,7 +52,7 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   const sessionStatus = profile.session.status;
   const aiAccessSuspended = Boolean(profile.session.user?.aiAccessSuspended);
   const [navPath, setNavPath] = useState<string | undefined>(() => initialPath);
-  const onChatHome = navPath === undefined;
+  const chatBlocked = aiAccessSuspended && navPath === undefined;
   const [seenInitialPath, setSeenInitialPath] = useState(initialPath);
   if (initialPath !== seenInitialPath) {
     setSeenInitialPath(initialPath);
@@ -171,7 +171,8 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
           </AgentInterface.SidebarFooter>
           </div>
         </AgentInterface.Sidebar>
-        {aiAccessSuspended && onChatHome ? (
+        {/* AgentInterface finds its slots among its direct children; a Fragment would hide them. */}
+        {chatBlocked ? (
           <div className="aria-ai-access-gate" role="status">
             <h2 className="aria-ai-access-gate__title">ARIA AI is not available</h2>
             <p className="aria-ai-access-gate__lede">
@@ -181,15 +182,16 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
               View subscription plans
             </button>
           </div>
-        ) : (
-          <>
-            <AgentInterface.Welcome glowAnimation={false}>
-              <AriaOpenUIWelcome userName={profile.name} />
-            </AgentInterface.Welcome>
-            <AgentInterface.Composer>
-              <AriaOpenUIComposer variant="thread" />
-            </AgentInterface.Composer>
-          </>
+        ) : null}
+        {chatBlocked ? null : (
+          <AgentInterface.Welcome glowAnimation={false}>
+            <AriaOpenUIWelcome userName={profile.name} />
+          </AgentInterface.Welcome>
+        )}
+        {chatBlocked ? null : (
+          <AgentInterface.Composer>
+            <AriaOpenUIComposer variant="thread" />
+          </AgentInterface.Composer>
         )}
         <AgentInterface.ThreadHeader
           showChatTitle={false}

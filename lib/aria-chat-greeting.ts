@@ -53,7 +53,8 @@ export function pickChatGreeting(userName: string, seed: string, date = new Date
   const options = GREETINGS[part];
   const index = hashSeed(`${seed}:${part}:${userName}`) % options.length;
   const line = options[index] ?? "Hey there";
-  const name = userName.trim();
+  // Accounts without a display name fall back to their email; greet by the part before "@".
+  const name = userName.trim().replace(/@.*$/, "");
   return name ? `${line}, ${name}` : line;
 }
 
