@@ -13,7 +13,6 @@ import { refreshAriaSession, useAriaProfile, useAriaSession } from "@/lib/aria-s
 import { signInHref } from "@/lib/auth/safe-next-path";
 import { AriaAuthNotice } from "@/components/auth/aria-auth-notice";
 import { ThinkingStatus } from "@/components/chat/thinking-status";
-import { AriaLocalPlanSwitcher } from "@/components/dev/aria-local-plan-switcher";
 import { AriaMark } from "@/components/aria-mark";
 import { AgentInterface, openuiChatLibrary } from "@openuidev/react-ui";
 import { AriaOpenUIAssistantMessage } from "@/components/chat/aria-openui-assistant-message";
@@ -46,24 +45,23 @@ export function AriaOpenUIChat(props: AriaOpenUIChatProps = {}) {
 
 function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   const llm = useMemo(() => getAriaChatLLM(), []);
-  const { activeProjectRef } = useAriaProjects();
-  const threadStorage = useMemo(() => createAriaThreadStorage(() => activeProjectRef.current), [activeProjectRef]);
+  const { getActiveProjectId } = useAriaProjects();
+  const threadStorage = useMemo(() => createAriaThreadStorage(getActiveProjectId), [getActiveProjectId]);
   const router = useRouter();
   const profile = useAriaProfile();
   const sessionStatus = profile.session.status;
   const aiAccessSuspended = Boolean(profile.session.user?.aiAccessSuspended);
   const [navPath, setNavPath] = useState<string | undefined>(() => initialPath);
   const onChatHome = navPath === undefined;
+  const [seenInitialPath, setSeenInitialPath] = useState(initialPath);
+  if (initialPath !== seenInitialPath) {
+    setSeenInitialPath(initialPath);
+    if (initialPath !== undefined) setNavPath(initialPath);
+  }
 
   const onNavigate = useCallback((next: string | undefined) => {
     setNavPath(next);
   }, []);
-
-  useEffect(() => {
-    if (initialPath !== undefined) {
-      setNavPath(initialPath);
-    }
-  }, [initialPath]);
 
   useEffect(() => watchAndRemoveOpenUIDevtools(), []);
 
@@ -95,6 +93,12 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   return (
     <div className="aria-openui-chat dark h-dvh w-full">
       <AriaAuthNotice />
+      {profile.session.planSwitching && !profile.session.localDev ? (
+        <div role="status" className="pointer-events-none fixed right-16 top-[14px] z-50 whitespace-nowrap rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-200 sm:left-1/2 sm:right-auto sm:top-2 sm:-translate-x-1/2">
+          <span className="sm:hidden">Development mode</span>
+          <span className="hidden sm:inline">You&apos;re in development mode · plan switching on</span>
+        </div>
+      ) : null}
       {banner ? (
         <div role="status" className="pointer-events-none fixed right-3 top-16 z-50 max-w-[calc(100%-1.5rem)] rounded-md bg-neutral-900 px-3 py-1 text-xs text-neutral-400 sm:top-2">
           {banner}
@@ -155,7 +159,6 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
           </AgentInterface.SidebarContent>
           <AgentInterface.SidebarFooter>
             <div className="aria-openui-sidebar-footer-stack">
-              <AriaLocalPlanSwitcher />
               <AriaOpenUISidebarCredits />
               <AriaOpenUISidebarUser
                 name={profile.name}

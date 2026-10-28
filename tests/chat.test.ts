@@ -167,7 +167,7 @@ test("web search supplies bounded excerpts and saves clickable source links with
     assert.equal(query, "Hello");
     return [{ title: "Example report", url: "https://example.org/report", snippet: "Published findings" }];
   };
-  const provider: StreamProvider = async function* (_input, _model, _signal, webContext) {
+  const provider: StreamProvider = async function* (_input, _model, _signal, { webContext }) {
     context = webContext ?? "";
     yield { text: "The report says this [1]." };
     yield { usage: { inputTokens: 120, outputTokens: 12 } };
@@ -228,4 +228,12 @@ test("production cannot activate the local shared identity or run without identi
   Object.assign(process.env, { NODE_ENV: "production", ARIA_LOCAL_DEV: "true" });
   try { assert.throws(() => getServices(), { code: "live_service_not_configured" }); }
   finally { process.env = prior; }
+});
+
+test("consecutive user turns left by a failed reply are merged instead of rejected", () => {
+  const parsed = parseChatInput({ runId: "request_merge", messages: [
+    { role: "user", content: "hi" }, { role: "user", content: "second try" }] });
+  assert.equal(parsed.messages.length, 1);
+  assert.deepEqual(parsed.messages[0].content.map(part => part.text), ["hi", "second try"]);
+  assert.throws(() => parseChatInput({ runId: "request_merge2", messages: [{ role: "assistant", content: "x" }, { role: "user", content: "y" }] }));
 });

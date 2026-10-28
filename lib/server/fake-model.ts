@@ -22,7 +22,7 @@ function tokenEstimate(text: string) {
  * Deterministic streaming model for local development. Never calls AWS; usage is
  * derived from message and response sizes so ledger settlement is predictable.
  */
-export const streamFakeModel: StreamProvider = async function* (input, modelId, signal) {
+export const streamFakeModel: StreamProvider = async function* (input, modelId, signal, request) {
   const lastUser = [...input.messages].reverse().find(m => m.role === "user")?.content.map(part => part.text).join("\n") ?? "";
   const digest = createHash("sha256").update(`${modelId}\0${lastUser}`).digest("hex").slice(0, 8);
   const response = `ARIA local demo · echo ${digest}: ${lastUser.slice(0, 240)}`;
@@ -30,7 +30,7 @@ export const streamFakeModel: StreamProvider = async function* (input, modelId, 
     signal.throwIfAborted();
     yield { text: `${word} ` };
   }
-  const inputTokens = tokenEstimate(JSON.stringify(input.messages) + ARIA_SYSTEM_PROMPT);
+  const inputTokens = tokenEstimate(JSON.stringify(input.messages) + ARIA_SYSTEM_PROMPT + request.runtimeContext);
   const outputTokens = tokenEstimate(response);
   yield { usage: { inputTokens, outputTokens } satisfies Usage };
 };

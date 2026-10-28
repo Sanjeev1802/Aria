@@ -38,6 +38,82 @@ async function world() {
   return { s, alice, bob, teamWs, bobWs: bobSession.body!.workspace.id as string };
 }
 
+test("chat sends the session context and caps answer length by plan", async () => {
+  const w = await world();
+  const seen: { runtimeContext: string; maxOutputTokens: number }[] = [];
+  const capture: StreamProvider = async function* (_input, _model, _signal, req) {
+    seen.push({ runtimeContext: req.runtimeContext, maxOutputTokens: req.maxOutputTokens });
+    yield { text: "Hello" };
+    yield { usage: { inputTokens: 40, outputTokens: 10 } };
+  };
+  const handler = chatHandler({ provider: capture, modelConfig: m => ({ id: `${m}-test`, rates }), maxOutputTokens: 4096 });
+  for (const [tokens, runId] of [[w.alice, "run_ctx_team"], [w.bob, "run_ctx_free"]] as const) {
+    const sent = await call(w.s, handler, request("/api/chat/", { tokens, body: chatBody(runId) }));
+    assert.equal(sent.status, 200);
+    await sent.response.text();
+  }
+  assert.equal(seen[0].maxOutputTokens, 4096, "Team gets the full ceiling");
+  assert.match(seen[0].runtimeContext, /Team plan, role: owner/);
+  assert.equal(seen[1].maxOutputTokens, 2048, "Free is capped lower");
+  assert.match(seen[1].runtimeContext, /Free plan/);
+  assert.match(seen[1].runtimeContext, /Today's date: \d{4}-\d{2}-\d{2}/);
+});
+
+test("development stage lets owners switch plans; without the switch it stays billing-only", async () => {
+  const { localPlanHandler } = await import("../lib/server/local-plan");
+  const off = testServices();
+  const offSession = await call(off, sessionHandler, request("/api/auth/session/", { tokens: tokensFor("alice") }));
+  assert.equal(offSession.body?.planSwitching, false);
+  const denied = await call(off, localPlanHandler, request("/api/auth/local-plan/", { tokens: tokensFor("alice"), body: { plan: "pro" } }));
+  assert.equal(denied.status, 403);
+
+  const dev = testServices({ planSwitching: true });
+  const devSession = await call(dev, sessionHandler, request("/api/auth/session/", { tokens: tokensFor("alice") }));
+  assert.equal(devSession.body?.planSwitching, true);
+  const switched = await call(dev, localPlanHandler, request("/api/auth/local-plan/", { tokens: tokensFor("alice"), body: { plan: "pro" } }));
+  assert.equal(switched.status, 200);
+  const after = await call(dev, sessionHandler, request("/api/auth/session/", { tokens: tokensFor("alice") }));
+  assert.equal(after.body?.workspace.plan, "pro");
+  const crossSite = await call(dev, localPlanHandler, request("/api/auth/local-plan/", {
+    tokens: tokensFor("alice"), body: { plan: "team" }, origin: "https://elsewhere.example" }));
+  assert.equal(crossSite.status, 403, "still same-origin only");
+});
+
+test("Claude searches on its own when the server allows it; nothing is offered when it cannot", async () => {
+  const seen: { tool?: { maxUses: number }; context: string }[] = [];
+  const capture: StreamProvider = async function* (_input, _model, _signal, req) {
+    seen.push({ tool: req.webSearchTool, context: req.runtimeContext });
+    yield { text: "ok" };
+    yield { usage: { inputTokens: 40, outputTokens: 5 } };
+  };
+  const modelConfig = (m: string) => ({ id: `${m}-test`, rates });
+  const ask = (services: Services, handler: ReturnType<typeof chatHandler>, runId: string, extra: Record<string, unknown> = {}) =>
+    call(services, handler, request("/api/chat/", { tokens: tokensFor("alice"), body: chatBody(runId, extra) }));
+
+  // The session no longer advertises a search switch: there is no button to show.
+  const session = await call(testServices(), sessionHandler, request("/api/auth/session/", { tokens: tokensFor("alice") }));
+  assert.equal(session.body?.webSearchAvailable, undefined);
+
+  const none = await ask(testServices(), chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256 }), "run_ws_none_1");
+  assert.equal(none.status, 200);
+  await none.response.text();
+  assert.equal(seen[0].tool, undefined);
+  assert.match(seen[0].context, /Live web search is not available for this answer/);
+
+  // Without any message flag, a Claude deployment offers the search tool, capped per message.
+  const auto = await ask(testServices({ claudeWebSearchMaxUses: 1 }),
+    chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256, nativeSearch: { maxUses: 1 } }), "run_ws_auto_1");
+  assert.equal(auto.status, 200);
+  await auto.response.text();
+  assert.deepEqual(seen[1].tool, { maxUses: 1 });
+  assert.match(seen[1].context, /web_search tool/);
+
+  // An explicit search request is still refused when nothing can search.
+  const refused = await ask(testServices(), chatHandler({ provider: capture, modelConfig, maxOutputTokens: 256 }), "run_ws_none_2", { webSearch: true });
+  assert.equal(refused.status, 503);
+  assert.equal(refused.body?.code, "web_search_unavailable");
+});
+
 async function inviteAndJoin(w: Awaited<ReturnType<typeof world>>, sub: string) {
   const invite = await call(w.s, membersPostHandler, request("/api/workspace/members/", { tokens: w.alice, body: { email: `${sub}@example.com` } }));
   assert.equal(invite.status, 201);

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react"
+import { useRef, useState, type ComponentProps, type FormEvent } from "react"
 import { AriaMark } from "@/components/aria-mark"
 import { AuthBrandPanel } from "@/components/auth/auth-brand-panel"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/auth/password-input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
 import { safeNextPath } from "@/lib/auth/safe-next-path"
+import { useClientValue } from "@/hooks/use-client-value"
 import { ARIA_IS_PREVIEW, ariaSignIn, refreshAriaSession } from "@/lib/aria-session"
 import { cn } from "cn"
 
@@ -38,11 +39,7 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
   const [bootstrap, setBootstrap] = useState(false)
   const [pending, setPending] = useState(false)
   const [errorText, setErrorText] = useState(DEFAULT_ERROR)
-  const [nextPath, setNextPath] = useState("/chat/")
-
-  useEffect(() => {
-    setNextPath(destinationFromQuery())
-  }, [])
+  const nextPath = useClientValue(destinationFromQuery, "/chat/")
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()

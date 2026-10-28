@@ -21,6 +21,8 @@ export type AriaSession = {
   entitlements?: { models: AriaModelChoice[]; apiAccess: boolean; teamManagement: boolean; monthlyCredits: number };
   workspaces?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole }[];
   localDev?: boolean;
+  /** Development stage: owners may switch plans to test each tier. */
+  planSwitching?: boolean;
   localUser?: LocalUserSlot;
   localUsers?: { slot: LocalUserSlot; label: string }[];
 };

@@ -77,12 +77,16 @@ export type AriaSettingsModalProps = {
 
 export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) {
   const { navigate, path } = useNav();
-  const [active, setActive] = useState(preferredSection);
+  const [selected, setSelected] = useState(preferredSection);
+  const [seenPreferred, setSeenPreferred] = useState(preferredSection);
   const [query, setQuery] = useState("");
+  if (preferredSection !== seenPreferred) {
+    setSeenPreferred(preferredSection);
+    setSelected(preferredSection);
+  }
 
-  useEffect(() => {
-    setActive(preferredSection);
-  }, [preferredSection]);
+  const teamActive = useAriaSession().workspace?.plan === "team";
+  const active = selected === "team" && !teamActive ? "account" : selected;
 
   const close = useCallback(() => {
     navigate(undefined);
@@ -97,12 +101,10 @@ export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) 
   }, [close]);
 
   const selectSection = (section: AriaSettingsModalSection) => {
-    setActive(section);
+    setSelected(section);
     const nextPath = SETTINGS_MODAL_PATHS[section];
     if (path !== nextPath) navigate(nextPath);
   };
-
-  const teamActive = useAriaSession().workspace?.plan === "team";
 
   const navItems = useMemo(() => {
     if (!teamActive) return BASE_NAV;
@@ -116,12 +118,6 @@ export function AriaSettingsModal({ preferredSection }: AriaSettingsModalProps) 
       BASE_NAV[4],
     ];
   }, [teamActive]);
-
-  useEffect(() => {
-    if (active === "team" && !teamActive) {
-      setActive("account");
-    }
-  }, [active, teamActive]);
 
   const filteredNav = useMemo(() => {
     const q = query.trim().toLowerCase();

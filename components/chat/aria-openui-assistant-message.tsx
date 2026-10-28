@@ -2,6 +2,8 @@
 
 import { AriaMark } from "@/components/aria-mark";
 import { AriaEvidenceSources } from "@/components/chat/aria-evidence-sources";
+import { AriaWebSources } from "@/components/chat/aria-web-sources";
+import { splitWebSources } from "@/lib/aria-web-sources";
 import { getLastAssistantMessageId, readMessage } from "@/lib/openui-message-utils";
 import { useAssistantMessageSources } from "@/lib/use-assistant-message-sources";
 import type { AssistantMessage } from "@openuidev/react-headless";
@@ -40,6 +42,10 @@ export function AriaOpenUIAssistantMessage({
     [message.content, isStreaming],
   );
 
+  // Cited web pages come back as a text list under the answer; show them as source chips instead.
+  const webSplit = useMemo(() => (content ? splitWebSources(content, isStreaming) : { body: "", sources: [] }),
+    [content, isStreaming]);
+
   const initialState = useMemo(() => {
     if (Array.isArray(context) && typeof context[0] === "object") return context[0];
     if (context && typeof context === "object" && !Array.isArray(context)) return context;
@@ -77,7 +83,7 @@ export function AriaOpenUIAssistantMessage({
       <div className="openui-shell-thread-message-assistant__content flex flex-col gap-2">
         {content ? (
           <Renderer
-            response={content}
+            response={webSplit.body}
             library={openuiChatLibrary}
             isStreaming={isStreaming}
             onAction={handleAction}
@@ -85,6 +91,7 @@ export function AriaOpenUIAssistantMessage({
             initialState={initialState}
           />
         ) : null}
+        {webSplit.sources.length ? <AriaWebSources sources={webSplit.sources} /> : null}
         {showSources ? (
           <AriaEvidenceSources sources={sources} className="aria-openui-assistant-message__sources" />
         ) : null}

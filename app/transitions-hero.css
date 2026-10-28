@@ -16,6 +16,12 @@ html[data-theme="dark"] {
   --cm-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Decorative glows (e.g. the composer beam) bleed past the viewport; clip them
+   so phones never get a sideways scroll. `clip` keeps sticky positioning intact. */
+.aria-tdev-page {
+  overflow-x: clip;
+}
+
 /* ── Top bar (site-nav rhythm) ─────────────────────────────────── */
 .aria-tdev-page .site-header {
   width: min(1192px, 100%);
@@ -529,6 +535,61 @@ html[data-theme="dark"] .hero.aria-tdev-hero .cm-beam[data-beam][data-fading]::a
     display: block;
     width: 13px;
     height: 13px;
+  }
+
+  /* Menu toggle matches the Sign in pill: same height, surface, and ring. */
+  .aria-tdev-page .nav-actions .mobile-menu {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50px;
+    color: rgba(255, 255, 255, 0.88);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+  }
+
+  .aria-tdev-page .nav-actions .mobile-menu:hover,
+  .aria-tdev-page .nav-actions .mobile-menu[aria-expanded="true"] {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .aria-tdev-page .nav-actions .mobile-menu svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Dropdown sits inside the page gutters as a vertical list with full-width tap targets. */
+  .aria-tdev-page .mobile-nav {
+    top: calc(100% + 8px);
+    left: 12px;
+    right: 12px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    border-radius: 16px;
+    border-color: rgba(255, 255, 255, 0.09);
+    background: #1b1b1b;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .aria-tdev-page .mobile-nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .aria-tdev-page .mobile-nav a:hover,
+  .aria-tdev-page .mobile-nav a:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
   }
 }
 

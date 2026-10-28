@@ -74,7 +74,7 @@ export async function adminOverview(services: Services) {
   const audit = (await Promise.all(auditKeys.map(row => services.store.get({ pk: String(row.pk), sk: String(row.sk) }))))
     .filter(row => row !== undefined);
   const users = (await mapBatches(userKeys, row => services.directory.getUser(String(row.pk).slice(5))))
-    .filter(user => user !== undefined && !isLocalDevFixtureUserId(user.id))
+    .filter(<T extends { id: string }>(user: T | undefined): user is T => user !== undefined && !isLocalDevFixtureUserId(user.id))
     .map(user => ({ id: user.id, email: user.email, name: user.name, status: user.status,
       aiAccessSuspended: user.aiAccessSuspended, personalWorkspaceId: user.personalWorkspaceId }));
   const workspaces = (await mapBatches(workspaceKeys, async row => {
@@ -83,7 +83,8 @@ export async function adminOverview(services: Services) {
     const balance = await services.ledger.balance(workspace.id);
     return { ...workspace, credits: balance };
   }))
-    .filter(workspace => workspace !== undefined && !isLocalDevFixtureUserId(workspace.ownerId));
+    .filter(<T extends { ownerId: string }>(workspace: T | undefined): workspace is T =>
+      workspace !== undefined && !isLocalDevFixtureUserId(workspace.ownerId));
   return {
     users, workspaces,
     summary: {

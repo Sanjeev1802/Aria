@@ -19,6 +19,8 @@ export type ChatDeps = {
   modelConfig: (model: ChatInput["model"]) => { id: string; rates: Rates };
   maxOutputTokens: number;
   searchWeb?: WebSearchProvider;
+  /** The model provider can search the web itself (Claude's web search tool), when a question needs it, up to `maxUses` times per message. */
+  nativeSearch?: { maxUses: number };
 };
 
 const noStore = { "Cache-Control": "no-store" };
@@ -69,15 +71,20 @@ export function chatHandler(deps: ChatDeps) {
     // Every plan uses Bedrock Nova; a browser-provided model remains plan-gated.
     if (body.model === undefined) input = { ...input, model: "nova" };
     if (body.webSearch !== undefined && typeof body.webSearch !== "boolean") return json({ code: "invalid_request", message: "Invalid web search option" }, 400);
-    if (body.webSearch && (!s.config.searxngUrl || !deps.searchWeb)) return json({ code: "web_search_unavailable", message: "Public web search is not configured on this server." }, 503);
+    // Claude decides per question whether it needs live facts; there is no per-message switch.
+    const nativeSearch = deps.nativeSearch;
+    if (body.webSearch && !nativeSearch && (!s.config.searxngUrl || !deps.searchWeb)) return json({ code: "web_search_unavailable", message: "Public web search is not configured on this server." }, 503);
     requireModel(ctx.plan, input.model);
     const onComplete = body.threadId === undefined ? undefined : await prepareThreadRun(s, ctx, body.threadId, input);
     const model = deps.modelConfig(input.model);
     await s.ledger.ensurePeriodGrant(ctx.workspace.id, ctx.workspace.plan);
     return createChatResponse(input, {
       ledger: s.ledger, account: { workspaceId: ctx.workspace.id, memberId: ctx.user.id, plan: ctx.workspace.plan },
-      modelId: model.id, rates: model.rates, provider: deps.provider, signal: request.signal, maxOutputTokens: deps.maxOutputTokens,
-      webSearch: body.webSearch ? deps.searchWeb : undefined,
+      modelId: model.id, rates: model.rates, provider: deps.provider, signal: request.signal,
+      maxOutputTokens: Math.min(deps.maxOutputTokens, ctx.plan.maxOutputTokens),
+      webSearch: body.webSearch && !nativeSearch ? deps.searchWeb : undefined,
+      nativeSearch,
+      session: { userName: ctx.user.name, workspaceName: ctx.workspace.name, planLabel: ctx.plan.label, role: ctx.membership.role },
       onComplete,
     });
   };
@@ -98,8 +105,8 @@ export async function sessionHandler(request: Request, s: Services) {
   return json({
     environment: s.config.environment,
     liveChat: s.config.liveChat || s.config.localIdentity,
-    webSearchAvailable: Boolean(s.config.searxngUrl),
     localDev: Boolean(s.config.localIdentity),
+    planSwitching: Boolean(s.config.localIdentity || s.config.planSwitching),
     localUser: local?.slot,
     localUsers: s.config.localIdentity ? LOCAL_DEV_USER_LABELS : undefined,
     user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name, avatar: await s.directory.getAvatar(ctx.user.id),

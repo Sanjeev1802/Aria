@@ -120,11 +120,12 @@ export default function PrivacyPage() {
       <section id="search">
         <h2>05 / Public web search</h2>
         <p>
-          If your deployment enables public web search, ARIA sends a short query you explicitly
-          choose to search to a configured SearXNG instance, then may pass bounded snippets to the
-          model and save result links with the answer. That query is public-web search, not retrieval
-          of private company systems. Do not put secrets or customer records in a search query.
-          Upstream search engines may receive the query according to that instance’s configuration.
+          If your deployment enables public web search, ARIA’s model may look up public information
+          when a question needs current facts. To do so it sends a short query, which it writes from
+          your message, to the search service the deployment is configured with, then uses the results
+          to answer and saves result links with the answer. That is public-web search, not retrieval of
+          private company systems. Do not put secrets or customer records in your messages when web
+          search is enabled. The search provider may receive the query under its own terms.
         </p>
       </section>
 

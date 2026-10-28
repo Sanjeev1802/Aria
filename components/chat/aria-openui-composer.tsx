@@ -6,11 +6,9 @@ import {
   type ComposerAttachment,
 } from "@/lib/aria-composer-attachments";
 import { useThread, useThreadList } from "@openuidev/react-headless";
-import { ArrowUp, Globe2, Plus, Square, X } from "lucide-react";
+import { ArrowUp, Plus, Square, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { selectAriaWebSearch } from "@/lib/aria-openui-llm";
 import { takeLandingDraft } from "@/lib/landing-draft";
-import { useAriaSession } from "@/lib/aria-session";
 import { cn } from "@/lib/utils";
 
 const IME_KEY_CODE = 229;
@@ -34,9 +32,6 @@ export function AriaOpenUIComposer({
   const [textContent, setTextContent] = useState("");
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [webSearch, setWebSearch] = useState(false);
-  const session = useAriaSession();
-  const webSearchAvailable = Boolean(session.webSearchAvailable);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,10 +55,6 @@ export function AriaOpenUIComposer({
     ? "openui-agent-desktop-welcome-composer__submit-button"
     : "openui-agent-thread-composer__submit-button";
 
-  useEffect(() => {
-    if (!webSearchAvailable && webSearch) { setWebSearch(false); selectAriaWebSearch(false); }
-  }, [webSearchAvailable, webSearch]);
-
   const canSend = Boolean(textContent.trim() || attachments.length) && !isRunning && !isLoadingMessages;
 
   const handleSubmit = useCallback(() => {
@@ -73,12 +64,11 @@ export function AriaOpenUIComposer({
     }
     const content = buildMessageContent(textContent, attachments);
     if (!content || isLoadingMessages) return;
-    selectAriaWebSearch(webSearchAvailable && webSearch);
     processMessage({ role: "user", content });
     setTextContent("");
     setAttachments([]);
     setUploadError(null);
-  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent, webSearch, webSearchAvailable]);
+  }, [attachments, cancelMessage, isLoadingMessages, isRunning, processMessage, textContent]);
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -87,11 +77,13 @@ export function AriaOpenUIComposer({
     input.style.height = `${Math.max(input.scrollHeight, 32)}px`;
   }, [textContent]);
 
-  useLayoutEffect(() => {
+  const [seenThreadId, setSeenThreadId] = useState(selectedThreadId);
+  if (selectedThreadId !== seenThreadId) {
+    setSeenThreadId(selectedThreadId);
     setTextContent("");
     setAttachments([]);
     setUploadError(null);
-  }, [selectedThreadId]);
+  }
 
   useEffect(() => {
     if (!isWelcome) return;
@@ -100,6 +92,8 @@ export function AriaOpenUIComposer({
       ? ""
       : new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
     const draft = fromLanding || fromQuery;
+    // takeLandingDraft consumes sessionStorage once, so it cannot run during render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (draft) setTextContent(draft);
   }, [isWelcome]);
 
@@ -140,18 +134,6 @@ export function AriaOpenUIComposer({
       ) : null}
 
       {uploadError ? <p className="aria-openui-composer-error">{uploadError}</p> : null}
-
-      {webSearchAvailable ? (
-        <div className="aria-openui-composer-tools">
-          <button type="button" aria-pressed={webSearch}
-            className={cn("aria-openui-web-search-toggle", webSearch && "aria-openui-web-search-toggle--active")}
-            title="Search the public web. Your question is sent to the configured search service; do not include private information."
-            disabled={isRunning}
-            onClick={() => setWebSearch(value => !value)}>
-            <Globe2 size={14} aria-hidden /> Web search
-          </button>
-        </div>
-      ) : null}
 
       <div
         className={cn(

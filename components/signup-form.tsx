@@ -17,6 +17,7 @@ import { PasswordInput } from "@/components/auth/password-input"
 import { clearInputError, showInputError } from "@/lib/show-input-error"
 import { meetsPasswordPolicy, PASSWORD_HINT } from "@/lib/auth/password-policy"
 import { safeNextPath } from "@/lib/auth/safe-next-path"
+import { useClientValue } from "@/hooks/use-client-value"
 import { ARIA_IS_PREVIEW, ariaConfirmSignUp, ariaResendCode, ariaSignIn, ariaSignUp } from "@/lib/aria-session"
 import { cn } from "cn"
 
@@ -53,11 +54,12 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
   const [awaitingCode, setAwaitingCode] = useState(false)
   const [code, setCode] = useState("")
   const [notice, setNotice] = useState<string | null>(null)
-  const [nextPath, setNextPath] = useState("/chat/")
+  const nextPath = useClientValue(destinationFromQuery, "/chat/")
 
   useEffect(() => {
-    setNextPath(destinationFromQuery())
+    // One-time prefill from ?email=, applied after hydration so the input stays controlled.
     const preset = new URLSearchParams(window.location.search).get("email")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (preset) setEmail(preset)
   }, [])
 

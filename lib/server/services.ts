@@ -22,10 +22,21 @@ export type ServerConfig = {
   localIdentity: boolean;
   /** SQLite path for development when no DynamoDB table is configured. */
   localStorePath?: string;
+  /**
+   * Development-stage switch (ARIA_PLAN_SWITCHING=enabled): workspace owners may change
+   * their own plan to test every tier. Leave unset in preview, beta, and production,
+   * where plans change only through verified billing events.
+   */
+  planSwitching?: boolean;
   /** Operator switch for model calls once identity and accounting are verified together. */
   liveChat: boolean;
   /** Optional server-side SearXNG endpoint for explicit public-web searches. */
   searxngUrl?: string;
+  /**
+   * Searches Claude may run per message through Anthropic's web search tool; 0 turns it off.
+   * Only active when ANTHROPIC_API_KEY is set. Each search costs about $0.01.
+   */
+  claudeWebSearchMaxUses?: number;
   /** Optional TLS ElastiCache endpoint for short-lived public search results. */
   elasticacheUrl?: string;
   /** OneWave transactional email, configured only on the server. */
@@ -55,6 +66,8 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const environment = env.NODE_ENV === "development" ? "development" : "production";
   const pool = env.ARIA_COGNITO_USER_POOL_ID?.trim();
   const client = env.ARIA_COGNITO_CLIENT_ID?.trim();
+  const localIdentity = environment === "development" && env.ARIA_LOCAL_DEV === "true";
+  const searchUses = Number(env.ANTHROPIC_WEB_SEARCH_MAX_USES);
   return {
     environment,
     region: env.AWS_REGION || "us-east-1",
@@ -62,11 +75,14 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     table: env.ARIA_DYNAMODB_TABLE?.trim() || undefined,
     dynamoEndpoint: environment === "development" ? env.ARIA_DYNAMODB_ENDPOINT || undefined : undefined,
     appOrigin: env.ARIA_APP_ORIGIN?.replace(/\/$/, "") || undefined,
-    localIdentity: environment === "development" && env.ARIA_LOCAL_DEV === "true",
+    localIdentity,
+    claudeWebSearchMaxUses: localIdentity || !env.ANTHROPIC_API_KEY?.trim() ? 0
+      : Number.isInteger(searchUses) && searchUses >= 0 && searchUses <= 5 ? searchUses : 2,
     localStorePath: environment === "development"
       ? (env.ARIA_LOCAL_STORE_PATH?.trim() || join(process.cwd(), ".aria", "local-dev.sqlite"))
       : undefined,
     liveChat: env.ARIA_LIVE_CHAT === "enabled",
+    planSwitching: env.ARIA_PLAN_SWITCHING === "enabled",
     searxngUrl: env.ARIA_SEARXNG_URL?.trim() || undefined,
     elasticacheUrl: env.ARIA_ELASTICACHE_URL?.trim() || undefined,
     emailService: env.EMAIL_SERVICE_URL?.trim() && env.EMAIL_SERVICE_API_KEY?.trim()

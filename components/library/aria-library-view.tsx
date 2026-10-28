@@ -25,7 +25,7 @@ import {
   Search,
   SlidersHorizontal,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type LibraryTab = "suggested" | "favorites" | "folders" | "images" | "all";
 
@@ -111,11 +111,7 @@ export function AriaLibraryView() {
   const [tab, setTab] = useState<LibraryTab>("suggested");
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [libraryItems, setLibraryItems] = useState<AriaLibraryItem[]>([]);
-
-  useEffect(() => {
-    setLibraryItems(loadAriaLibraryItems());
-  }, []);
+  const [libraryItems] = useState<AriaLibraryItem[]>(loadAriaLibraryItems);
 
   const items = useMemo(() => {
     let list = libraryItems;

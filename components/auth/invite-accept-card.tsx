@@ -9,16 +9,18 @@ import { Card, CardContent } from "@/components/ui/card"
 import { FieldDescription, FieldGroup } from "@/components/ui/field"
 import { acceptAriaInvite } from "@/lib/aria-team-api"
 import { ARIA_IS_PREVIEW, refreshAriaSession, useAriaSession } from "@/lib/aria-session"
+import { useClientValue } from "@/hooks/use-client-value"
+
+const tokenFromQuery = () => new URLSearchParams(window.location.search).get("token") ?? ""
 
 export function InviteAcceptCard() {
   const router = useRouter()
   const session = useAriaSession()
-  const [token, setToken] = useState("")
+  const token = useClientValue(tokenFromQuery, "")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
   useEffect(() => {
-    setToken(new URLSearchParams(window.location.search).get("token") ?? "")
     void refreshAriaSession()
   }, [])
 
