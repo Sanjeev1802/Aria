@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { MemoryStore } from "../lib/server/store/memory-store";
 import { buildServices } from "../lib/server/services";
 import { chatHandler, run, usageHandler } from "../lib/server/handlers";
-import { adminCustomer, adminModels, adminOverview, adminUsage, assertAdminActionAllowed, executeAdminAction, grantOperator, listOperators, parseAdminAction, requireInternalAdmin, resolveInternalRole, revokeOperator } from "../lib/server/admin";
+import { adminCustomer, adminModels, adminOverview, adminUsage, assertAdminActionAllowed, executeAdminAction, grantOperator, hasFullAccess, listOperators, listSuperAdmins, parseAdminAction, requireInternalAdmin, resolveInternalRole, revokeOperator } from "../lib/server/admin";
 import { providerOf, readModelUsage, recordModelUse } from "../lib/server/model-usage";
 import { INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "../lib/internal-audit-copy";
 import { isLocalDevFixtureUserId } from "../lib/local-user-shared";
@@ -332,4 +332,40 @@ test("a completed chat request is counted against the model that answered it", a
   usage = await readModelUsage(store);
   assert.deepEqual(usage.totals, { claude: 0, bedrock: 1, local: 0, fallback: 0, failed: 1 });
   assert.equal(usage.last?.ok, false);
+});
+
+test("admins change everything only when a super admin grants edit access; members stay view-only", async () => {
+  const store = new MemoryStore();
+  const services = buildServices({ ...config, adminEmails: ["boss@example.com"] }, { store });
+  await requireInternalAdmin(request("alex"), services);
+  const everything = ["disable_user", "enable_user", "revoke_sessions", "set_plan", "grant_credits"] as const;
+
+  await grantOperator(services, "local-alex", { email: "blair@localhost.test", role: "admin" });
+  let admin = await requireInternalAdmin(request("blair"), services);
+  assert.deepEqual([admin.internalRole, admin.internalCanEdit], ["admin", false]);
+  for (const type of everything) {
+    assert.throws(() => assertAdminActionAllowed(admin.internalRole, type, admin.internalCanEdit), { code: "admin_action_forbidden" });
+  }
+
+  await grantOperator(services, "local-alex", { email: "blair@localhost.test", role: "admin", canEdit: true });
+  admin = await requireInternalAdmin(request("blair"), services);
+  assert.deepEqual([admin.internalRole, admin.internalCanEdit], ["admin", true]);
+  for (const type of everything) assert.doesNotThrow(() => assertAdminActionAllowed(admin.internalRole, type, admin.internalCanEdit));
+
+  await grantOperator(services, "local-alex", { email: "blair@localhost.test", role: "member", canEdit: true });
+  const member = await requireInternalAdmin(request("blair"), services);
+  assert.deepEqual([member.internalRole, member.internalCanEdit], ["member", false]);
+  assert.throws(() => assertAdminActionAllowed("member", "set_plan", true), { code: "admin_action_forbidden" });
+
+  await grantOperator(services, "local-alex", { email: "blair@localhost.test", role: "billing", canEdit: true });
+  const [billing] = await listOperators(services);
+  assert.deepEqual([billing?.role, billing?.canEdit], ["billing", false]);
+  assert.doesNotThrow(() => assertAdminActionAllowed("billing", "set_plan"));
+  assert.throws(() => assertAdminActionAllowed("billing", "disable_user", true), { code: "admin_action_forbidden" });
+
+  assert.equal(hasFullAccess("super_admin", false), true);
+  assert.equal(hasFullAccess("admin", false), false);
+  assert.equal(hasFullAccess("admin", true), true);
+  assert.equal(hasFullAccess("operations", true), false);
+  assert.deepEqual((await listSuperAdmins(services)).map(person => person.email), ["boss@example.com"]);
 });

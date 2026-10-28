@@ -3,7 +3,6 @@
 import { ArrowRight } from "lucide-react";
 import { InternalSettingsGroup, InternalSettingsRow } from "./internal-settings-panel";
 import type { InternalSection } from "./internal-section";
-import { InternalOperatorsPanel } from "./internal-operators-panel";
 
 export function InternalAdminPage({ onNavigate }: { onNavigate: (section: InternalSection) => void }) {
   return (
@@ -14,13 +13,15 @@ export function InternalAdminPage({ onNavigate }: { onNavigate: (section: Intern
           <InternalSettingsRow label="Audit activity" hint="Latest 12 actions" onClick={() => onNavigate("activity")} />
         </InternalSettingsGroup>
 
+        <InternalSettingsGroup title="People">
+          <InternalSettingsRow label="ARIA Team" hint="Add admins and members, and choose who can change anything" onClick={() => onNavigate("team")} />
+        </InternalSettingsGroup>
+
         <InternalSettingsGroup title="Entitlements">
           <InternalSettingsRow label="Subscription plans" hint="Edit Pro and Team pricing shown on ARIA" onClick={() => onNavigate("subscription")} />
           <InternalSettingsRow label="Operations runbook" hint="Setup and reconciliation notes" onClick={() => onNavigate("operations")} />
         </InternalSettingsGroup>
       </div>
-
-      <InternalOperatorsPanel />
 
       <p className="internal-admin-page__footnote">
         <ArrowRight className="size-3.5 shrink-0" aria-hidden />

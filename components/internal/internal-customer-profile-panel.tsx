@@ -1,5 +1,6 @@
 "use client";
 
+import type { InternalRole } from "./internal-operator-role";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -234,6 +235,7 @@ export function InternalCustomerProfilePanel({
   scope = "full",
   customer,
   internalRole,
+  fullAccess,
   onClose,
   onRequestAction,
   accountAccessPending = false,
@@ -241,7 +243,9 @@ export function InternalCustomerProfilePanel({
 }: {
   scope?: "overview" | "full";
   customer: CustomerProfileData;
-  internalRole: "super_admin" | "support" | "billing" | "operations";
+  internalRole: InternalRole;
+  /** Super admins, and admins a super admin granted edit access. Defaults to super admins only. */
+  fullAccess?: boolean;
   onClose: () => void;
   onRequestAction: (action: InternalCustomerAction) => void;
   accountAccessPending?: boolean;
@@ -254,7 +258,7 @@ export function InternalCustomerProfilePanel({
   const aiAccessOn = customerAiAccessOn(user);
   const primary = workspaces.find(w => w.id === user.personalWorkspaceId) ?? workspaces[0];
   const stage = accountStage(user, workspaces);
-  const isSuperAdmin = internalRole === "super_admin";
+  const isSuperAdmin = fullAccess ?? internalRole === "super_admin";
   const canBilling = isSuperAdmin || internalRole === "billing";
   const canOperations = isSuperAdmin || internalRole === "operations";
   const showAccountAccess = canOperations;
@@ -381,7 +385,7 @@ export function InternalCustomerProfilePanel({
               {!aiAccessOn
                 ? isSuperAdmin
                   ? "ARIA AI is off — turn on access below or the customer can subscribe on the pricing page."
-                  : "ARIA AI is off — only a super admin can turn access back on."
+                  : "ARIA AI is off — only someone with full edit access can turn it back on."
                 : workspaces.length === 0
                   ? "No workspace memberships in this snapshot."
                   : "Customer can sign in and use ARIA AI on their current plan."}
@@ -400,7 +404,7 @@ export function InternalCustomerProfilePanel({
                       ? "Sign-in stays open; chat uses their subscription plan"
                       : isSuperAdmin
                         ? "AI paused — customer can still sign in and view pricing"
-                        : "AI paused — super admin required to turn back on"}
+                        : "AI paused — full edit access required to turn back on"}
                   </p>
                 </div>
                 <Switch

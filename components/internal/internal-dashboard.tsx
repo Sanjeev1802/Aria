@@ -13,6 +13,8 @@ import { INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "@/lib/internal-audit-copy";
 import { InternalCustomerProfilePanel, type InternalCustomerAction } from "./internal-customer-profile-panel";
 import { ariaSignOut } from "@/lib/aria-session";
 import { InternalAdminPage } from "./internal-admin-page";
+import { InternalTeamPage } from "./internal-team-page";
+import { hasFullAccess, type InternalRole } from "./internal-operator-role";
 import { InternalAppSidebar } from "./internal-app-sidebar";
 import { InternalOperatorActivityList, type OperatorAuditEntry } from "./internal-operator-activity-list";
 import { InternalOverviewView } from "./internal-overview-view";
@@ -49,7 +51,7 @@ type Overview = {
   users: User[]; workspaces: Workspace[]; summary: {
     users: number; workspaces: number; activeUsers: number; teamWorkspaces: number; creditsUsed: number;
   }; activity: Audit[]; limited: boolean;
-  internalRole: "super_admin" | "support" | "billing" | "operations"; operatorId: string;
+  internalRole: InternalRole; internalCanEdit?: boolean; operatorId: string;
   operator: { name: string; email: string };
 };
 type Customer = {
@@ -79,6 +81,8 @@ function sectionDescription(section: InternalSection) {
       return "Operator guidance and configuration notes.";
     case "admin":
       return "Super admin shortcuts and setup references.";
+    case "team":
+      return "Who can open this console, and what each person can change.";
     case "profile":
       return "Your operator identity and permissions.";
     case "settings":
@@ -212,6 +216,8 @@ export function InternalDashboard() {
   }, [overview]);
 
   const isSuperAdmin = overview?.internalRole === "super_admin";
+  // Super admins, and admins a super admin has given edit access.
+  const fullAccess = overview ? hasFullAccess(overview.internalRole, Boolean(overview.internalCanEdit)) : false;
 
   const settingsInitialSection = useMemo(
     () => parseInternalSettingsSection(searchParams.get("settingsSection"), isSuperAdmin),
@@ -370,7 +376,7 @@ export function InternalDashboard() {
                 )}
 
                 {section === "subscription" && (
-                  <InternalSubscriptionPlansView isSuperAdmin={overview.internalRole === "super_admin"} />
+                  <InternalSubscriptionPlansView isSuperAdmin={fullAccess} />
                 )}
 
                 {section === "activity" && (
@@ -406,6 +412,13 @@ export function InternalDashboard() {
                     </Card>
                   </div>
                 )}
+
+                {section === "team" && (isSuperAdmin ? <InternalTeamPage /> : (
+                  <div className="internal-state internal-error">
+                    <h1>Only super admins manage the ARIA Team</h1>
+                    <p>Ask a super admin to change your role or edit access.</p>
+                  </div>
+                ))}
 
                 {section === "admin" && isSuperAdmin && (
                   <InternalAdminPage onNavigate={showSection} />
@@ -458,6 +471,7 @@ export function InternalDashboard() {
                 scope={customerDrawerScope}
                 customer={customer}
                 internalRole={overview.internalRole}
+                fullAccess={fullAccess}
                 onClose={closeCustomer}
                 onRequestAction={requestAdminAction}
                 accountAccessPending={accountAccessPending}

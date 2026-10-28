@@ -7,13 +7,18 @@ import { InternalReadonlyField } from "./internal-readonly-field";
 import { InternalSettingsGroup, InternalSettingsRow } from "./internal-settings-panel";
 import {
   PRD_INTERNAL_ROLE_MATRIX,
+  TEAM_ROLES,
   internalRoleLabel,
+  teamRoleOf,
   type InternalRole,
+  type RoleCell,
 } from "./internal-operator-role";
 import type { InternalColorScheme } from "./internal-theme-toggle";
 import { isPlatformSettingsSection, type InternalSettingsSectionId } from "./internal-settings-sections";
 import { InternalPlatformSettingsPanel } from "./internal-platform-settings-panels";
 import type { InternalSection } from "./internal-section";
+
+const cellText = (cell: RoleCell) => (cell === true ? "Yes" : cell === "granted" ? "If granted" : "—");
 
 function RoleMatrixRow({ label, allowed }: { label: string; allowed: boolean }) {
   return (
@@ -161,18 +166,15 @@ export function InternalSettingsSectionPanel(props: InternalSettingsPanelProps) 
             <thead>
               <tr>
                 <th scope="col">Capability</th>
-                <th scope="col">Super admin</th>
-                <th scope="col">Support</th>
-                <th scope="col">Billing</th>
-                <th scope="col">Operations</th>
+                {TEAM_ROLES.map(role => <th key={role} scope="col">{internalRoleLabel(role)}</th>)}
               </tr>
             </thead>
             <tbody>
               {PRD_INTERNAL_ROLE_MATRIX.map(row => (
                 <tr key={row.label}>
                   <th scope="row">{row.label}</th>
-                  {(Object.keys(row.roles) as InternalRole[]).map(role => (
-                    <td key={role}>{row.roles[role] ? "Yes" : "—"}</td>
+                  {TEAM_ROLES.map(role => (
+                    <td key={role}>{cellText(row.roles[role])}</td>
                   ))}
                 </tr>
               ))}
@@ -184,7 +186,7 @@ export function InternalSettingsSectionPanel(props: InternalSettingsPanelProps) 
             Your role: {internalRoleLabel(props.operatorRole)}
           </p>
           {PRD_INTERNAL_ROLE_MATRIX.map(row => (
-            <RoleMatrixRow key={row.label} label={row.label} allowed={row.roles[props.operatorRole]} />
+            <RoleMatrixRow key={row.label} label={row.label} allowed={row.roles[teamRoleOf(props.operatorRole)] === true} />
           ))}
         </div>
         {props.isSuperAdmin && props.onOpenAdmin ? (

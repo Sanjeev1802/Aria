@@ -131,14 +131,15 @@ The operator console lives at `/internal/`, with a dedicated sign-in at `/intern
 - **Customers and plans.** Customer and workspace profiles, plan and credit visibility, and Pro and Team pricing copy.
 - **Controls.** Change a plan, grant small credit adjustments, suspend or restore ARIA AI for a customer, and revoke sessions. Every action is audited.
 - **Live sync.** A change made in the console reaches an open workspace within about 15 seconds. The usage view refreshes every 30 seconds.
-- **Delegation.** Only super admins can change everything. A super admin can give a teammate a scoped role from **Admin → Operators**, tied to that person's verified email:
+- **ARIA Team.** Only super admins change everything, and only they manage the team. From **ARIA Team** in the sidebar a super admin adds people by verified email, chooses a role, and decides which admins may change anything:
 
 | Role | Can do |
 | --- | --- |
-| **Super admin** | Everything, including managing operators. Set on the server through `ARIA_ADMIN_SUBS`. |
-| **Support** | View only. |
+| **Super admin** | Everything, including managing the ARIA Team. Set on the server through `ARIA_ADMIN_SUBS`. |
+| **Admin** | Sees everything. Can change anything (plans, credits, AI access, sessions, subscription pricing) once a super admin turns on **Can change anything**; view-only until then. |
+| **Member** | View only. |
 | **Billing** | View, change plans and grant small credit adjustments. |
-| **Operations** | View, suspend or restore AI access, and revoke sessions. |
+| **Operations** | View, suspend AI access and revoke sessions. |
 
 Locally, set `ARIA_LOCAL_DEV=true` and `ARIA_ADMIN_LOCAL_DEV=true` and the built-in Alex user is a super admin. For production setup, access rules and the existing-account index, see [Internal dashboard setup](INTERNAL_ADMIN_SETUP.md).
 

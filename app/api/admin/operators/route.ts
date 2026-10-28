@@ -1,5 +1,5 @@
 import { ServiceError } from "@/lib/server/errors";
-import { grantOperator, listOperators, requireInternalAdmin, revokeOperator } from "@/lib/server/admin";
+import { grantOperator, listOperators, listSuperAdmins, requireInternalAdmin, revokeOperator } from "@/lib/server/admin";
 import { readJson, run } from "@/lib/server/handlers";
 
 export const runtime = "nodejs";
@@ -16,8 +16,8 @@ async function requireSuperAdmin(request: Request, services: Parameters<typeof r
 
 export async function GET(request: Request) {
   return run(request, async (req, services) => {
-    await requireSuperAdmin(req, services);
-    return Response.json({ operators: await listOperators(services) }, { headers: noStore });
+    const { user } = await requireSuperAdmin(req, services);
+    return Response.json({ operators: await listOperators(services), superAdmins: await listSuperAdmins(services, user) }, { headers: noStore });
   });
 }
 

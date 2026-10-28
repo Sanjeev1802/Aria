@@ -5,6 +5,7 @@ export type InternalSection =
   | "activity"
   | "operations"
   | "admin"
+  | "team"
   | "profile"
   | "settings";
 
@@ -15,6 +16,7 @@ const SECTIONS: InternalSection[] = [
   "activity",
   "operations",
   "admin",
+  "team",
   "profile",
   "settings",
 ];
@@ -44,6 +46,8 @@ export function internalSectionLabel(section: InternalSection): string {
       return "Operations";
     case "admin":
       return "Admin";
+    case "team":
+      return "ARIA Team";
     case "profile":
       return "Your profile";
     case "settings":
@@ -53,7 +57,7 @@ export function internalSectionLabel(section: InternalSection): string {
 
 export function internalSectionBreadcrumb(section: InternalSection): string {
   if (section === "profile" || section === "settings") return "Account";
-  if (section === "admin" || section === "activity" || section === "operations") return "Governance";
+  if (section === "admin" || section === "team" || section === "activity" || section === "operations") return "Governance";
   return "Platform";
 }
 

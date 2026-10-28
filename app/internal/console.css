@@ -728,3 +728,57 @@ html[data-internal-theme] .internal-confirm-icon { background: var(--c-accent-so
 html[data-internal-theme] .internal-confirm-buttons button { background: var(--c-surface-2); color: var(--c-ink-1); border-color: var(--c-line-strong); }
 html[data-internal-theme] .internal-confirm-buttons button:last-child { background: var(--c-accent); color: #fff; border-color: var(--c-accent); }
 html[data-internal-theme] .internal-confirm-buttons button:disabled { opacity: 0.5; }
+
+/* ── ARIA Team ──────────────────────────────────────────────────────────── */
+.internal-field__label { font-size: 12.5px; font-weight: 550; color: var(--c-ink-1); }
+.internal-team__layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@container internal (min-width: 960px) { .internal-team__layout { grid-template-columns: minmax(0, 1fr) 340px; } }
+.internal-team__main, .internal-team__aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@container internal (min-width: 960px) { .internal-team__aside { position: sticky; top: 72px; } }
+.internal-team-card [data-slot="card-header"] { padding-bottom: 0; }
+
+.internal-team-form { display: flex; flex-direction: column; gap: 16px; }
+.internal-team-form .internal-field [data-slot="input"] { border-radius: 10px; border: 1px solid var(--c-line-strong); background: var(--c-surface); color: var(--c-ink-0); box-shadow: none; }
+.internal-team-form .internal-field [data-slot="input"]:focus-visible { border-color: var(--c-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent); outline: none; }
+.internal-team-form .internal-seg { align-self: flex-start; max-width: 100%; overflow-x: auto; }
+.internal-team-form .internal-seg__item { padding-inline: 12px; }
+.internal-team-form__actions { display: flex; justify-content: flex-end; }
+
+.internal-team-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.internal-team-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 0; }
+.internal-team-row + .internal-team-row { border-top: 1px solid var(--c-line); }
+.internal-team-row .internal-user-chip { width: 36px; height: 36px; font-size: 13px; }
+.internal-team-row__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.internal-team-row__email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 550; color: var(--c-ink-0); }
+.internal-team-row__meta { font-size: 12px; color: var(--c-ink-3); }
+.internal-team-row__controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.internal-team-row__edit { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--c-ink-2); }
+.internal-team-row__select { height: 32px; padding: 0 28px 0 10px; border: 1px solid var(--c-line-strong); border-radius: 9px; background: var(--c-surface); color: var(--c-ink-0); font-size: 13px; }
+@container internal (max-width: 560px) { .internal-team-row { grid-template-columns: 36px minmax(0, 1fr); } .internal-team-row__controls { grid-column: 1 / -1; justify-content: flex-start; } }
+.internal-team-empty { padding: 18px 0 6px; font-size: 13px; color: var(--c-ink-3); text-align: center; }
+
+.internal-role-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 650; background: var(--c-surface-2); color: var(--c-ink-2); }
+.internal-role-pill--super_admin { background: var(--violet-soft); color: var(--violet-ink); }
+.internal-role-pill--admin { background: var(--blue-soft); color: var(--blue-ink); }
+.internal-role-pill--member { background: var(--teal-soft); color: var(--teal-ink); }
+.internal-role-pill--billing, .internal-role-pill--operations { background: var(--orange-soft); color: var(--orange-ink); }
+
+.internal-role-guide { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 0; list-style: none; }
+.internal-role-guide__item { display: flex; flex-direction: column; gap: 8px; }
+.internal-role-guide__item + .internal-role-guide__item { padding-top: 18px; border-top: 1px solid var(--c-line); }
+.internal-role-guide__item > p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--c-ink-3); }
+.internal-role-guide__item > .internal-role-pill { align-self: flex-start; }
+.internal-role-guide__caps { display: flex; flex-direction: column; gap: 5px; margin: 2px 0 0; padding: 0; list-style: none; }
+.internal-role-guide__caps li { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; line-height: 1.4; color: var(--c-ink-4); }
+.internal-role-guide__caps li > svg { flex: none; margin-top: 2px; }
+.internal-role-guide__caps li[data-on="true"] { color: var(--c-ink-1); }
+.internal-role-guide__caps li[data-on="true"] > svg { color: var(--c-green); }
+.internal-role-guide__caps li[data-granted="true"] { color: var(--c-ink-2); }
+.internal-role-guide__caps li[data-granted="true"] > svg { color: var(--c-accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .internal-team-card { animation: internal-rise 480ms var(--ease) backwards; }
+  .internal-team__main > :nth-child(2) { animation-delay: 80ms; }
+  .internal-team__aside .internal-team-card { animation-delay: 140ms; }
+  .internal-team-row { animation: internal-rise 380ms var(--ease) backwards; animation-delay: calc(160ms + var(--i, 0) * 50ms); }
+}

@@ -8,6 +8,7 @@ import {
   Settings,
   ShieldCheck,
   Users,
+  UsersRound,
   Sparkles,
 } from "lucide-react";
 import { AriaMark } from "@/components/aria-mark";
@@ -37,6 +38,8 @@ const governanceSections: { id: InternalSection; icon: typeof Activity }[] = [
   { id: "activity", icon: Activity },
   { id: "operations", icon: ShieldCheck },
 ];
+/** Only super admins manage the team, so only they see the entry. */
+const teamSection = { id: "team" as InternalSection, icon: UsersRound };
 
 export function InternalAppSidebar({
   section,
@@ -84,7 +87,7 @@ export function InternalAppSidebar({
         <SidebarGroup>
           <SidebarGroupLabel>Governance</SidebarGroupLabel>
           <SidebarMenu>
-            {governanceSections.map(item => (
+            {(operator?.role === "super_admin" ? [...governanceSections, teamSection] : governanceSections).map(item => (
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton isActive={section === item.id} tooltip={internalSectionLabel(item.id)} onClick={() => go(item.id)}>
                   <item.icon aria-hidden />

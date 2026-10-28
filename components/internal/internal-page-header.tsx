@@ -44,7 +44,7 @@ export function InternalPageHeader({
         <strong>{internalSectionLabel(section)}</strong>
       </nav>
       <div className="internal-top-actions ml-auto flex flex-wrap items-center gap-2 sm:gap-3">
-        <span className="hidden md:inline-flex"><ModelStatusChip /></span>
+        <span className="hidden lg:inline-flex"><ModelStatusChip /></span>
         {refreshLabel ? (
           <span className="internal-status hidden whitespace-nowrap xl:inline-flex" role="status" aria-live="polite">
             <span className="internal-live" aria-hidden="true" />

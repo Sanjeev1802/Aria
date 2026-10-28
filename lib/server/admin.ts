@@ -11,7 +11,12 @@ import { isLocalDevFixtureUserId } from "@/lib/local-user-shared";
 
 const auditKey = (id: string) => ({ pk: "ADMIN#AUDIT", sk: `ACTION#${id}` });
 const validId = (value: unknown) => typeof value === "string" && /^[\w:.-]{1,128}$/.test(value);
-export type InternalRole = "super_admin" | "support" | "billing" | "operations";
+/**
+ * ARIA Team roles. `super_admin` is set on the server. `admin` can see everything and can change
+ * everything once a super admin grants edit access; `member` is view-only; `billing` and `operations`
+ * are scoped to those jobs. `support` is the older name for a view-only member.
+ */
+export type InternalRole = "super_admin" | "admin" | "member" | "support" | "billing" | "operations";
 
 async function mapBatches<T, R>(items: T[], task: (item: T) => Promise<R>, size = 20): Promise<R[]> {
   const output: R[] = [];
@@ -27,17 +32,22 @@ function subjectRole(services: Services, subject: string): InternalRole | undefi
 const operatorKey = (email: string) => ({ pk: "ADMIN#OPERATORS", sk: `EMAIL#${email}` });
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Roles a super admin can hand out from the console; super_admin itself stays server-configured. */
-export const GRANTABLE_ROLES = ["support", "billing", "operations"] as const;
+export const GRANTABLE_ROLES = ["admin", "member", "support", "billing", "operations"] as const;
 export type GrantableRole = typeof GRANTABLE_ROLES[number];
 
 type Authenticated = Awaited<ReturnType<typeof authenticate>>;
 
+export type InternalAccess = { role: InternalRole; canEdit: boolean };
+
+/** Full edit access: super admins always, admins only when a super admin turned it on. */
+export const hasFullAccess = (role: InternalRole, canEdit: boolean) => role === "super_admin" || (role === "admin" && canEdit);
+
 /**
- * The operator role for an authenticated user, or undefined for customers.
+ * The operator role and edit access for an authenticated user, or undefined for customers.
  * Order: configured super admins and scoped roles, development-only allowlists,
  * then access a super admin granted from the console (bound to a verified email).
  */
-export async function resolveInternalRole(services: Services, auth: Authenticated): Promise<InternalRole | undefined> {
+export async function resolveInternalAccess(services: Services, auth: Authenticated): Promise<InternalAccess | undefined> {
   const localPreview = services.config.environment === "development" && services.config.localIdentity &&
     services.config.adminLocalDev && auth.user.id === "local-alex";
   let role: InternalRole | undefined = localPreview ? "super_admin" : subjectRole(services, auth.user.id);
@@ -61,11 +71,18 @@ export async function resolveInternalRole(services: Services, auth: Authenticate
       }
     }
   }
-  if (!role && auth.identity.emailVerified) {
+  if (role) return { role, canEdit: role === "super_admin" };
+  if (auth.identity.emailVerified) {
     const grant = await services.store.get(operatorKey(auth.user.email.trim().toLowerCase()));
-    if (grant && (GRANTABLE_ROLES as readonly string[]).includes(String(grant.role))) role = grant.role as InternalRole;
+    if (grant && (GRANTABLE_ROLES as readonly string[]).includes(String(grant.role))) {
+      return { role: grant.role as InternalRole, canEdit: grant.role === "admin" && grant.canEdit === true };
+    }
   }
-  return role;
+  return undefined;
+}
+
+export async function resolveInternalRole(services: Services, auth: Authenticated): Promise<InternalRole | undefined> {
+  return (await resolveInternalAccess(services, auth))?.role;
 }
 
 /**
@@ -75,15 +92,15 @@ export async function resolveInternalRole(services: Services, auth: Authenticate
  */
 export async function requireInternalAdmin(request: Request, services: Services) {
   const auth = await authenticate(request, services);
-  const role = await resolveInternalRole(services, auth);
-  if (!role) {
+  const access = await resolveInternalAccess(services, auth);
+  if (!access) {
     throw new ServiceError("admin_access_denied", 403);
   }
-  return { ...auth, internalRole: role };
+  return { ...auth, internalRole: access.role, internalCanEdit: access.canEdit };
 }
 
-export function assertAdminActionAllowed(role: InternalRole, type: AdminAction["type"]) {
-  if (role === "super_admin") return;
+export function assertAdminActionAllowed(role: InternalRole, type: AdminAction["type"], canEdit = false) {
+  if (hasFullAccess(role, canEdit)) return;
   if (role === "billing" && ["set_plan", "grant_credits"].includes(type)) return;
   if (role === "operations" && ["disable_user", "revoke_sessions"].includes(type)) return;
   throw new ServiceError("admin_action_forbidden", 403);
@@ -225,13 +242,14 @@ export async function executeAdminAction(services: Services, actorId: string, ac
   return { result: "applied" as const };
 }
 
-export type OperatorGrant = { email: string; role: GrantableRole; grantedBy: string; at: number };
+export type OperatorGrant = { email: string; role: GrantableRole; canEdit: boolean; grantedBy: string; at: number };
 
 export async function listOperators(services: Services): Promise<OperatorGrant[]> {
   const rows = await services.store.query("ADMIN#OPERATORS", "EMAIL#", { limit: 200 });
   return rows
     .filter(row => (GRANTABLE_ROLES as readonly string[]).includes(String(row.role)))
-    .map(row => ({ email: String(row.email), role: row.role as GrantableRole, grantedBy: String(row.grantedBy), at: Number(row.at) }))
+    .map(row => ({ email: String(row.email), role: row.role as GrantableRole, canEdit: row.role === "admin" && row.canEdit === true,
+      grantedBy: String(row.grantedBy), at: Number(row.at) }))
     .sort((a, b) => a.email.localeCompare(b.email));
 }
 
@@ -241,13 +259,15 @@ export async function grantOperator(services: Services, actorId: string, input: 
   if (!EMAIL_PATTERN.test(email) || email.length > 254 ||
     !(GRANTABLE_ROLES as readonly string[]).includes(String(input.role))) throw new ServiceError("admin_invalid_operator", 400);
   const role = input.role as GrantableRole;
+  // Edit access is only meaningful for admins; the other roles have fixed rights.
+  const canEdit = role === "admin" && input.canEdit === true;
   const now = Date.now();
   const id = `${now}-${Math.random().toString(36).slice(2, 8)}`;
   await services.store.transact([
-    { kind: "put", item: { ...operatorKey(email), email, role, grantedBy: actorId, at: now } },
-    auditWrite(id, now, { action: "grant_operator", actorId, targetId: email, reason: `Operator role set to ${role}` }),
+    { kind: "put", item: { ...operatorKey(email), email, role, canEdit, grantedBy: actorId, at: now } },
+    auditWrite(id, now, { action: "grant_operator", actorId, targetId: email, reason: `Operator role set to ${role}${role === "admin" ? (canEdit ? " with edit access" : " (view only)") : ""}` }),
   ]);
-  return { email, role, grantedBy: actorId, at: now } satisfies OperatorGrant;
+  return { email, role, canEdit, grantedBy: actorId, at: now } satisfies OperatorGrant;
 }
 
 export async function revokeOperator(services: Services, actorId: string, emailInput: unknown) {
@@ -352,4 +372,18 @@ export async function adminModels(services: Services, now = Date.now(), env: Rec
         : last.fallback ? "fallback" : "active";
   const serving = last?.ok ? { provider: last.provider, modelId: last.modelId } : config.primary;
   return { config, usage, state, serving };
+}
+
+/** Super admins are configured on the server, so this only reports the ones the server can name. */
+export async function listSuperAdmins(services: Services, current?: { email: string; name: string }) {
+  const found = new Map<string, { email: string; name: string }>();
+  if (current) found.set(current.email.toLowerCase(), { email: current.email, name: current.name });
+  for (const subject of services.config.adminSubjects ?? []) {
+    const user = await services.directory.getUser(subject).catch(() => undefined);
+    if (user) found.set(user.email.toLowerCase(), { email: user.email, name: user.name });
+  }
+  if (services.config.environment === "development" && services.config.adminLocalDev) {
+    for (const email of services.config.adminEmails ?? []) if (!found.has(email)) found.set(email, { email, name: "" });
+  }
+  return [...found.values()];
 }

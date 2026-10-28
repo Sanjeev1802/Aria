@@ -1,5 +1,5 @@
 import { ariaSubscriptionPlansList } from "@/lib/aria-subscription-plans";
-import { requireInternalAdmin } from "@/lib/server/admin";
+import { hasFullAccess, requireInternalAdmin } from "@/lib/server/admin";
 import { readJson, run } from "@/lib/server/handlers";
 import { getSubscriptionCatalog, updateSubscriptionCatalog } from "@/lib/server/subscription-catalog";
 import { ServiceError } from "@/lib/server/errors";
@@ -23,8 +23,8 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   return run(request, async (req, services) => {
-    const { user, internalRole } = await requireInternalAdmin(req, services);
-    if (internalRole !== "super_admin") {
+    const { user, internalRole, internalCanEdit } = await requireInternalAdmin(req, services);
+    if (!hasFullAccess(internalRole, internalCanEdit)) {
       throw new ServiceError("admin_action_forbidden", 403);
     }
     const body = await readJson(req, 64_000);

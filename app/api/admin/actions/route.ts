@@ -5,9 +5,9 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   return run(request, async (req, services) => {
-    const { user, internalRole } = await requireInternalAdmin(req, services);
+    const { user, internalRole, internalCanEdit } = await requireInternalAdmin(req, services);
     const action = parseAdminAction(await readJson(req, 2_000));
-    assertAdminActionAllowed(internalRole, action.type);
+    assertAdminActionAllowed(internalRole, action.type, internalCanEdit);
     return Response.json(await executeAdminAction(services, user.id, action),
       { headers: { "Cache-Control": "no-store" } });
   });

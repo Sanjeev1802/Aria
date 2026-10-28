@@ -16,7 +16,7 @@ export type AriaSession = {
   environment?: "development" | "production";
   liveChat?: boolean;
   /** Present only for internal operators; the server decides. */
-  operator?: { role: "super_admin" | "support" | "billing" | "operations" };
+  operator?: { role: "super_admin" | "admin" | "member" | "support" | "billing" | "operations"; canEdit: boolean };
   webSearchAvailable?: boolean;
   user?: { id: string; email: string; name: string; avatar?: string | null; aiAccessSuspended?: boolean };
   workspace?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole; seatLimit: number; seatsUsed: number };
