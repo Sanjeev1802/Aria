@@ -304,7 +304,7 @@ export function InternalDashboard() {
                 <a href="/internal/sign-in/">Operator sign in</a>
               </div>
             ) : overview ? (
-              <InternalPageShell>
+              <InternalPageShell key={section}>
                 {section !== "profile" && section !== "settings" ? (
                   <InternalPageIntro
                     eyebrow={internalSectionEyebrow(section)}

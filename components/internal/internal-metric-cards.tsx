@@ -15,36 +15,44 @@ export function InternalMetricCards({
   };
 }) {
   return (
-    <div className="internal-stats grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="internal-kpi-grid">
       <InternalKpiCard
+        index={0}
         label="Customers"
-        value={fmt.format(summary.users)}
-        footerTitle="Indexed accounts"
-        footerDetail={`${fmt.format(summary.activeUsers)} active`}
+        value={summary.users}
+        format={n => fmt.format(Math.round(n))}
+        footerTitle={`${fmt.format(summary.activeUsers)} active`}
+        footerDetail="Indexed accounts"
         icon={Users}
         tone="blue"
       />
       <InternalKpiCard
+        index={1}
         label="Workspaces"
-        value={fmt.format(summary.workspaces)}
+        value={summary.workspaces}
+        format={n => fmt.format(Math.round(n))}
         footerTitle="All plans"
         footerDetail="In this snapshot"
         icon={Wallet}
         tone="violet"
       />
       <InternalKpiCard
+        index={2}
         label="Team workspaces"
-        value={fmt.format(summary.teamWorkspaces)}
+        value={summary.teamWorkspaces}
+        format={n => fmt.format(Math.round(n))}
         footerTitle="Shared plans"
         footerDetail="Team entitlement"
         icon={ShieldCheck}
         tone="teal"
       />
       <InternalKpiCard
-        label="Credits used"
-        value={fmt.format(summary.creditsUsed)}
-        footerTitle="Current UTC billing period"
-        footerDetail="Summed from workspace ledgers"
+        index={3}
+        label="Credits this period"
+        value={summary.creditsUsed}
+        format={n => fmt.format(n)}
+        footerTitle="Current UTC month"
+        footerDetail="From workspace ledgers"
         icon={Activity}
         tone="orange"
       />

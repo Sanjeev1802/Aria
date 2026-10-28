@@ -3,7 +3,7 @@
 import { InternalMetricCards } from "./internal-metric-cards";
 import { PlanChart } from "./plan-chart";
 import { UsageAnalytics } from "./usage-analytics";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 type OverviewWorkspace = { plan: "free" | "pro" | "team"; createdAt?: number };
 
@@ -26,21 +26,39 @@ export function InternalOverviewView({
 }) {
   return (
     <div className="internal-overview internal-page-stack">
-      <InternalMetricCards summary={summary} />
+      <section className="internal-section" aria-labelledby="internal-platform-heading">
+        <header className="internal-section__head">
+          <div>
+            <h2 id="internal-platform-heading" className="internal-section__title">Platform</h2>
+            <p className="internal-section__sub">Accounts and workspaces in the current snapshot</p>
+          </div>
+        </header>
+        <InternalMetricCards summary={summary} />
+      </section>
 
       <UsageAnalytics />
 
-      <PlanChart counts={planCounts} workspaces={workspaces} />
-
-      <Card className="internal-documents-card overflow-hidden p-0 shadow-xs">
-        <CardHeader className="internal-card-header border-b pb-4">
-          <div className="min-w-0 space-y-1">
-            <CardTitle className="text-base">Investigation</CardTitle>
-            <CardDescription>Customers from the current snapshot — open a row for account details.</CardDescription>
+      <section className="internal-section" aria-labelledby="internal-workspaces-heading">
+        <header className="internal-section__head">
+          <div>
+            <h2 id="internal-workspaces-heading" className="internal-section__title">Workspaces</h2>
+            <p className="internal-section__sub">How workspaces are distributed across plans</p>
           </div>
-        </CardHeader>
-        {customersPreview}
-      </Card>
+        </header>
+        <PlanChart counts={planCounts} workspaces={workspaces} />
+      </section>
+
+      <section className="internal-section" aria-labelledby="internal-investigation-heading">
+        <header className="internal-section__head">
+          <div>
+            <h2 id="internal-investigation-heading" className="internal-section__title">Investigation</h2>
+            <p className="internal-section__sub">Customers from the current snapshot — open a row for account details</p>
+          </div>
+        </header>
+        <Card className="internal-documents-card overflow-hidden p-0">
+          {customersPreview}
+        </Card>
+      </section>
     </div>
   );
 }

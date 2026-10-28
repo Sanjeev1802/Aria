@@ -43,7 +43,12 @@ export function InternalPageHeader({
         <strong>{internalSectionLabel(section)}</strong>
       </nav>
       <div className="internal-top-actions ml-auto flex flex-wrap items-center gap-2 sm:gap-3">
-        {refreshLabel ? <span className="hidden whitespace-nowrap text-xs text-muted-foreground xl:inline">{refreshLabel}</span> : null}
+        {refreshLabel ? (
+          <span className="internal-status hidden whitespace-nowrap lg:inline-flex" role="status" aria-live="polite">
+            <span className="internal-live" aria-hidden="true" />
+            {refreshLabel.replace("Last refresh", "Updated")}
+          </span>
+        ) : null}
         <Button type="button" variant="outline" size="sm" className="h-8" disabled={refreshing} onClick={onRefresh}>
           <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
           Refresh

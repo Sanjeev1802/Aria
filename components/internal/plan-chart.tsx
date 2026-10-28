@@ -19,9 +19,9 @@ type WorkspaceSlice = { plan: PlanId; createdAt?: number };
 
 const chartConfig = {
   workspaces: { label: "Workspaces" },
-  team: { label: "Team", color: "hsl(240 5% 64.9%)" },
-  pro: { label: "Pro", color: "hsl(240 3.8% 46.1%)" },
-  free: { label: "Free", color: "hsl(240 5.9% 10%)" },
+  team: { label: "Team", color: "hsl(173 80% 36%)" },
+  pro: { label: "Pro", color: "hsl(262 83% 58%)" },
+  free: { label: "Free", color: "hsl(243 75% 59%)" },
 } satisfies ChartConfig;
 
 type TimeRange = "90d" | "30d" | "7d";
@@ -139,16 +139,16 @@ export function PlanChart({
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="fillPlanTeam" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-team)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--color-team)" stopOpacity={0.1} />
+                <stop offset="5%" stopColor="var(--color-team)" stopOpacity={0.34} />
+                <stop offset="95%" stopColor="var(--color-team)" stopOpacity={0.03} />
               </linearGradient>
               <linearGradient id="fillPlanPro" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-pro)" stopOpacity={0.9} />
-                <stop offset="95%" stopColor="var(--color-pro)" stopOpacity={0.1} />
+                <stop offset="5%" stopColor="var(--color-pro)" stopOpacity={0.34} />
+                <stop offset="95%" stopColor="var(--color-pro)" stopOpacity={0.03} />
               </linearGradient>
               <linearGradient id="fillPlanFree" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-free)" stopOpacity={1} />
-                <stop offset="95%" stopColor="var(--color-free)" stopOpacity={0.1} />
+                <stop offset="5%" stopColor="var(--color-free)" stopOpacity={0.34} />
+                <stop offset="95%" stopColor="var(--color-free)" stopOpacity={0.03} />
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} />
@@ -179,24 +179,27 @@ export function PlanChart({
             />
             <Area
               dataKey="team"
-              type="natural"
+              type="monotone"
               fill="url(#fillPlanTeam)"
               stroke="var(--color-team)"
               stackId="a"
+              strokeWidth={1.75}
             />
             <Area
               dataKey="pro"
-              type="natural"
+              type="monotone"
               fill="url(#fillPlanPro)"
               stroke="var(--color-pro)"
               stackId="a"
+              strokeWidth={1.75}
             />
             <Area
               dataKey="free"
-              type="natural"
+              type="monotone"
               fill="url(#fillPlanFree)"
               stroke="var(--color-free)"
               stackId="a"
+              strokeWidth={1.75}
             />
           </AreaChart>
         </ChartContainer>
