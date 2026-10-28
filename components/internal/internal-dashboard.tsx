@@ -102,7 +102,7 @@ export function InternalDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [colorScheme, setColorScheme] = useState<InternalColorScheme>("light");
+  const [colorScheme, setColorScheme] = useState<InternalColorScheme>("dark");
   const [action, setAction] = useState<{ type: ActionType; targetId: string; label: string; plan?: Workspace["plan"] } | null>(null);
   const [reason, setReason] = useState("");
   const [creditAmount, setCreditAmount] = useState("");

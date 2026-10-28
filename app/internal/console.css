@@ -702,3 +702,29 @@ html[data-internal-theme] .internal-dashboard { background: #0a0a0a !important; 
 /* The framed content panel, as in the workspace. */
 .internal-dashboard [data-slot="sidebar-inset"] { box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06) !important; border: 0 !important; }
 .internal-dashboard .internal-topbar { border-radius: 12px 12px 0 0; }
+
+/* One clean focus ring on the sidebar toggle (it was drawing the legacy ring and the accent ring together). */
+.internal-dashboard [data-slot="sidebar-trigger"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--c-accent) 75%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+/* Empty and error states, and the confirm dialog: follow the active color scheme (legacy rules were light-only). */
+html[data-internal-theme] .internal-dashboard .internal-state { color: var(--c-ink-3); }
+html[data-internal-theme] .internal-dashboard .internal-state h1 { color: var(--c-ink-0); font-weight: 650; letter-spacing: -0.02em; }
+html[data-internal-theme] .internal-dashboard .internal-state a { color: var(--c-accent-ink); font-weight: 550; }
+html[data-internal-theme] .internal-confirm {
+  background: var(--c-surface);
+  border-color: var(--c-line);
+  color: var(--c-ink-0);
+  box-shadow: 0 30px 90px rgb(0 0 0 / 0.35);
+}
+html[data-internal-theme] .internal-confirm input,
+html[data-internal-theme] .internal-confirm textarea,
+html[data-internal-theme] .internal-confirm select { background: var(--c-surface-2); color: var(--c-ink-0); border-color: var(--c-line-strong); }
+html[data-internal-theme] .internal-confirm p { color: var(--c-ink-3); }
+html[data-internal-theme] .internal-confirm-icon { background: var(--c-accent-soft); color: var(--c-accent-ink); }
+html[data-internal-theme] .internal-confirm-buttons button { background: var(--c-surface-2); color: var(--c-ink-1); border-color: var(--c-line-strong); }
+html[data-internal-theme] .internal-confirm-buttons button:last-child { background: var(--c-accent); color: #fff; border-color: var(--c-accent); }
+html[data-internal-theme] .internal-confirm-buttons button:disabled { opacity: 0.5; }
