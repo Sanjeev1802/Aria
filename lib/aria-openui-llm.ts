@@ -1,5 +1,6 @@
 import { type ChatLLM } from "@openuidev/react-ui";
 import { agUIAdapter } from "@openuidev/react-headless";
+import { getAriaAttention } from "@/lib/aria-attention";
 import { createAriaPreviewChatLLM } from "@/lib/aria-openui-preview-llm";
 import { ariaFetch } from "@/lib/aria-session";
 
@@ -15,7 +16,7 @@ export function getAriaChatLLM(): ChatLLM {
       // One ID per send; a session-refresh retry reuses it, so the server cannot charge twice.
       const response = await ariaFetch("/api/chat/", {
         method: "POST", signal,
-        body: JSON.stringify({ threadId, runId: crypto.randomUUID(), messages }),
+        body: JSON.stringify({ threadId, runId: crypto.randomUUID(), messages, attention: getAriaAttention() }),
       });
       if (!response.ok || !response.body) {
         window.dispatchEvent(new Event("aria:credits-updated"));

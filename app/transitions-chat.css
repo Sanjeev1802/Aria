@@ -12,6 +12,10 @@
   --tabs-text-active: #f5f5f5;
   --tabs-bar-bg: rgba(255, 255, 255, 0.06);
   --tabs-pill-bg: rgba(255, 255, 255, 0.12);
+  --icon-swap-dur: 250ms;
+  --icon-swap-blur: 2px;
+  --icon-swap-start-scale: 0.25;
+  --icon-swap-ease: ease-in-out;
   --panel-open-dur: 400ms;
   --panel-close-dur: 350ms;
   --panel-translate-x: 24px;
@@ -79,6 +83,31 @@
     width var(--tabs-dur) var(--tabs-ease);
   z-index: 0;
   pointer-events: none;
+}
+
+.t-icon-swap {
+  position: relative;
+  display: inline-grid;
+}
+.t-icon-swap .t-icon {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  transition:
+    opacity var(--icon-swap-dur, 250ms) var(--icon-swap-ease, ease-in-out),
+    filter var(--icon-swap-dur, 250ms) var(--icon-swap-ease, ease-in-out),
+    transform var(--icon-swap-dur, 250ms) var(--icon-swap-ease, ease-in-out);
+}
+.t-icon-swap[data-state="a"] .t-icon[data-icon="a"],
+.t-icon-swap[data-state="b"] .t-icon[data-icon="b"] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+.t-icon-swap[data-state="a"] .t-icon[data-icon="b"],
+.t-icon-swap[data-state="b"] .t-icon[data-icon="a"] {
+  opacity: 0;
+  filter: blur(var(--icon-swap-blur, 2px));
+  transform: scale(var(--icon-swap-start-scale, 0.25));
 }
 
 .chat-evidence.t-panel-slide {
@@ -246,6 +275,7 @@
   .t-think-text,
   .t-tabs-pill,
   .t-tab,
+  .t-icon-swap .t-icon,
   .chat-evidence.t-panel-slide,
   .chat-cm-beam::before {
     transition: none !important;

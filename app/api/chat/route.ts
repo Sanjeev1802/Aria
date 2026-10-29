@@ -15,11 +15,12 @@ export function POST(request: Request) {
   const config = readConfig();
   // Claude answers when a key is configured; Nova on Bedrock takes over if Claude
   // fails before streaming. Reservations use Claude's rates, the higher of the two.
-  const deps = config.localIdentity
-    ? { provider: streamFakeModel, modelConfig: localTestModelConfig, maxOutputTokens: 512 }
-    : claudeConfigured()
-      ? { provider: withFallback(streamClaude, { provider: streamBedrock, config: () => modelConfig("nova") }),
-        modelConfig: () => claudeModelConfig(), maxOutputTokens: configuredMaxOutputTokens() }
+  // Local identity still uses the fake model unless a Claude key is present.
+  const deps = claudeConfigured()
+    ? { provider: withFallback(streamClaude, { provider: streamBedrock, config: () => modelConfig("nova") }),
+      modelConfig: () => claudeModelConfig(), maxOutputTokens: configuredMaxOutputTokens() }
+    : config.localIdentity
+      ? { provider: streamFakeModel, modelConfig: localTestModelConfig, maxOutputTokens: 512 }
       : { provider: streamBedrock, modelConfig, maxOutputTokens: configuredMaxOutputTokens() };
   const publicSearch = config.searxngUrl ? createSearxngSearch(config.searxngUrl) : undefined;
   let searchWeb = publicSearch;

@@ -4,7 +4,7 @@ import { isPlanId, type PlanId } from "./accounts/entitlements";
 import { seatLimitForPlan } from "./subscription-catalog";
 import { ConditionFailed, notExists } from "./store/types";
 import type { ServerConfig, Services } from "./services";
-import { claudeConfigured, DEFAULT_CLAUDE_MODEL } from "./anthropic";
+import { claudeConfigured, DEFAULT_CLAUDE_MODEL } from "./claude-config";
 import { readModelUsage, type ModelProvider } from "./model-usage";
 import { internalAuditReasonForSource, INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "@/lib/internal-audit-copy";
 import { isLocalDevFixtureUserId } from "@/lib/local-user-shared";
@@ -348,9 +348,9 @@ function novaStatus(env: Record<string, string | undefined>) {
 export function modelConfigStatus(config: ServerConfig, env: Record<string, string | undefined> = process.env) {
   const nova = novaStatus(env);
   const claude = claudeConfigured(env);
-  const primary: { provider: ModelProvider; modelId: string } | null = config.localIdentity
-    ? { provider: "local", modelId: "aria/local-test-nova" }
-    : claude ? { provider: "claude", modelId: env.ANTHROPIC_MODEL_ID?.trim() || DEFAULT_CLAUDE_MODEL }
+  const primary: { provider: ModelProvider; modelId: string } | null = claude
+    ? { provider: "claude", modelId: env.ANTHROPIC_MODEL_ID?.trim() || DEFAULT_CLAUDE_MODEL }
+    : config.localIdentity ? { provider: "local", modelId: "aria/local-test-nova" }
       : nova.configured ? { provider: "bedrock", modelId: nova.modelId! } : null;
   return {
     primary,

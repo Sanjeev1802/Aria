@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardAction } from "@/components/ui/card";
+import { AriaWorkspaceOverlay } from "@/components/workspace/aria-workspace-overlay";
 import { cn } from "@/lib/utils";
 import { useNav } from "@openuidev/react-ui";
 import {
@@ -12,9 +11,8 @@ import {
   Search,
   Settings,
   Sparkles,
-  X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 type HelpSection = {
   heading: string;
@@ -91,16 +89,12 @@ const TOPICS: HelpTopic[] = [
   {
     id: "workspace",
     label: "Workspace",
-    summary: "Library, projects, and recent chats.",
+    summary: "Library and recent chats.",
     icon: LibraryBig,
     sections: [
       {
         heading: "Library",
         body: "Library collects files, links, and chats you keep. Search and switch between suggested, favorites, and the full list.",
-      },
-      {
-        heading: "Projects",
-        body: "Projects group related chats. Create one from the sidebar, or open a project to keep that work together.",
       },
       {
         heading: "Recents",
@@ -163,14 +157,6 @@ export function AriaHelpView() {
   const normalized = query.trim().toLowerCase();
   const close = useCallback(() => navigate(undefined), [navigate]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [close]);
-
   const visible = useMemo(
     () => TOPICS.filter((topic) => topicMatches(topic, normalized)),
     [normalized],
@@ -179,19 +165,7 @@ export function AriaHelpView() {
   const active = visible.find((topic) => topic.id === activeId) ?? visible[0];
 
   return (
-    <div className="aria-settings-modal-overlay" role="presentation" onClick={close}>
-      <Card
-        className="aria-settings-modal-card aria-overlay-dialog relative z-[1] gap-0 overflow-hidden bg-card p-0 shadow-2xl ring-foreground/15"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Help"
-      >
-        <CardAction className="absolute top-3 right-3 z-10">
-          <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={close}>
-            <X className="size-4" />
-          </Button>
-        </CardAction>
+    <AriaWorkspaceOverlay label="Help" onClose={close} className="aria-overlay-dialog">
         <div className="aria-help">
         <header className="aria-help__header">
           <div className="aria-help__intro">
@@ -266,7 +240,6 @@ export function AriaHelpView() {
           </div>
         )}
         </div>
-      </Card>
-    </div>
+    </AriaWorkspaceOverlay>
   );
 }

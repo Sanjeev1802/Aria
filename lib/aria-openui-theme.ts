@@ -1,4 +1,4 @@
-import { createTheme, defaultDarkTheme, type Theme } from "@openuidev/react-ui";
+import { createTheme, defaultDarkTheme, defaultLightTheme, type Theme } from "@openuidev/react-ui";
 
 /** System UI stack (SF Pro on Apple platforms). */
 export const ARIA_APPLE_FONT_FAMILY =
@@ -21,3 +21,4 @@ function replaceInterInTheme(source: Theme): Theme {
 }
 
 export const ariaOpenUIDarkTheme = replaceInterInTheme(defaultDarkTheme);
+export const ariaOpenUILightTheme = replaceInterInTheme(defaultLightTheme);

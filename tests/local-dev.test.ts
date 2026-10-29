@@ -14,7 +14,8 @@ import { parseChatInput } from "../lib/server/chat-input";
 import { projectDeleteHandler, projectPatchHandler, projectsGetHandler, projectsPostHandler } from "../lib/server/projects";
 import { threadDeleteHandler, threadGetHandler, threadPatchHandler, threadsGetHandler, threadsPostHandler } from "../lib/server/threads";
 import { prepareThreadRun } from "../lib/server/threads";
-import { requireWorkspace } from "../lib/server/request-context";
+import { assertSameOrigin, requireWorkspace } from "../lib/server/request-context";
+import { MemoryStore } from "../lib/server/store/memory-store";
 import { ORIGIN } from "./helpers";
 
 const devConfig = {
@@ -148,6 +149,20 @@ test("development accepts the browser's loopback Host when Next normalizes the r
   const response = await localPlanHandler(request, services);
   assert.equal(response.status, 200);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test("development accepts the loopback port Next bound when ARIA_APP_ORIGIN is pinned to 3000", () => {
+  const services = buildServices({ ...devConfig, appOrigin: "http://127.0.0.1:3000" }, { store: new MemoryStore() });
+  const request = new Request("http://127.0.0.1:3001/api/auth/sign-in/", {
+    method: "POST",
+    headers: { origin: "http://127.0.0.1:3001", host: "127.0.0.1:3001" },
+  });
+  assert.doesNotThrow(() => assertSameOrigin(request, services));
+  const cross = new Request("http://127.0.0.1:3001/api/auth/sign-in/", {
+    method: "POST",
+    headers: { origin: "https://evil.example", host: "127.0.0.1:3001" },
+  });
+  assert.throws(() => assertSameOrigin(cross, services), { code: "invalid_origin" });
 });
 
 test("projects persist, belong to a workspace, and reject cross-workspace edits", async () => {

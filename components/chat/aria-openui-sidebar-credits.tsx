@@ -11,6 +11,26 @@ function formatCredits(value: number) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(value);
 }
 
+const RING_R = 10;
+const RING_C = 2 * Math.PI * RING_R;
+
+function TokenRing({ pct }: { pct: number }) {
+  const offset = RING_C - (Math.min(100, Math.max(0, pct)) / 100) * RING_C;
+  return (
+    <svg className="aria-openui-token-ring" viewBox="0 0 24 24" aria-hidden>
+      <circle className="aria-openui-token-ring__track" cx="12" cy="12" r={RING_R} />
+      <circle
+        className="aria-openui-token-ring__used"
+        cx="12"
+        cy="12"
+        r={RING_R}
+        strokeDasharray={RING_C}
+        strokeDashoffset={offset}
+      />
+    </svg>
+  );
+}
+
 export type AriaOpenUISidebarCreditsProps = {
   /** Override snapshot (e.g. tests). */
   initial?: AriaSidebarCreditsSnapshot;
@@ -31,43 +51,35 @@ export function AriaOpenUISidebarCredits({ initial }: AriaOpenUISidebarCreditsPr
     return () => { disposed = true; window.removeEventListener("aria:credits-updated", onUsage); window.removeEventListener("focus", onUsage); };
   }, [initial]);
 
-  const { used, included, planLabel } = credits;
-  const remaining = credits.available ?? Math.max(0, included - used);
+  const { used, included } = credits;
   const pct = included > 0 ? Math.min(100, (used / included) * 100) : 0;
 
   return (
     <section
       className="aria-openui-sidebar-credits"
       aria-label={`Credits: ${used} of ${included} used this month`}
+      title={`${formatCredits(used)} / ${formatCredits(included)} credits`}
     >
       <div className="aria-openui-sidebar-credits__head">
-        <span className="aria-openui-sidebar-credits__title">Credits</span>
+        <span className="aria-openui-sidebar-credits__label">
+          <span
+            className="aria-openui-sidebar-credits__ring"
+            role="progressbar"
+            aria-valuenow={used}
+            aria-valuemin={0}
+            aria-valuemax={included}
+            aria-label="Token usage"
+          >
+            <TokenRing pct={pct} />
+          </span>
+          <span className="aria-openui-sidebar-credits__title">Credits</span>
+        </span>
         <span className="aria-openui-sidebar-credits__values" aria-hidden>
           <span className="aria-openui-sidebar-credits__used">{formatCredits(used)}</span>
           <span className="aria-openui-sidebar-credits__sep">/</span>
           <span className="aria-openui-sidebar-credits__limit">{formatCredits(included)}</span>
         </span>
       </div>
-
-      <div
-        className="aria-openui-sidebar-credits__track"
-        role="progressbar"
-        aria-valuenow={used}
-        aria-valuemin={0}
-        aria-valuemax={included}
-        aria-label="Credit usage"
-      >
-        <span className="aria-openui-sidebar-credits__bar" style={{ width: `${pct}%` }} />
-      </div>
-
-      <p className="aria-openui-sidebar-credits__meta">
-        <span>{formatCredits(remaining)} left</span>
-        <span className="aria-openui-sidebar-credits__dot" aria-hidden>
-          ·
-        </span>
-        <span>{planLabel}</span>
-      </p>
-
     </section>
   );
 }

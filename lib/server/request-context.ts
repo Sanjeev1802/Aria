@@ -20,9 +20,10 @@ export function assertSameOrigin(request: Request, services: Services) {
   const expected = services.config.appOrigin ?? (services.config.environment === "development" ? url.origin : undefined);
   const origin = request.headers.get("origin");
   if (expected && origin === expected) return;
-  // Next dev can normalize request.url to localhost while retaining the
-  // browser's loopback Host header. Accept that original same-origin host only.
-  if (!services.config.appOrigin && services.config.environment === "development") {
+  // Next dev can move to another loopback port when 3000 is taken, and can
+  // normalize request.url to localhost while the browser sends 127.0.0.1.
+  // Accept the page's own loopback origin. Production still uses ARIA_APP_ORIGIN.
+  if (services.config.environment === "development") {
     const host = request.headers.get("host");
     if (host) {
       try {
@@ -30,6 +31,7 @@ export function assertSameOrigin(request: Request, services: Services) {
         if (LOOPBACK.includes(original.hostname) && origin === original.origin) return;
       } catch { /* invalid Host */ }
     }
+    if (origin === url.origin && LOOPBACK.includes(url.hostname)) return;
   }
   throw new ServiceError("invalid_origin", 403);
 }

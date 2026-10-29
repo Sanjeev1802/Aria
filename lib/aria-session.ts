@@ -174,15 +174,24 @@ export async function ariaSelectWorkspace(workspaceId: string) {
   return response.ok;
 }
 
+/** Visible name: stored display name, or a readable form of the email local-part. */
+export function displayAccountName(name?: string, email?: string) {
+  const given = name?.trim() ?? "";
+  if (given && !given.includes("@")) return given;
+  const local = (email || given).split("@")[0]?.trim() ?? "";
+  if (!local) return "";
+  return local.replace(/[._-]+/g, " ").replace(/\b\w/g, char => char.toUpperCase());
+}
+
 /** Display profile for the signed-in user (or the design-preview persona). */
 export function useAriaProfile() {
   const session = useAriaSession();
-  const name = session.user?.name || session.user?.email?.split("@")[0] || "";
+  const email = session.user?.email ?? "";
   return {
     session,
-    name,
-    handle: session.user?.email?.split("@")[0] ?? "",
-    email: session.user?.email ?? "",
+    name: displayAccountName(session.user?.name, email),
+    handle: email.split("@")[0] ?? "",
+    email,
     avatar: session.user?.avatar ?? "",
     planLabel: session.workspace ? (ARIA_IS_PREVIEW ? `${session.workspace.planLabel} (preview)` : session.workspace.planLabel) : "",
     planShort: session.workspace?.planLabel ?? (session.status === "loading" ? "" : "Not signed in"),

@@ -4,22 +4,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNav } from "@openuidev/react-ui";
-import { useThreadList, type Thread } from "@openuidev/react-headless";
+import { useThreadList } from "@openuidev/react-headless";
 import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAriaSession } from "@/lib/aria-session";
 import { ariaFetch } from "@/lib/aria-session";
-import { useAriaProjects } from "@/lib/aria-project-context";
-import type { AriaProject } from "@/lib/aria-projects-storage";
-
-type ProjectThread = Thread & { projectId?: string | null };
 
 function RecentRow({
   title,
@@ -33,9 +26,6 @@ function RecentRow({
   onStartRename,
   onDelete,
   onExport,
-  projects,
-  currentProjectId,
-  onMove,
 }: {
   title: string;
   selected: boolean;
@@ -48,9 +38,6 @@ function RecentRow({
   onStartRename: () => void;
   onDelete: () => void;
   onExport?: () => void;
-  projects?: AriaProject[];
-  currentProjectId?: string | null;
-  onMove?: (projectId: string | null) => void;
 }) {
   const renameRef = useRef<HTMLInputElement>(null);
   const renameStartedAt = useRef(0);
@@ -126,15 +113,6 @@ function RecentRow({
             className="aria-openui-recent-menu min-w-[9rem] border-border/60 bg-popover z-[1100]"
           >
             <DropdownMenuItem onSelect={beginRename}>Rename</DropdownMenuItem>
-            {onMove ? <DropdownMenuSub>
-              <DropdownMenuSubTrigger>Move to project</DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="z-[1101]">
-                <DropdownMenuItem onSelect={() => onMove(null)} disabled={currentProjectId === null}>No project</DropdownMenuItem>
-                {projects?.map(project => <DropdownMenuItem key={project.id}
-                  disabled={project.id === currentProjectId}
-                  onSelect={() => onMove(project.id)}>{project.name}</DropdownMenuItem>)}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub> : null}
             {onExport ? <DropdownMenuItem onSelect={onExport}>Export JSON</DropdownMenuItem> : null}
             <DropdownMenuItem
               variant="destructive"
@@ -158,7 +136,6 @@ export type AriaOpenUIRecentsListProps = {
 
 export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps) {
   const session = useAriaSession();
-  const { projects, activeProjectId } = useAriaProjects();
   const threads = useThreadList((s) => s.threads);
   const isLoadingThreads = useThreadList((s) => s.isLoadingThreads);
   const loadThreads = useThreadList((s) => s.loadThreads);
@@ -171,7 +148,6 @@ export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps)
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [exportError, setExportError] = useState("");
-  const [moveError, setMoveError] = useState("");
 
   useEffect(() => {
     if (session.status === "authenticated" || session.status === "preview") loadThreads();
@@ -226,36 +202,18 @@ export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps)
     } catch { setExportError("Could not export this chat. Try again."); }
   };
 
-  const moveRecent = async (threadId: string, projectId: string | null) => {
-    setMoveError("");
-    try {
-      const response = await ariaFetch(`/api/threads/${threadId}/`, {
-        method: "PATCH", body: JSON.stringify({ projectId }),
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.message ?? "Could not move this chat.");
-      }
-      loadThreads();
-    } catch (error) { setMoveError((error as Error).message); }
-  };
-
-  const visibleThreads = (threads as ProjectThread[]).filter(thread =>
-    session.status !== "authenticated" || activeProjectId === null || thread.projectId === activeProjectId);
-
   return (
     <div className={cn("aria-openui-recents__list", className)} role="list">
       {exportError ? <p className="aria-openui-recents__empty" role="alert">{exportError}</p> : null}
-      {moveError ? <p className="aria-openui-recents__empty" role="alert">{moveError}</p> : null}
       {isLoadingThreads && threads.length === 0 ? (
         <p className="aria-openui-recents__empty" role="status">
           Loading…
         </p>
       ) : null}
-      {!isLoadingThreads && visibleThreads.length === 0 ? (
-        <p className="aria-openui-recents__empty">{activeProjectId ? "No chats in this project" : "No chats yet"}</p>
+      {!isLoadingThreads && threads.length === 0 ? (
+        <p className="aria-openui-recents__empty">No chats yet</p>
       ) : null}
-      {visibleThreads.map((thread) => (
+      {threads.map((thread) => (
         <RecentRow
           key={thread.id}
           title={thread.title}
@@ -269,9 +227,6 @@ export function AriaOpenUIRecentsList({ className }: AriaOpenUIRecentsListProps)
           onStartRename={() => startRename(thread.id, thread.title)}
           onDelete={() => removeRecent(thread.id)}
           onExport={session.status === "authenticated" ? () => void exportRecent(thread.id) : undefined}
-          projects={session.status === "authenticated" ? projects : undefined}
-          currentProjectId={projects.some(project => project.id === thread.projectId) ? thread.projectId : null}
-          onMove={session.status === "authenticated" ? projectId => void moveRecent(thread.id, projectId) : undefined}
         />
       ))}
     </div>

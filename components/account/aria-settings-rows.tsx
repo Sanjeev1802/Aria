@@ -1,9 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -33,38 +32,26 @@ export function SettingsLinkRow({ label, value, href }: { label: string; value?:
   const body = (
     <>
       <span>{label}</span>
-      <span className="flex items-center gap-1 text-muted-foreground">
-        {value ? <span className="text-sm">{value}</span> : null}
-        <ChevronRight className="size-4 opacity-70" aria-hidden />
+      <span className="aria-settings-row__value">
+        {value ? <span>{value}</span> : null}
+        {href ? <ChevronRight size={16} strokeWidth={1.75} aria-hidden /> : null}
       </span>
     </>
   );
-  const className = cn(
-    "h-auto min-h-11 w-full justify-between rounded-none px-4 py-3 font-normal",
-    "hover:bg-muted/60",
-  );
   if (href) {
     return (
-      <Button asChild variant="ghost" className={className}>
-        <Link href={href}>{body}</Link>
-      </Button>
+      <Link href={href} className="aria-settings-row">
+        {body}
+      </Link>
     );
   }
-  return (
-    <Button type="button" variant="ghost" className={className}>
-      {body}
-    </Button>
-  );
+  return <div className="aria-settings-row">{body}</div>;
 }
 
 export function SettingsDangerRow({ label }: { label: string }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      className="h-auto min-h-11 w-full justify-start rounded-none px-4 py-3 font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
-    >
+    <button type="button" className={cn("aria-settings-row", "text-[#f0a8a8]")}>
       {label}
-    </Button>
+    </button>
   );
 }

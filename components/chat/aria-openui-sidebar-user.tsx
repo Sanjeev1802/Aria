@@ -14,9 +14,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
-  Settings,
   Sparkles,
-  UserRound,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -28,6 +26,8 @@ export type AriaOpenUISidebarUserProps = {
   avatar?: string;
   onWorkspaceNavigate?: (path: AriaWorkspacePath) => void;
   activeWorkspacePath?: string;
+  /** Header avatar sits in the thread chrome; sidebar is the collapsed rail only. */
+  placement?: "sidebar" | "header";
 };
 
 function initialsFromName(name: string) {
@@ -44,12 +44,10 @@ function SidebarUserAvatar({
   name,
   avatar,
   size = "md",
-  variant = "initials",
 }: {
   name: string;
   avatar: string;
   size?: "md" | "sm";
-  variant?: "initials" | "icon";
 }) {
   const initials = initialsFromName(name);
   return (
@@ -65,13 +63,6 @@ function SidebarUserAvatar({
       {avatar ? (
         // eslint-disable-next-line @next/next/no-img-element -- user-provided avatar URL
         <img src={avatar} alt="" className="aria-openui-sidebar-user__avatar-img" />
-      ) : variant === "icon" ? (
-        <UserRound
-          className="aria-openui-sidebar-user__avatar-icon"
-          size={size === "sm" ? 14 : 16}
-          strokeWidth={2}
-          aria-hidden
-        />
       ) : (
         <span className="aria-openui-sidebar-user__avatar-initials" aria-hidden>
           {initials}
@@ -107,6 +98,7 @@ export function AriaOpenUISidebarUser({
   avatar = "",
   onWorkspaceNavigate,
   activeWorkspacePath,
+  placement = "sidebar",
 }: AriaOpenUISidebarUserProps) {
   const go = (path: AriaWorkspacePath) => {
     setOpen(false);
@@ -115,48 +107,37 @@ export function AriaOpenUISidebarUser({
   const collapsed = useSidebarCollapsed();
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const isHeader = placement === "header";
   // The server only sends `operator` to internal operators, so customers never see the entry.
   const isOperator = Boolean(useAriaSession().operator);
-
-  const triggerBody = (
-    <>
-      <SidebarUserAvatar
-        name={name}
-        avatar={avatar}
-        variant={collapsed ? "icon" : "initials"}
-      />
-      <div className="aria-openui-sidebar-user__text">
-        <span className="aria-openui-sidebar-user__name">{name}</span>
-        {email ? <span className="aria-openui-sidebar-user__email">{email}</span> : null}
-      </div>
-    </>
-  );
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <div
-        className="aria-openui-sidebar-user"
+        className={isHeader ? "aria-openui-account" : "aria-openui-sidebar-user"}
         data-settings-active={activeWorkspacePath === "settings" ? "true" : undefined}
         data-menu-open={open ? "true" : undefined}
       >
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="aria-openui-sidebar-user__trigger"
-            aria-label={`Account menu, ${name}`}
+            className={isHeader ? "aria-openui-account__trigger" : "aria-openui-sidebar-user__trigger"}
+            aria-label={`Account, ${name}`}
             aria-haspopup="menu"
             aria-expanded={open}
-            onClick={() => openAriaOpenUISidebar()}
+            onClick={() => {
+              if (!isHeader) openAriaOpenUISidebar();
+            }}
           >
-            {triggerBody}
+            <SidebarUserAvatar name={name} avatar={avatar} />
           </button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
           className="aria-openui-sidebar-user-menu"
-          side={collapsed ? "right" : "top"}
-          align={collapsed ? "end" : "start"}
-          sideOffset={collapsed ? 10 : 8}
+          side={isHeader ? "bottom" : collapsed ? "right" : "top"}
+          align="end"
+          sideOffset={isHeader ? 8 : collapsed ? 10 : 8}
           collisionPadding={16}
         >
           <DropdownMenuItem
@@ -181,20 +162,6 @@ export function AriaOpenUISidebarUser({
           >
             <Sparkles size={18} strokeWidth={1.75} aria-hidden />
             Upgrade plan
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="aria-openui-sidebar-user-menu__item"
-            onSelect={() => go("settings")}
-          >
-            <UserRound size={18} strokeWidth={1.75} aria-hidden />
-            Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="aria-openui-sidebar-user-menu__item"
-            onSelect={() => go("settings")}
-          >
-            <Settings size={18} strokeWidth={1.75} aria-hidden />
-            Settings
           </DropdownMenuItem>
 
           <DropdownMenuSeparator className="aria-openui-sidebar-user-menu__sep" />

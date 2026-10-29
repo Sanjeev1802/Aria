@@ -2,8 +2,7 @@
 
 import type { AriaPricingPlan } from "@/components/landing/aria-pricing-grid";
 import { useAriaSubscriptionPlans } from "@/lib/use-aria-subscription-plans";
-import { Button } from "@/components/ui/button";
-import { Card, CardAction } from "@/components/ui/card";
+import { AriaWorkspaceOverlay } from "@/components/workspace/aria-workspace-overlay";
 import { useAriaSession } from "@/lib/aria-session";
 import { switchAriaPlan } from "@/lib/aria-plan-switch";
 import type { AriaPlanId } from "@/lib/aria-current-plan";
@@ -12,8 +11,8 @@ const PLAN_IDS: readonly string[] = ["free", "pro", "team"] satisfies AriaPlanId
 const isPlanId = (id: string): id is AriaPlanId => PLAN_IDS.includes(id);
 import { cn } from "@/lib/utils";
 import { useNav } from "@openuidev/react-ui";
-import { Check, Info, Sparkles, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Check, Info, Sparkles } from "lucide-react";
+import { useCallback, useState } from "react";
 
 const PRICING_FOOTNOTE = (
   <>
@@ -76,28 +75,8 @@ export function AriaPricingView() {
   const { navigate } = useNav();
   const close = useCallback(() => navigate(undefined), [navigate]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [close]);
-
   return (
-    <div className="aria-settings-modal-overlay" role="presentation" onClick={close}>
-      <Card
-        className="aria-settings-modal-card aria-overlay-dialog relative z-[1] gap-0 overflow-hidden bg-card p-0 shadow-2xl ring-foreground/15"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Upgrade plan"
-      >
-        <CardAction className="absolute top-3 right-3 z-10">
-          <Button type="button" variant="ghost" size="icon-sm" aria-label="Close" onClick={close}>
-            <X className="size-4" />
-          </Button>
-        </CardAction>
+    <AriaWorkspaceOverlay label="Upgrade plan" onClose={close} className="aria-overlay-dialog">
         <div className="aria-overlay-dialog__body aria-pricing-dialog">
         <header className="aria-pricing__page-head">
           <h1 className="aria-pricing__page-title">Upgrade plan</h1>
@@ -165,7 +144,6 @@ export function AriaPricingView() {
             : PRICING_FOOTNOTE}
         </p>
         </div>
-      </Card>
-    </div>
+    </AriaWorkspaceOverlay>
   );
 }

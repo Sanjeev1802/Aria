@@ -5,6 +5,7 @@ import { chargeUnits, WEB_SEARCH_UNITS_PER_REQUEST, type Rates, type Usage } fro
 import { ServiceError } from "./errors";
 import type { Account, CreditLedger } from "./accounting/credit-ledger";
 import { MAX_WEB_CONTEXT_BYTES, WebSearchError, boundedWebContext, searchQuery, webSourceLinks, type WebSearchProvider, type WebSource } from "./web-search";
+import { builtinReply } from "./builtin-replies";
 
 /** What the server adds to a model call beyond the conversation itself. */
 export type ProviderRequest = {
@@ -41,6 +42,8 @@ export async function createChatResponse(input: ChatInput, options: {
   session?: PromptSession;
   onComplete?: (text: string) => Promise<void>;
 }): Promise<Response> {
+  const canned = builtinReply(input);
+  if (canned) return streamBuiltinReply(input, canned, options.signal, options.onComplete);
   const { ledger, account, modelId, rates } = options;
   const workspaceId = account.workspaceId;
   const hash = createHash("sha256").update(JSON.stringify({ input, modelId, rates, prompt: PROMPT_VERSION, webSearch: Boolean(options.webSearch), nativeSearch: options.nativeSearch?.maxUses ?? 0 })).digest("hex");
@@ -137,6 +140,45 @@ export async function createChatResponse(input: ChatInput, options: {
       if (!cancelled) controller.close();
     },
     cancel() { cancelled = true; abort.abort(); },
+  });
+  return new Response(body, { headers: {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-store, no-transform",
+    "X-Accel-Buffering": "no",
+    "X-Request-Id": input.id,
+  } });
+}
+
+function streamBuiltinReply(
+  input: ChatInput,
+  text: string,
+  signal: AbortSignal,
+  onComplete?: (text: string) => Promise<void>,
+) {
+  const messageId = randomUUID();
+  const encoder = new TextEncoder();
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const emit = (payload: object) => {
+        if (!cancelled) controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      };
+      emit({ type: "RUN_STARTED", threadId: "aria", runId: input.id });
+      emit({ type: "TEXT_MESSAGE_START", messageId, role: "assistant" });
+      emit({ type: "TEXT_MESSAGE_CONTENT", messageId, delta: 'root = TextContent("' });
+      try {
+        signal.throwIfAborted();
+        emit({ type: "TEXT_MESSAGE_CONTENT", messageId, delta: JSON.stringify(text).slice(1, -1) });
+        await onComplete?.(text).catch(() => undefined);
+        emit({ type: "TEXT_MESSAGE_CONTENT", messageId, delta: '")' });
+        emit({ type: "TEXT_MESSAGE_END", messageId });
+        emit({ type: "RUN_FINISHED", threadId: "aria", runId: input.id });
+      } catch {
+        emit({ type: "RUN_ERROR", code: "response_failed", message: "ARIA could not finish this response. Try again." });
+      }
+      if (!cancelled) controller.close();
+    },
+    cancel() { cancelled = true; },
   });
   return new Response(body, { headers: {
     "Content-Type": "text/event-stream; charset=utf-8",

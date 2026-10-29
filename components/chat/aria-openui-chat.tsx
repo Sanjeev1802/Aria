@@ -1,8 +1,7 @@
 "use client";
 
 import "@/lib/disable-openui-inspect";
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { AriaSettingsModal } from "@/components/account/aria-settings-modal";
 import { AriaLibraryView } from "@/components/library/aria-library-view";
 import { AriaHelpView } from "@/components/workspace/aria-help-view";
@@ -21,17 +20,49 @@ import { AriaOpenUIWelcome } from "@/components/chat/aria-openui-welcome";
 import { AriaOpenUISidebarCollapsedLogo } from "@/components/chat/aria-openui-sidebar-collapsed-logo";
 import { AriaOpenUIRecentsList } from "@/components/chat/aria-openui-recents-list";
 import { AriaOpenUISidebarNav } from "@/components/chat/aria-openui-sidebar-nav";
-import { AriaOpenUISidebarProjects } from "@/components/chat/aria-openui-sidebar-projects";
 import { AriaOpenUISidebarResponsive } from "@/components/chat/aria-openui-sidebar-responsive";
 import { AriaOpenUISidebarCredits } from "@/components/chat/aria-openui-sidebar-credits";
 import { AriaOpenUISidebarUser } from "@/components/chat/aria-openui-sidebar-user";
-import { ariaOpenUIDarkTheme } from "@/lib/aria-openui-theme";
+import { AriaThemeIconToggle } from "@/components/chat/aria-theme-icon-toggle";
+import { ariaOpenUIDarkTheme, ariaOpenUILightTheme } from "@/lib/aria-openui-theme";
+import { readAriaTheme, subscribeAriaTheme } from "@/lib/aria-theme";
 import { getAriaChatLLM } from "@/lib/aria-openui-llm";
+import { useThreadList } from "@openuidev/react-headless";
 import { createAriaThreadStorage } from "@/lib/aria-thread-storage";
 import { AriaProjectProvider, useAriaProjects } from "@/lib/aria-project-context";
 import { watchAndRemoveOpenUIDevtools } from "@/lib/remove-openui-devtools-dom";
 
 const SESSION_SYNC_MS = 15_000;
+
+function AriaWorkspaceBrand({
+  className,
+  children,
+  onNavigate,
+}: {
+  className: string;
+  children: ReactNode;
+  onNavigate: (path: string | undefined) => void;
+}) {
+  const switchToNewThread = useThreadList((s) => s.switchToNewThread);
+  const router = useRouter();
+
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-label="New chat"
+      title="New chat"
+      onClick={() => {
+        switchToNewThread();
+        onNavigate(undefined);
+        const path = window.location.pathname;
+        if (path !== "/chat/" && path !== "/chat") router.push("/chat/");
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 export type AriaOpenUIChatProps = {
   /** Opens a workspace route on load (e.g. `pricing` from `/pricing/`). */
@@ -46,6 +77,7 @@ export function AriaOpenUIChat(props: AriaOpenUIChatProps = {}) {
 }
 
 function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
+  const themeMode = useSyncExternalStore(subscribeAriaTheme, readAriaTheme, () => "dark" as const);
   const llm = useMemo(() => getAriaChatLLM(), []);
   const { getActiveProjectId } = useAriaProjects();
   const threadStorage = useMemo(() => createAriaThreadStorage(getActiveProjectId), [getActiveProjectId]);
@@ -104,7 +136,7 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
 
   if (sessionStatus === "loading" || sessionStatus === "unauthenticated") {
     return (
-      <div className="aria-openui-chat dark flex h-dvh w-full items-center justify-center bg-background">
+      <div className={`aria-openui-chat flex h-dvh w-full items-center justify-center bg-background${themeMode === "dark" ? " dark" : ""}`}>
         <AriaAuthNotice />
         <ThinkingStatus />
       </div>
@@ -112,14 +144,8 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   }
 
   return (
-    <div className="aria-openui-chat dark h-dvh w-full">
+    <div className={`aria-openui-chat h-dvh w-full${themeMode === "dark" ? " dark" : ""}`}>
       <AriaAuthNotice />
-      {profile.session.planSwitching && !profile.session.localDev ? (
-        <div role="status" className="pointer-events-none fixed right-16 top-[14px] z-50 whitespace-nowrap rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-200 sm:left-1/2 sm:right-auto sm:top-2 sm:-translate-x-1/2">
-          <span className="sm:hidden">Development mode</span>
-          <span className="hidden sm:inline">You&apos;re in development mode · plan switching on</span>
-        </div>
-      ) : null}
       {banner ? (
         <div role="status" className="pointer-events-none fixed right-3 top-16 z-50 max-w-[calc(100%-1.5rem)] rounded-md bg-neutral-900 px-3 py-1 text-xs text-neutral-400 sm:top-2">
           {banner}
@@ -132,7 +158,11 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
         componentLibrary={openuiChatLibrary}
         components={{ AssistantMessage: AriaOpenUIAssistantMessage }}
         agentName="ARIA"
-        theme={{ mode: "dark", darkTheme: ariaOpenUIDarkTheme }}
+        theme={{
+          mode: themeMode,
+          darkTheme: ariaOpenUIDarkTheme,
+          lightTheme: ariaOpenUILightTheme,
+        }}
         scrollVariant="user-message-anchor"
         path={navPath}
         defaultPath={initialPath}
@@ -141,11 +171,24 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
         <AriaOpenUISidebarResponsive />
         <AgentInterface.MobileHeader
           logo={
-            <Link href="/" className="aria-openui-mobile-header-brand" aria-label="ARIA home">
+            <AriaWorkspaceBrand className="aria-openui-mobile-header-brand" onNavigate={onNavigate}>
               <AriaMark className="aria-openui-sidebar-mark" />
-            </Link>
+            </AriaWorkspaceBrand>
           }
           agentName={<span className="aria-openui-mobile-header-title">ARIA</span>}
+          actions={
+            <div className="aria-openui-header-actions">
+              <AriaThemeIconToggle />
+              <AriaOpenUISidebarUser
+                placement="header"
+                name={profile.name}
+                email={profile.email}
+                avatar={profile.avatar}
+                activeWorkspacePath={navPath}
+                onWorkspaceNavigate={(path: AriaWorkspacePath) => onNavigate(path)}
+              />
+            </div>
+          }
         />
         <AgentInterface.Sidebar>
           <div className="aria-openui-sidebar-shell">
@@ -153,17 +196,16 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
             <AgentInterface.SidebarHeader
               logo={<AriaOpenUISidebarCollapsedLogo />}
               agentName={
-                <Link href="/" className="aria-openui-sidebar-brand" title="ARIA home">
+                <AriaWorkspaceBrand className="aria-openui-sidebar-brand" onNavigate={onNavigate}>
                   <AriaMark className="aria-openui-sidebar-mark" aria-hidden />
                   <span className="aria-openui-sidebar-brand__name">ARIA</span>
-                </Link>
+                </AriaWorkspaceBrand>
               }
             />
           </div>
           <AgentInterface.SidebarContent>
             <AriaOpenUISidebarNav activePath={navPath} onNavigate={onNavigate} />
             <div className="aria-openui-sidebar-main">
-              <AriaOpenUISidebarProjects />
               <section
                 className="aria-openui-sidebar-section aria-openui-recents"
                 aria-labelledby="aria-openui-recents-heading"
@@ -181,13 +223,6 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
           <AgentInterface.SidebarFooter>
             <div className="aria-openui-sidebar-footer-stack">
               <AriaOpenUISidebarCredits />
-              <AriaOpenUISidebarUser
-                name={profile.name}
-                email={profile.planShort}
-                avatar={profile.avatar}
-                activeWorkspacePath={navPath}
-                onWorkspaceNavigate={(path: AriaWorkspacePath) => onNavigate(path)}
-              />
             </div>
           </AgentInterface.SidebarFooter>
           </div>
@@ -224,7 +259,19 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
         <AgentInterface.ThreadHeader
           showChatTitle={false}
           showChatActions={false}
-          end={null}
+          end={
+            <div className="aria-openui-header-actions">
+              <AriaThemeIconToggle />
+              <AriaOpenUISidebarUser
+                placement="header"
+                name={profile.name}
+                email={profile.email}
+                avatar={profile.avatar}
+                activeWorkspacePath={navPath}
+                onWorkspaceNavigate={(path: AriaWorkspacePath) => onNavigate(path)}
+              />
+            </div>
+          }
         />
         <AgentInterface.Workspace>{false}</AgentInterface.Workspace>
         <AgentInterface.Route path="library">

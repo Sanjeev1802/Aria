@@ -1,27 +1,43 @@
-.aria-openui-chat:has(.aria-settings-modal-overlay) .openui-agent-composer-slot {
+.aria-openui-chat.aria-workspace-overlay-open .openui-agent-composer-slot {
   display: none;
 }
 
-.aria-openui-chat:has(.aria-settings-modal-overlay) .openui-agent-container {
-  background: oklch(0.11 0.004 260);
-}
-
-.aria-openui-chat:has(.aria-settings-modal-overlay) .openui-agent-sidebar-container {
-  background-color: oklch(0.11 0.004 260);
-}
-
-.aria-openui-chat .openui-agent-thread-container:has(.aria-settings-modal-overlay) {
-  position: relative;
-  min-height: 0;
-  height: 100%;
-  background: oklch(0.11 0.004 260);
-  outline-color: transparent !important;
-}
-
 .aria-settings-modal-overlay {
-  --aria-settings-gutter: clamp(10px, 2.5vw, 28px);
+  --page: #111111;
+  --ink: #f5f5f3;
+  --accent: #e5bd89;
+  --background: #181818;
+  --foreground: #f5f5f3;
+  --card: #1c1c1c;
+  --card-foreground: #f5f5f3;
+  --popover: #1c1c1c;
+  --popover-foreground: #f5f5f3;
+  --primary: #e5bd89;
+  --primary-foreground: #1a1612;
+  --secondary: #222222;
+  --secondary-foreground: #f5f5f3;
+  --muted: #222222;
+  --muted-foreground: #9b9b9b;
+  --destructive: #e07a6a;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #e5bd89;
+  --aria-settings-nav: #141414;
+  --aria-settings-hover: #222222;
+  --aria-settings-input-bg: #141414;
+  --aria-settings-placeholder: #7a7a7a;
+  --aria-settings-overlay: rgb(0 0 0 / 0.72);
+  --tabs-dur: var(--duration-fast, 250ms);
+  --tabs-ease: var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+  --tabs-text-muted: #9b9b9b;
+  --tabs-text-active: #f5f5f3;
+  --tabs-bar-bg: #141414;
+  --tabs-pill-bg: #2a2a2a;
+  --aria-settings-gutter: 24px;
+  --aria-settings-nav-w: 208px;
+  --aria-settings-max-w: min(880px, calc(100vw - 2 * var(--aria-settings-gutter)));
+  --aria-settings-max-h: min(620px, calc(100dvh - 2 * var(--aria-settings-gutter)));
 
-  /* Cover sidebar + thread (sidebar is z-index 999; avoid blue shell bleeding through). */
   position: fixed;
   inset: 0;
   z-index: 1100;
@@ -29,8 +45,40 @@
   align-items: center;
   justify-content: center;
   padding: var(--aria-settings-gutter);
-  background: oklch(0.06 0.004 260 / 0.78);
-  backdrop-filter: none;
+  background: var(--aria-settings-overlay);
+  opacity: 0;
+  transition: opacity var(--modal-open-dur, 250ms) var(--modal-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  color: var(--ink);
+  color-scheme: dark;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.aria-settings-modal-overlay.is-open {
+  opacity: 1;
+}
+
+.aria-settings-modal-overlay [data-slot="input"] {
+  border-color: var(--border);
+  background: var(--aria-settings-input-bg);
+  color: var(--ink);
+}
+
+.aria-settings-modal-overlay [data-slot="input"]::placeholder {
+  color: var(--aria-settings-placeholder);
+}
+
+.aria-settings-modal-overlay [data-slot="button"][data-variant="outline"],
+.aria-settings-modal-overlay [data-slot="button"][data-variant="ghost"] {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--foreground);
+}
+
+.aria-settings-modal-overlay [data-slot="button"][data-variant="outline"]:hover,
+.aria-settings-modal-overlay [data-slot="button"][data-variant="ghost"]:hover {
+  background: var(--aria-settings-hover);
+  color: var(--ink);
 }
 
 .aria-overlay-dialog {
@@ -44,23 +92,47 @@
   min-height: 0;
   flex: 1;
   overflow: auto;
-  padding: 28px 24px 32px;
+  padding: 28px 28px 32px;
 }
 
 .aria-settings-modal-card {
-  --aria-settings-nav-w: 240px;
-  --aria-settings-content-x: 1rem;
-  --aria-settings-max-w: min(1060px, calc(100vw - 2 * var(--aria-settings-gutter)));
-  --aria-settings-max-h: min(
-    780px,
-    calc(100dvh - 2 * var(--aria-settings-gutter))
-  );
-
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: var(--aria-settings-max-w);
-  max-height: var(--aria-settings-max-h);
   height: var(--aria-settings-max-h);
+  max-height: var(--aria-settings-max-h);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--background);
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.5);
+}
+
+.aria-settings-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.aria-settings-modal-close:hover {
+  background: var(--aria-settings-hover);
+  color: var(--ink);
 }
 
 .aria-settings-modal-card__grid {
@@ -73,8 +145,81 @@
 }
 
 .aria-settings-modal-card__nav {
-  max-height: min(220px, 38dvh);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   min-height: 0;
+  padding: 16px 12px 12px;
+  background: var(--aria-settings-nav);
+  border-bottom: 1px solid var(--border);
+}
+
+.aria-settings-modal-card__nav-label {
+  margin: 0 8px 2px;
+  font-family: "Saans", var(--font-sans), sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.aria-settings-modal-card__nav-mobile {
+  position: relative;
+}
+
+.aria-settings-modal-card__nav-mobile select {
+  width: 100%;
+  height: 40px;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 0 36px 0 12px;
+  color: var(--ink);
+  font-size: 14px;
+  outline: none;
+}
+
+.aria-settings-modal-card__nav-chevron {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--muted-foreground);
+  transform: translateY(-50%);
+}
+
+.aria-settings-modal-card__nav-list {
+  display: none;
+}
+
+.aria-settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.aria-settings-nav-item:hover {
+  background: var(--card);
+  color: var(--ink);
+}
+
+.aria-settings-nav-item--active {
+  background: var(--aria-settings-hover);
+  color: var(--ink);
 }
 
 .aria-settings-modal-card__main {
@@ -82,43 +227,124 @@
   min-height: 0;
   min-width: 0;
   flex-direction: column;
+  background: var(--background);
 }
 
-@media (min-width: 640px) {
-  .aria-settings-modal-card {
-    --aria-settings-content-x: 1.5rem;
-  }
+.aria-settings-modal-card__header {
+  flex-shrink: 0;
+  padding: 20px 52px 16px 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.aria-settings-modal-card__title {
+  margin: 0;
+  font-family: "Saans", var(--font-sans), sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.aria-settings-modal-card__body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 28px 28px;
+}
+
+.aria-settings-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aria-settings-block__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--muted-foreground);
+}
+
+.aria-settings-block__desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+.aria-settings-block__card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.aria-settings-block__card > * + * {
+  border-top: 1px solid var(--border);
+}
+
+.aria-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  text-align: left;
+}
+
+.aria-settings-row__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+a.aria-settings-row:hover,
+button.aria-settings-row:hover {
+  background: var(--aria-settings-hover);
 }
 
 @media (min-width: 768px) {
-  .aria-settings-modal-card {
-    --aria-settings-nav-w: 252px;
-    --aria-settings-content-x: 1.75rem;
-    --aria-settings-max-w: min(1080px, calc(100vw - 2 * var(--aria-settings-gutter)));
-    --aria-settings-max-h: min(
-      800px,
-      calc(100dvh - 2 * var(--aria-settings-gutter))
-    );
-  }
-
   .aria-settings-modal-card__grid {
     grid-template-columns: var(--aria-settings-nav-w) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
   }
 
   .aria-settings-modal-card__nav {
-    max-height: none;
+    border-bottom: 0;
+    border-right: 1px solid var(--border);
+    padding: 20px 12px 16px;
   }
-}
 
-@media (min-width: 1200px) {
-  .aria-settings-modal-card {
-    --aria-settings-nav-w: 268px;
-    --aria-settings-max-w: min(1120px, 92vw);
-    --aria-settings-max-h: min(
-      840px,
-      calc(100dvh - 2 * var(--aria-settings-gutter))
-    );
+  .aria-settings-modal-card__nav-mobile {
+    display: none;
+  }
+
+  .aria-settings-modal-card__nav-list {
+    display: block;
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .aria-settings-modal-card__nav-list ul {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 }
 
@@ -139,18 +365,21 @@
     border-radius: 0;
   }
 
+  .aria-settings-modal-card__grid,
   .aria-settings-modal-card {
     height: 100dvh;
   }
 
-  .aria-settings-modal-card__grid {
-    height: 100dvh;
+  .aria-settings-modal-card__nav {
+    padding-top: max(16px, env(safe-area-inset-top));
   }
 
-  .aria-settings-modal-card__nav {
-    max-height: none;
-    padding-top: max(12px, env(safe-area-inset-top));
-    border-bottom: 1px solid color-mix(in oklch, var(--foreground) 12%, transparent);
+  .aria-settings-modal-card__header {
+    padding: 16px 52px 14px 20px;
+  }
+
+  .aria-settings-modal-card__body {
+    padding: 16px 20px max(24px, env(safe-area-inset-bottom));
   }
 
   .aria-overlay-dialog__body {
@@ -242,7 +471,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: oklch(0.62 0.16 250);
+  background: #e5bd89;
 }
 
 
@@ -617,4 +846,348 @@
   color: oklch(0.62 0.16 285);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* ——— Settings → Team ——— */
+.aria-team {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: #f5f5f3;
+}
+
+.aria-team__hero,
+.aria-team__invite,
+.aria-team__person,
+.aria-team__note,
+.aria-team__empty {
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  background: #1c1c1c;
+}
+
+.aria-team__hero,
+.aria-team__invite {
+  padding: 18px;
+}
+
+.aria-team__hero-icon,
+.aria-team__invite-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(229, 189, 137, 0.22);
+  background: rgba(229, 189, 137, 0.1);
+  color: #e5bd89;
+}
+
+.aria-team__invite-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.aria-team__kicker {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(229, 189, 137, 0.28);
+  background: rgba(229, 189, 137, 0.12);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #e5bd89;
+}
+
+.aria-team__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f5f5f3;
+}
+
+.aria-team__lede,
+.aria-team__meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #9b9b9b;
+}
+
+.aria-team__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (min-width: 640px) {
+  .aria-team__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.aria-team__stat {
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  background: #141414;
+  padding: 12px;
+}
+
+.aria-team__stat-label {
+  margin: 0;
+  font-size: 11px;
+  color: #9b9b9b;
+}
+
+.aria-team__stat-value {
+  margin: 6px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: #f5f5f3;
+}
+
+.aria-team__stat-value span {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #9b9b9b;
+}
+
+.aria-team__capacity {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 11px;
+  color: #9b9b9b;
+}
+
+.aria-team__track {
+  height: 6px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #2a2a2a;
+}
+
+.aria-team__bar {
+  height: 100%;
+  border-radius: inherit;
+  background: #e5bd89;
+}
+
+.aria-team__invite-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (min-width: 640px) {
+  .aria-team__invite-row {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.aria-team__invite-row input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  background: #141414;
+  color: #f5f5f3;
+}
+
+.aria-team__invite-row input::placeholder {
+  color: #7a7a7a;
+}
+
+.aria-team__send {
+  background: #e5bd89 !important;
+  color: #1a1612 !important;
+}
+
+.aria-team__send:hover:not(:disabled) {
+  background: #f0cda0 !important;
+}
+
+.aria-team__people-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.aria-team__person {
+  padding: 14px;
+}
+
+.aria-team__badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: capitalize;
+  border: 1px solid #2a2a2a;
+  background: #222;
+  color: #9b9b9b;
+}
+
+.aria-team__badge--owner {
+  border-color: rgba(229, 189, 137, 0.28);
+  background: rgba(229, 189, 137, 0.12);
+  color: #e5bd89;
+}
+
+.aria-team__badge--invite {
+  border-color: rgba(229, 189, 137, 0.2);
+  background: rgba(229, 189, 137, 0.08);
+  color: #d3ad7f;
+}
+
+.aria-team__budget {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #141414;
+}
+
+.aria-team__empty,
+.aria-team__note {
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #9b9b9b;
+}
+
+.aria-team__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.aria-appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aria-appearance__label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.aria-theme-switch {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--tabs-bar-bg);
+  border: 1px solid var(--border);
+}
+
+.aria-theme-switch__pill {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: calc(100% - 8px);
+  width: 0;
+  border-radius: 10px;
+  background: var(--tabs-pill-bg);
+  transform: translateX(0);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width var(--tabs-dur) var(--tabs-ease);
+  will-change: transform, width;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.aria-theme-switch__option {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  height: auto;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--tabs-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.aria-theme-switch__option[aria-selected="true"],
+.aria-theme-switch__option:hover {
+  color: var(--tabs-text-active);
+}
+
+@media (min-width: 640px) {
+  .aria-theme-switch {
+    max-width: 320px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-tabs-pill,
+  .t-tab {
+    transition: none !important;
+  }
+}
+
+html[data-aria-theme="light"] .aria-settings-modal-overlay {
+  --page: #f4f3f0;
+  --ink: #1a1916;
+  --accent: #b8894e;
+  --background: #fbfaf7;
+  --foreground: #1a1916;
+  --card: #ffffff;
+  --card-foreground: #1a1916;
+  --popover: #ffffff;
+  --popover-foreground: #1a1916;
+  --primary: #b8894e;
+  --primary-foreground: #1a1612;
+  --secondary: #eceae4;
+  --secondary-foreground: #1a1916;
+  --muted: #eceae4;
+  --muted-foreground: #6f6e6a;
+  --border: #e4e0d8;
+  --input: #e4e0d8;
+  --ring: #b8894e;
+  --aria-settings-nav: #f3f1ec;
+  --aria-settings-hover: #eceae4;
+  --aria-settings-input-bg: #ffffff;
+  --aria-settings-placeholder: #8a8780;
+  --aria-settings-overlay: rgb(20 18 14 / 0.42);
+  --tabs-text-muted: #6f6e6a;
+  --tabs-text-active: #1a1916;
+  --tabs-bar-bg: #eceae4;
+  --tabs-pill-bg: #ffffff;
+  color-scheme: light;
 }

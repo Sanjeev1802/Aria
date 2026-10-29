@@ -9,7 +9,7 @@ import { identity, ledgerEnv, sse } from "./helpers";
 import type { WebSearchProvider } from "../lib/server/web-search";
 
 const rates = { input: 0.06, output: 0.24, version: "test" };
-const input = () => parseChatInput({ runId: "request_123", messages: [{ role: "user", content: "Hello" }] });
+const input = () => parseChatInput({ runId: "request_123", messages: [{ role: "user", content: "Summarize this report" }] });
 const req = (id: string, units = 1000, hash = "h") => ({ id, hash, units, model: "m", rateVersion: "v" });
 
 /** A Free workspace (200 credits) owned by alice. */
@@ -164,7 +164,7 @@ test("web search supplies bounded excerpts and saves clickable source links with
   let context = "";
   const searchWeb: WebSearchProvider = async query => {
     searches++;
-    assert.equal(query, "Hello");
+    assert.equal(query, "Summarize this report");
     return [{ title: "Example report", url: "https://example.org/report", snippet: "Published findings" }];
   };
   const provider: StreamProvider = async function* (_input, _model, _signal, { webContext }) {

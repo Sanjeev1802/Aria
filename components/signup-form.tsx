@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react"
-import { AriaMark } from "@/components/aria-mark"
+import { AuthBrandPanel } from "@/components/auth/auth-brand-panel"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
+import { AriaMark } from "@/components/aria-mark"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -30,17 +31,6 @@ function destinationFromQuery() {
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
-}
-
-function AuthBrandPanel() {
-  return (
-    <div className="relative hidden min-h-[28rem] items-center justify-center overflow-hidden md:flex">
-      <Link href="/" aria-label="ARIA home" className="relative z-10 flex flex-col items-center gap-4 text-white">
-        <AriaMark className="aria-auth-panel-mark" />
-        <span className="text-lg font-semibold tracking-[0.22em]">ARIA</span>
-      </Link>
-    </div>
-  )
 }
 
 export function SignupForm({ className, ...props }: ComponentProps<"div">) {

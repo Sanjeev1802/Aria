@@ -1,4 +1,11 @@
-export type ChatInput = { id: string; model: "nova"; messages: { role: "user" | "assistant"; content: { text: string }[] }[] };
+import { parseAriaAttention, type AriaAttentionId } from "@/lib/aria-attention";
+
+export type ChatInput = {
+  id: string;
+  model: "nova";
+  messages: { role: "user" | "assistant"; content: { text: string }[] }[];
+  attention: AriaAttentionId;
+};
 
 export function parseChatInput(raw: unknown): ChatInput {
   if (!raw || typeof raw !== "object") throw new Error("Expected a chat request");
@@ -33,5 +40,5 @@ export function parseChatInput(raw: unknown): ChatInput {
     if (previous?.role === message.role) previous.content.push(...message.content);
     else turns.push({ role: message.role as "user" | "assistant", content: [...message.content] });
   }
-  return { id: body.runId, model, messages: turns } as ChatInput;
+  return { id: body.runId, model, messages: turns, attention: parseAriaAttention(body.attention) };
 }

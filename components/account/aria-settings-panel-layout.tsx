@@ -25,20 +25,14 @@ export function SettingsBlock({
   children: ReactNode;
 }) {
   return (
-    <section className="space-y-3">
+    <section className="aria-settings-block">
       {title || description ? (
-        <div className="space-y-1.5 px-0.5">
-          {title ? (
-            <h3 className="text-sm font-semibold tracking-tight text-foreground">{title}</h3>
-          ) : null}
-          {description ? (
-            <p className="text-sm leading-snug text-muted-foreground">{description}</p>
-          ) : null}
+        <div className="space-y-1">
+          {title ? <h3 className="aria-settings-block__title">{title}</h3> : null}
+          {description ? <p className="aria-settings-block__desc">{description}</p> : null}
         </div>
       ) : null}
-      <div className="overflow-hidden rounded-xl border border-border/80 bg-muted/15 divide-y divide-border">
-        {children}
-      </div>
+      <div className="aria-settings-block__card">{children}</div>
     </section>
   );
 }
@@ -51,5 +45,5 @@ export function SettingsBlockInset({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn("px-4 py-4 sm:px-5 sm:py-5", className)}>{children}</div>;
+  return <div className={cn("px-4 py-4", className)}>{children}</div>;
 }

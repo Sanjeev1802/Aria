@@ -8,6 +8,8 @@ import {
 import { useThread, useThreadList } from "@openuidev/react-headless";
 import { ArrowUp, Plus, Square, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { AriaAttentionPicker } from "@/components/chat/aria-attention-picker";
+import { useTdevBeam } from "@/hooks/use-tdev-beam";
 import { takeLandingDraft } from "@/lib/landing-draft";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +28,7 @@ type AriaOpenUIComposerProps = {
 
 export function AriaOpenUIComposer({
   variant = "thread",
-  placeholder = "Ask anything...",
+  placeholder = "Describe your question or task",
   className,
 }: AriaOpenUIComposerProps) {
   const [textContent, setTextContent] = useState("");
@@ -34,6 +36,8 @@ export function AriaOpenUIComposer({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const beamRef = useRef<HTMLDivElement>(null);
+  useTdevBeam(beamRef);
 
   const processMessage = useThread((s) => s.processMessage);
   const cancelMessage = useThread((s) => s.cancelMessage);
@@ -84,6 +88,18 @@ export function AriaOpenUIComposer({
     setAttachments([]);
     setUploadError(null);
   }
+
+  useEffect(() => {
+    const onDraft = (event: Event) => {
+      const text = (event as CustomEvent<string>).detail;
+      if (typeof text === "string" && text.trim()) {
+        setTextContent(text);
+        requestAnimationFrame(() => inputRef.current?.focus());
+      }
+    };
+    window.addEventListener("aria:composer-draft", onDraft);
+    return () => window.removeEventListener("aria:composer-draft", onDraft);
+  }, []);
 
   useEffect(() => {
     if (!isWelcome) return;
@@ -150,17 +166,6 @@ export function AriaOpenUIComposer({
           accept="image/*,application/pdf,text/plain,.txt,.md,.csv,.json,.doc,.docx,.xls,.xlsx"
           onChange={(e) => void onPickFiles(e.target.files)}
         />
-        <button
-          type="button"
-          className="aria-openui-composer-attach"
-          aria-label="Upload files"
-          disabled={isRunning || process.env.NEXT_PUBLIC_ARIA_PREVIEW !== "true"}
-          title="File analysis is not connected yet"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Plus size={18} strokeWidth={2} aria-hidden />
-        </button>
-
         <textarea
           ref={inputRef}
           value={textContent}
@@ -176,8 +181,18 @@ export function AriaOpenUIComposer({
             }
           }}
         />
-
-        <div className={actionBarClass}>
+        <div className={cn(actionBarClass, "aria-openui-composer-bar")}>
+          <button
+            type="button"
+            className="aria-openui-composer-attach"
+            aria-label="Upload files"
+            disabled={isRunning || process.env.NEXT_PUBLIC_ARIA_PREVIEW !== "true"}
+            title="File analysis is not connected yet"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Plus size={15} strokeWidth={2} aria-hidden />
+          </button>
+          <AriaAttentionPicker disabled={isRunning} />
           <button
             type="button"
             onClick={handleSubmit}
@@ -185,6 +200,7 @@ export function AriaOpenUIComposer({
             aria-label={isRunning ? "Cancel message" : "Send message"}
             className={cn(
               submitClass,
+              "aria-openui-composer-send",
               "openui-icon-button openui-icon-button-primary openui-icon-button-small openui-icon-button-square",
             )}
           >
@@ -201,32 +217,27 @@ export function AriaOpenUIComposer({
     </>
   );
 
-  if (isWelcome) {
-    return (
+  return (
+    <div className="aria-composer-beam" ref={beamRef}>
       <div
         className={cn(rootClass, "aria-openui-composer", className)}
         data-drafting={textContent.length > 0 || attachments.length > 0 || undefined}
+        onClick={
+          isWelcome
+            ? undefined
+            : (e) => {
+                const target = e.target;
+                if (
+                  target instanceof Element &&
+                  !target.closest("button, a, [role='button'], textarea, input")
+                ) {
+                  inputRef.current?.focus();
+                }
+              }
+        }
       >
         {composerInner}
       </div>
-    );
-  }
-
-  return (
-    <div
-      className={cn(rootClass, "aria-openui-composer", className)}
-      data-drafting={textContent.length > 0 || attachments.length > 0 || undefined}
-      onClick={(e) => {
-        const target = e.target;
-        if (
-          target instanceof Element &&
-          !target.closest("button, a, [role='button'], textarea, input")
-        ) {
-          inputRef.current?.focus();
-        }
-      }}
-    >
-      {composerInner}
     </div>
   );
 }

@@ -31,7 +31,9 @@ function initialsFromName(name: string) {
 }
 
 export function SettingsModalAccountPanel() {
-  const { name, handle, avatar, email, planLabel } = useAriaProfile();
+  const { name, avatar, email, planLabel, session } = useAriaProfile();
+  const workspaces = session.workspaces ?? [];
+  const showWorkspaceAccess = !ARIA_IS_PREVIEW && session.status === "authenticated" && workspaces.length > 1;
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(name);
   const [draftAvatar, setDraftAvatar] = useState<string | null | undefined>(undefined);
@@ -79,15 +81,15 @@ export function SettingsModalAccountPanel() {
       <SettingsBlock title="Profile">
         <SettingsBlockInset>
           <div className="flex flex-wrap items-center gap-4">
-            <Avatar className="size-16 text-lg" data-size="lg">
+            <Avatar className="size-11 text-sm" data-size="lg">
               {shownAvatar ? <AvatarImage src={shownAvatar} alt="" /> : null}
-              <AvatarFallback className="bg-muted font-semibold">{initials}</AvatarFallback>
+              <AvatarFallback className="bg-[#222] font-medium text-[#e5bd89]">{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold">{name}</p>
-              <p className="text-sm text-muted-foreground">@{handle}</p>
+              <p className="truncate text-[15px] font-medium tracking-tight">{name}</p>
+              <p className="truncate text-[13px] text-[#9b9b9b]">{email}</p>
             </div>
-            {!editing && !ARIA_IS_PREVIEW ? <Button type="button" variant="outline" size="sm" onClick={() => {
+            {!editing && !ARIA_IS_PREVIEW ? <Button type="button" variant="outline" size="sm" className="h-8 border-[#2a2a2a] bg-transparent text-[#f5f5f3] hover:bg-[#222] hover:text-[#f5f5f3]" onClick={() => {
               setError(""); setNotice(""); setDraftName(name); setEditing(true);
             }}>Edit profile</Button> : null}
           </div>
@@ -130,7 +132,7 @@ export function SettingsModalAccountPanel() {
         )}
         <SettingsLinkRow label="Plan" value={planLabel} />
       </SettingsBlock>
-      {!ARIA_IS_PREVIEW ? (
+      {showWorkspaceAccess ? (
         <SettingsBlock title="Workspace access">
           <SettingsBlockInset>
             <AriaWorkspaceSwitcher />

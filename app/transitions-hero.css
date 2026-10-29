@@ -182,7 +182,8 @@ html[data-theme="dark"] {
   font-weight: 400;
 }
 
-.hero.aria-tdev-hero .t-stagger-line--3 {
+.hero.aria-tdev-hero .hero-composer-anchor,
+.hero.aria-tdev-hero .home-hero > div {
   width: 100%;
   display: flex;
   justify-content: center;
@@ -443,8 +444,13 @@ html[data-theme="dark"] .hero.aria-tdev-hero .cm-beam[data-beam][data-fading]::a
 
   /* Menu toggle matches the Sign in pill: same height, surface, and ring. */
   .aria-tdev-page .nav-actions .mobile-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 34px;
     height: 34px;
+    margin: 0;
+    padding: 0;
     border: 0;
     border-radius: 50px;
     color: rgba(255, 255, 255, 0.88);

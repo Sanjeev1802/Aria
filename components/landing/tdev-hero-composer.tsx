@@ -67,12 +67,22 @@ export function TdevHeroComposer({
       if (!cancelled && target && window.TdevBeam) window.TdevBeam.mount(target);
     }
 
-    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      mountBeam().catch(() => {});
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return () => {
+        cancelled = true;
+      };
     }
+
+    const start = () => { mountBeam().catch(() => {}); };
+    const idle = window.requestIdleCallback;
+    const idleId = typeof idle === "function"
+      ? idle(start, { timeout: 1500 })
+      : window.setTimeout(start, 400);
 
     return () => {
       cancelled = true;
+      if (typeof idle === "function") window.cancelIdleCallback(idleId as number);
+      else window.clearTimeout(idleId as number);
     };
   }, []);
 

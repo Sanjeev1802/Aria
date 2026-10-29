@@ -72,6 +72,10 @@ button:disabled { cursor:not-allowed; }
 .partner-live { flex-shrink:0; display:inline-flex; align-items:center; gap:5px; font-size:9px; letter-spacing:.6px; color:#a8c4a0; text-transform:uppercase; }
 .partner-live .live-dot { background:#7fa876; width:4px; height:4px; }
 .features { padding-top:125px; }
+.features, .aria-pricing, .faq, .aria-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
+}
 .section-heading { text-align:center; }
 .section-kicker { font-size:9px; letter-spacing:1.8px; font-weight:500; color:#b5a38d; }
 h2 { font-size:44px; font-weight:500; line-height:1.13; letter-spacing:-1.9px; margin:22px 0 18px; }
