@@ -17,16 +17,6 @@ import { stashLandingDraft } from "@/lib/landing-draft";
 import { refreshAriaSession, useAriaSession } from "@/lib/aria-session";
 import { workspaceAuthIntentFromDialog, type WorkspaceAuthIntent } from "@/lib/workspace-auth-dialog";
 
-const marketPartners = [
-  { name: "Telkomsel", logo: "/partners/telkomsel.svg", logoHeight: "26px" },
-  { name: "Indosat Ooredoo", logo: "/partners/indosat.svg", logoHeight: "24px" },
-  { name: "Globe Telecom", logo: "/partners/globe.svg", logoHeight: "22px" },
-  { name: "Dialog Axiata", logo: "/partners/dialog.svg", logoHeight: "24px" },
-  { name: "Banglalink", logo: "/partners/banglalink.svg", logoHeight: "28px" },
-  { name: "Robi", logo: "/partners/robi.svg", logoHeight: "26px" },
-  { name: "MTN", logo: "/partners/mtn.svg", logoHeight: "28px" },
-  { name: "Ethio telecom", logo: "/partners/ethiotelecom.jpg", logoHeight: "32px" },
-] as const;
 const faqs = [
   ["What is ARIA?", "ARIA is a conversational workspace that brings AI, your documents, and approved business intelligence together. Ask a question, explore the evidence, and turn what you learn into your next step."],
   ["Which AI model does ARIA use?", "ARIA uses Amazon Nova through Amazon Bedrock on every plan. Your plan controls credits, seats, and workspace features; it does not change the model."],
@@ -124,29 +114,6 @@ export default function Home() {
             />
           </div>
         </header>
-        <section className="home-customers" aria-label="Inside the apps of national operators across 10 countries">
-          <p className="pro-customers-label">Inside the apps of national operators across 10 countries</p>
-          <div className="pro-customers-carousel">
-            <div className="pro-customers-track" aria-hidden="true">
-              {[...marketPartners, ...marketPartners].map((partner, index) => (
-                <img
-                  key={`${partner.name}-${index}`}
-                  className="pro-customer-logo"
-                  src={partner.logo}
-                  alt=""
-                  style={{ ["--logo-h" as string]: partner.logoHeight }}
-                  loading="lazy"
-                  decoding="async"
-                />
-              ))}
-            </div>
-            <ul className="sr-only">
-              {marketPartners.map((partner) => (
-                <li key={partner.name}>{partner.name}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
       </section>
 
       <section className="features section-container" id="features"><Reveal><div className="section-heading"><span className="section-kicker">THINK BIGGER. WORK SIMPLER.</span><h2>A little less friction.<br/>A lot more possibility.</h2><p>From the first question to your next move.<br/>Intelligence that fits the way you work.</p></div></Reveal>

@@ -130,10 +130,8 @@ html[data-theme="dark"] {
 /* ── Hero column (.header.cm-hero.home-hero) ───────────────────── */
 .hero.aria-tdev-hero {
   text-align: center;
-  --partners-logo-gap: clamp(44px, 6vw, 64px);
   --hero-gap-title-sub: clamp(14px, 2.8vw, 20px);
   --hero-gap-sub-composer: clamp(32px, 5.5vw, 48px);
-  --hero-gap-composer-partners: clamp(36px, 6vw, 56px);
 }
 
 .hero.aria-tdev-hero .header.cm-hero {
@@ -418,100 +416,6 @@ html[data-theme="dark"] .hero.aria-tdev-hero .cm-beam[data-beam][data-fading]::a
   margin-inline: auto;
 }
 
-/* Customer logos under the hero (transitions.dev home-customers) */
-.hero.aria-tdev-hero .home-customers {
-  width: 100%;
-  max-width: min(1040px, 100%);
-  margin: var(--hero-gap-composer-partners) auto 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.hero.aria-tdev-hero .pro-customers-label {
-  margin: 0 0 clamp(14px, 2vw, 18px);
-  padding: 0 clamp(8px, 3vw, 16px);
-  font-family: var(--font-sans);
-  font-size: clamp(12px, 1.4vw + 0.45rem, 13px);
-  line-height: 1.35;
-  font-weight: 400;
-  text-align: center;
-  color: #737373;
-}
-
-.hero.aria-tdev-hero .pro-customers-carousel {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 10%,
-    #000 90%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 10%,
-    #000 90%,
-    transparent 100%
-  );
-}
-
-.hero.aria-tdev-hero .pro-customers-track {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--partners-logo-gap);
-  width: max-content;
-  padding: 4px calc(var(--partners-logo-gap) / 2);
-  animation: partners-marquee 52s linear infinite;
-  will-change: transform;
-}
-
-.hero.aria-tdev-hero .pro-customers-carousel:hover .pro-customers-track {
-  animation-play-state: paused;
-}
-
-@keyframes partners-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.hero.aria-tdev-hero .pro-customer-logo {
-  flex: none;
-  height: var(--logo-h, 32px);
-  width: auto;
-  max-width: 160px;
-  object-fit: contain;
-  filter: invert(1);
-  opacity: 0.55;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero.aria-tdev-hero .pro-customers-track {
-    animation: none;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
-    max-width: 100%;
-    gap: 28px var(--partners-logo-gap);
-  }
-
-  .hero.aria-tdev-hero .pro-customers-carousel {
-    mask-image: none;
-    -webkit-mask-image: none;
-  }
-
-  .hero.aria-tdev-hero .pro-customers-track img:nth-child(n + 9) {
-    display: none;
-  }
-}
-
 @media (max-width: 700px) {
   .aria-tdev-page .site-header {
     width: 100%;
@@ -608,21 +512,10 @@ html[data-theme="dark"] .hero.aria-tdev-hero .cm-beam[data-beam][data-fading]::a
   }
 
   .hero.aria-tdev-hero {
-    --partners-logo-gap: 40px;
     --hero-gap-sub-composer: 28px;
-    --hero-gap-composer-partners: 32px;
   }
 
   .aria-tdev-page .features.section-container {
     padding-top: 48px;
-  }
-
-  .hero.aria-tdev-hero .pro-customers-track {
-    animation-duration: 48s;
-  }
-
-  .hero.aria-tdev-hero .pro-customer-logo {
-    height: calc(var(--logo-h, 32px) * 0.85);
-    max-width: 120px;
   }
 }
