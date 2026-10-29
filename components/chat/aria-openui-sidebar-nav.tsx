@@ -1,6 +1,5 @@
 "use client";
 
-import { AriaOpenUISidebarHistory } from "@/components/chat/aria-openui-sidebar-history";
 import { openAriaOpenUISidebar } from "@/lib/aria-openui-sidebar-open";
 import { useThreadList } from "@openuidev/react-headless";
 import { LibraryBig, SquarePen } from "lucide-react";
@@ -65,10 +64,6 @@ export function AriaOpenUISidebarNav({ activePath, onNavigate }: AriaOpenUISideb
             </li>
           );
         })}
-
-        <li className="aria-openui-sidebar-nav__history-item">
-          <AriaOpenUISidebarHistory onLeaveRoute={() => onNavigate?.(undefined)} />
-        </li>
       </ul>
     </nav>
   );

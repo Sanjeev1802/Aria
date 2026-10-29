@@ -53,12 +53,13 @@ export function AriaOpenUISidebarCredits({ initial }: AriaOpenUISidebarCreditsPr
 
   const { used, included } = credits;
   const pct = included > 0 ? Math.min(100, (used / included) * 100) : 0;
+  const empty = included <= 0 && used <= 0;
 
   return (
     <section
       className="aria-openui-sidebar-credits"
-      aria-label={`Credits: ${used} of ${included} used this month`}
-      title={`${formatCredits(used)} / ${formatCredits(included)} credits`}
+      aria-label={empty ? "Credits unavailable" : `Credits: ${used} of ${included} used this month`}
+      title={empty ? "Credits unavailable" : `${formatCredits(used)} / ${formatCredits(included)} credits`}
     >
       <div className="aria-openui-sidebar-credits__head">
         <span className="aria-openui-sidebar-credits__label">
@@ -75,9 +76,15 @@ export function AriaOpenUISidebarCredits({ initial }: AriaOpenUISidebarCreditsPr
           <span className="aria-openui-sidebar-credits__title">Credits</span>
         </span>
         <span className="aria-openui-sidebar-credits__values" aria-hidden>
-          <span className="aria-openui-sidebar-credits__used">{formatCredits(used)}</span>
-          <span className="aria-openui-sidebar-credits__sep">/</span>
-          <span className="aria-openui-sidebar-credits__limit">{formatCredits(included)}</span>
+          {empty ? (
+            <span className="aria-openui-sidebar-credits__empty">—</span>
+          ) : (
+            <>
+              <span className="aria-openui-sidebar-credits__used">{formatCredits(used)}</span>
+              <span className="aria-openui-sidebar-credits__sep">/</span>
+              <span className="aria-openui-sidebar-credits__limit">{formatCredits(included)}</span>
+            </>
+          )}
         </span>
       </div>
     </section>

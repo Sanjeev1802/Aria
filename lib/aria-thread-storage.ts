@@ -2,7 +2,12 @@ import type { ChatStorage } from "@openuidev/react-headless";
 import { ariaFetch } from "./aria-session";
 
 async function request(path: string, init?: RequestInit) {
-  const response = await ariaFetch(path, init);
+  let response: Response;
+  try {
+    response = await ariaFetch(path, init);
+  } catch {
+    throw new Error("Couldn't reach ARIA. Check your connection and try again.");
+  }
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.message ?? "Chat history is unavailable.");
   return body;

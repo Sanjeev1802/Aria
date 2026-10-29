@@ -302,17 +302,6 @@
   margin-bottom: 0;
 }
 
-.aria-openui-chat .aria-openui-sidebar-nav__history-item {
-  display: none;
-}
-
-.aria-openui-chat
-  .openui-agent-container:not(.openui-agent-container--mobile)
-  .openui-agent-sidebar-container--collapsed
-  .aria-openui-sidebar-nav__history-item {
-  display: list-item;
-}
-
 .aria-openui-chat
   .openui-agent-sidebar-header:not(.openui-agent-sidebar-header--collapsed)
   .openui-agent-sidebar-header__agent-name {
@@ -659,6 +648,53 @@
   .openui-agent-thread-messages
   > *:last-child {
   min-height: 0;
+}
+
+/* Welcome already fills the panel; don't pin a fetch error to the floor. */
+.aria-openui-chat
+  .openui-agent-thread-container:has(.openui-agent-welcome-screen)
+  .openui-agent-thread-error {
+  display: none !important;
+}
+
+.aria-openui-chat .openui-agent-thread-error {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 728px;
+  margin: 8px auto 0;
+  padding: 0 20px 12px !important;
+  min-height: 0 !important;
+}
+
+.aria-openui-chat .openui-agent-thread-error .openui-callout {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #3a322c;
+  border-left: 2px solid var(--accent);
+  border-radius: 14px;
+  background: var(--aria-chip, #1c1c1c);
+  box-sizing: border-box;
+}
+
+.aria-openui-chat .openui-agent-thread-error .openui-callout-title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.aria-openui-chat .openui-agent-thread-error .openui-callout-description {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+html[data-aria-theme="light"] .aria-openui-chat .openui-agent-thread-error .openui-callout {
+  border-color: #e4e0d8;
+  border-left-color: var(--accent);
+  background: #ffffff;
 }
 
 .aria-openui-chat
@@ -1257,6 +1293,11 @@
 .aria-openui-chat .aria-openui-sidebar-credits__sep {
   margin: 0 2px;
   opacity: 0.55;
+}
+
+.aria-openui-chat .aria-openui-sidebar-credits__empty {
+  color: var(--openui-text-neutral-secondary);
+  opacity: 0.7;
 }
 
 .aria-openui-chat
