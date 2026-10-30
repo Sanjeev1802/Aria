@@ -9,6 +9,9 @@ import { DynamoStore } from "./store/dynamo-store";
 import { SqliteStore } from "./store/sqlite-store";
 import type { Store } from "./store/types";
 import { createOneWaveInviteSender, type TeamInviteSender } from "./email/onewave";
+import { resolveDatabaseUrl } from "./secrets/database-url";
+import { LazyUserStore } from "./users/lazy-user-store";
+import { createUserStore, PgUserStore, type UserStore } from "./users/user-store";
 
 export type ServerConfig = {
   environment: "development" | "production";
@@ -50,11 +53,16 @@ export type ServerConfig = {
   adminLocalDev?: boolean;
   /** Development-only operator emails; super admin with adminLocalDev. */
   adminEmails?: string[];
+  /** Aurora PostgreSQL connection string for global user roles. */
+  databaseUrl?: string;
+  /** Secrets Manager ARN holding `{ url }` or `{ username, password, host, port, dbname }`. */
+  databaseSecretArn?: string;
 };
 
 export type Services = {
   config: ServerConfig;
   store: Store;
+  userStore: UserStore;
   directory: AccountDirectory;
   ledger: CreditLedger;
   verifier?: IdentityVerifier;
@@ -96,7 +104,24 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     adminEmails: environment === "development"
       ? (env.ARIA_ADMIN_EMAILS || "").split(",").map(value => value.trim().toLowerCase()).filter(Boolean)
       : undefined,
+    databaseUrl: env.ARIA_DATABASE_URL?.trim() || undefined,
+    databaseSecretArn: env.ARIA_DATABASE_SECRET_ARN?.trim() || undefined,
   };
+}
+
+function buildUserStore(config: ServerConfig, overrides?: UserStore): UserStore {
+  if (overrides) return overrides;
+  if (config.databaseUrl) return new PgUserStore(config.databaseUrl);
+  if (config.databaseSecretArn) {
+    return new LazyUserStore(
+      () => resolveDatabaseUrl({ ...process.env, ARIA_DATABASE_SECRET_ARN: config.databaseSecretArn }),
+      config.environment === "development" ? config.localStorePath : undefined,
+    );
+  }
+  return createUserStore({
+    databaseUrl: undefined,
+    sqlitePath: config.localStorePath,
+  });
 }
 
 /** Throws unless identity and a shared ledger are both configured for this environment. */
@@ -116,7 +141,6 @@ export function assertChatEnabled(config: ServerConfig) {
 
 let cached: { key: string; services: Services } | undefined;
 let developmentStore: Store | undefined;
-
 export function buildServices(config: ServerConfig, overrides: Partial<Services> = {}): Services {
   let store = overrides.store;
   if (!store) {
@@ -124,9 +148,10 @@ export function buildServices(config: ServerConfig, overrides: Partial<Services>
     else if (config.environment === "development") store = developmentStore ??= new SqliteStore(config.localStorePath!);
     else throw new ServiceError("live_service_not_configured", 503);
   }
+  const userStore = buildUserStore(config, overrides.userStore);
   return {
-    config, store,
-    directory: overrides.directory ?? new AccountDirectory(store),
+    config, store, userStore,
+    directory: overrides.directory ?? new AccountDirectory(store, Date.now, undefined, userStore),
     ledger: overrides.ledger ?? new CreditLedger(store),
     verifier: overrides.verifier ?? (config.localIdentity
       ? undefined

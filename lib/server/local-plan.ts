@@ -48,5 +48,12 @@ export async function localPlanHandler(request: Request, services: Services) {
     if (error instanceof ConditionFailed) throw new ServiceError("local_plan_conflict", 409);
     throw error;
   }
+  if (services.userStore.enforcesRoles) {
+    if (plan === "team") await services.userStore.setRole(ctx.user.id, "team_admin");
+    else if (ctx.workspace.plan === "team") {
+      const current = await services.userStore.getRole(ctx.user.id);
+      if (current === "team_admin") await services.userStore.setRole(ctx.user.id, "member");
+    }
+  }
   return Response.json({ ok: true, plan, credits: granted / 1000 }, { headers: { "Cache-Control": "no-store" } });
 }

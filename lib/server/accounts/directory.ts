@@ -4,6 +4,9 @@ import { ConditionFailed, notExists, type Item, type Key, type Store, type Write
 import type { CreditLedger } from "../accounting/credit-ledger";
 import { entitlementFor, isPlanId, isRole, periodFor, requirePermission, PLANS, type PlanId, type Role } from "./entitlements";
 import { monthlyUnitsForPlan, seatLimitForPlan } from "../subscription-catalog";
+import { canInviteTeamMembers, DEFAULT_SIGNUP_ROLE, type GlobalUserRole } from "../users/types";
+import type { UserStore } from "../users/user-store";
+import { NoopUserStore } from "../users/user-store";
 
 /** Claims taken from a verified identity token. Never from request bodies. */
 export type Identity = { sub: string; email: string; emailVerified: boolean; name: string; authTime: number };
@@ -43,12 +46,20 @@ const hashToken = (token: string) => createHash("sha256").update(token).digest("
 const activeMember = (role: Role) => [{ field: "status", op: "=" as const, value: "active" }, { field: "role", op: "=" as const, value: role }];
 
 export class AccountDirectory {
-  constructor(private store: Store, private clock: () => number = Date.now, private newId: () => string = randomUUID) {}
+  constructor(
+    private store: Store,
+    private clock: () => number = Date.now,
+    private newId: () => string = randomUUID,
+    private userStore: UserStore = new NoopUserStore(),
+  ) {}
 
   /** Creates the user and a personal Free workspace on first sign-in. Safe under concurrency. */
   async ensureAccount(identity: Identity): Promise<UserRecord> {
     const existing = await this.getUser(identity.sub);
-    if (existing) return existing;
+    if (existing) {
+      await this.userStore.ensureUser({ id: identity.sub, email: existing.email, name: existing.name });
+      return existing;
+    }
     const workspaceId = this.newId();
     const now = this.clock();
     const email = normalizeEmail(identity.email);
@@ -67,7 +78,12 @@ export class AccountDirectory {
     } catch (error) { if (!(error instanceof ConditionFailed)) throw error; }
     const user = await this.getUser(identity.sub);
     if (!user) throw new ServiceError("account_unavailable", 503);
+    await this.userStore.ensureUser({ id: identity.sub, email: user.email, name: user.name });
     return user;
+  }
+
+  async globalRole(sub: string): Promise<GlobalUserRole> {
+    return (await this.userStore.getRole(sub)) ?? DEFAULT_SIGNUP_ROLE;
   }
 
   async getUser(sub: string): Promise<UserRecord | undefined> {
@@ -206,6 +222,10 @@ export class AccountDirectory {
   /** Returns the plaintext token once; only its hash is stored. */
   async invite(actor: Membership, rawEmail: string, role: Role = "member") {
     requirePermission(actor.role, "members:invite");
+    if (this.userStore.enforcesRoles) {
+      const platformRole = await this.globalRole(actor.userId);
+      if (!canInviteTeamMembers(platformRole)) throw new ServiceError("team_admin_required", 403);
+    }
     if (role === "owner" || (role === "admin" && actor.role !== "owner")) throw new ServiceError("permission_denied", 403);
     const email = normalizeEmail(rawEmail);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw new ServiceError("invalid_email", 400);
@@ -264,6 +284,13 @@ export class AccountDirectory {
       if (!(error instanceof ConditionFailed)) throw error;
       if (error.failedIndexes.includes(1)) throw new ServiceError("already_member", 409);
       throw new ServiceError("invite_not_found", 404);
+    }
+    if (this.userStore.enforcesRoles) {
+      await this.userStore.ensureUser({ id: user.id, email: user.email, name: user.name });
+      const platformRole = await this.userStore.getRole(user.id);
+      if (!platformRole || platformRole === "member") {
+        await this.userStore.setRole(user.id, "team_member");
+      }
     }
     await this.store.transact([{ kind: "update", key: k.user(user.id), set: { defaultWorkspaceId: workspaceId } }]);
     return workspaceId;
@@ -342,6 +369,14 @@ export class AccountDirectory {
     ];
     try {
       await this.store.transact(writes);
+      if (this.userStore.enforcesRoles) {
+        if (change.plan === "team") {
+          await this.userStore.setRole(workspace.ownerId, "team_admin");
+        } else if (workspace.plan === "team") {
+          const current = await this.userStore.getRole(workspace.ownerId);
+          if (current === "team_admin") await this.userStore.setRole(workspace.ownerId, "member");
+        }
+      }
       return "applied" as const;
     } catch (error) {
       if (!(error instanceof ConditionFailed)) throw error;

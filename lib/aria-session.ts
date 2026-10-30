@@ -5,6 +5,7 @@ import { LOCAL_USER_HEADER, type LocalUserSlot } from "@/lib/local-user-shared";
 import { readLocalUserSlot } from "@/lib/aria-local-dev";
 
 export type AriaRole = "owner" | "admin" | "member";
+export type AriaGlobalRole = "super_admin" | "admin" | "member" | "team_admin" | "team_member";
 export type AriaModelChoice = "nova";
 
 /**
@@ -18,7 +19,8 @@ export type AriaSession = {
   /** Present only for internal operators; the server decides. */
   operator?: { role: "super_admin" | "admin" | "member" | "support" | "billing" | "operations"; canEdit: boolean };
   webSearchAvailable?: boolean;
-  user?: { id: string; email: string; name: string; avatar?: string | null; aiAccessSuspended?: boolean };
+  user?: { id: string; email: string; name: string; avatar?: string | null; aiAccessSuspended?: boolean;
+    globalRole?: AriaGlobalRole };
   workspace?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole; seatLimit: number; seatsUsed: number };
   entitlements?: { models: AriaModelChoice[]; apiAccess: boolean; teamManagement: boolean; monthlyCredits: number };
   workspaces?: { id: string; name: string; plan: AriaPlanId; planLabel: string; role: AriaRole }[];

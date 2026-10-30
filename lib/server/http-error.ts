@@ -43,6 +43,7 @@ const messages: Record<string,string> = {
   entitlement_changed: "Your plan changed while this request was starting. Try again.",
   model_not_in_plan: "This model is unavailable. ARIA currently uses Amazon Nova for every plan.",
   plan_required: "Team management requires the Team plan.",
+  team_admin_required: "Only a Team admin can invite people. Upgrade to the Team plan first.",
   seats_exhausted: "All seats are in use. Remove a member or cancel an invite first.",
   already_invited_or_member: "This person is already on the team or has a pending invite.",
   invalid_email: "Enter a valid email address.",
