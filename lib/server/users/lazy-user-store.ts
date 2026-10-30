@@ -1,3 +1,4 @@
+import { ServiceError } from "../errors";
 import type { GlobalUserRole } from "./types";
 import type { UserRow, UserStore } from "./user-store";
 import { NoopUserStore, PgUserStore, SqliteUserStore } from "./user-store";
@@ -19,7 +20,7 @@ export class LazyUserStore implements UserStore {
           return pg;
         } catch {
           if (sqliteFallbackPath) return new SqliteUserStore(sqliteFallbackPath);
-          throw new Error("ARIA database is unreachable and no local SQLite fallback is configured");
+          throw new ServiceError("service_unavailable", 503);
         }
       }
       if (sqliteFallbackPath) return new SqliteUserStore(sqliteFallbackPath);

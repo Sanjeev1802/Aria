@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import pg from "pg";
 import type { IndexName, Item, Key, Store, Write } from "./types";
+import { createPgPool } from "./pg-pool";
 import { itemKey, transactInMemory, writeKey } from "./transact-core";
 
 const MIGRATION_SQL = readFileSync(
@@ -24,11 +24,11 @@ function parseItem(raw: unknown): Item {
 
 /** Aurora PostgreSQL driver for the shared Store contract (ledger + directory items). */
 export class PgStore implements Store {
-  private pool: pg.Pool;
+  private pool: ReturnType<typeof createPgPool>;
   private ready: Promise<void>;
 
   constructor(connectionString: string) {
-    this.pool = new pg.Pool({ connectionString, max: 10 });
+    this.pool = createPgPool(connectionString);
     this.ready = this.pool.query(MIGRATION_SQL).then(() => undefined);
   }
 

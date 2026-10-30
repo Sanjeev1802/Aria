@@ -32,6 +32,18 @@ export async function resolveDatabaseUrl(env: NodeJS.ProcessEnv = process.env): 
   const response = await client.send(new GetSecretValueCommand({ SecretId: secretId }));
   if (!response.SecretString) return undefined;
   const parsed = JSON.parse(response.SecretString) as DatabaseSecret;
-  if (parsed.url?.trim()) return parsed.url.trim();
-  return buildPostgresUrl(parsed);
+  if (parsed.url?.trim()) return withAwsRdsSsl(parsed.url.trim());
+  const built = buildPostgresUrl(parsed);
+  return built ? withAwsRdsSsl(built) : undefined;
+}
+
+function withAwsRdsSsl(url: string) {
+  if (/sslmode=/i.test(url)) return url;
+  try {
+    const host = new URL(url.replace(/^postgresql:/i, "http:")).hostname;
+    if (!host.includes("amazonaws.com")) return url;
+  } catch {
+    return url;
+  }
+  return `${url}${url.includes("?") ? "&" : "?"}sslmode=no-verify`;
 }
