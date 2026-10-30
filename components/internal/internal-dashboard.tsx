@@ -11,6 +11,7 @@ import { InternalCustomerDirectory, filterCustomers } from "./internal-customer-
 import { InternalCustomerPreviewTable } from "./internal-customer-preview-table";
 import { INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "@/lib/internal-audit-copy";
 import { InternalCustomerProfilePanel, type InternalCustomerAction } from "./internal-customer-profile-panel";
+import { SignOutConfirmDialog } from "@/components/auth/sign-out-confirm-dialog";
 import { ariaSignOut } from "@/lib/aria-session";
 import { InternalAdminPage } from "./internal-admin-page";
 import { InternalTeamPage } from "./internal-team-page";
@@ -63,6 +64,11 @@ type ActionType = "disable_user" | "enable_user" | "revoke_sessions" | "set_plan
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...options, credentials: "same-origin", cache: "no-store" });
   const body = await response.json().catch(() => ({}));
+  if (response.status === 403 && path.startsWith("/api/admin/")) {
+    const err = new Error(body.message || "Internal access denied.") as Error & { status?: number };
+    err.status = 403;
+    throw err;
+  }
   if (!response.ok) throw new Error(body.message || `Request failed (${response.status})`);
   return body as T;
 }
@@ -114,6 +120,8 @@ export function InternalDashboard() {
   const [actionError, setActionError] = useState("");
   const [accountAccessPending, setAccountAccessPending] = useState(false);
   const [accountAccessError, setAccountAccessError] = useState("");
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signOutPending, setSignOutPending] = useState(false);
 
   useEffect(() => {
     const scheme = readInternalColorScheme();
@@ -135,12 +143,16 @@ export function InternalDashboard() {
       setError("");
       setRefreshedAt(Date.now());
     } catch (cause) {
+      if (cause instanceof Error && (cause as Error & { status?: number }).status === 403) {
+        router.replace("/chat/");
+        return;
+      }
       setError(cause instanceof Error ? cause.message : "Unable to load the dashboard.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -273,9 +285,17 @@ export function InternalDashboard() {
     applyInternalColorScheme(scheme);
   };
 
+  const requestSignOut = () => setSignOutOpen(true);
+
   const handleSignOut = async () => {
-    await ariaSignOut();
-    window.location.assign("/internal/sign-in/");
+    setSignOutPending(true);
+    try {
+      await ariaSignOut();
+      window.location.assign("/sign-in/?next=%2Finternal%2F");
+    } finally {
+      setSignOutPending(false);
+      setSignOutOpen(false);
+    }
   };
 
   return (
@@ -290,7 +310,7 @@ export function InternalDashboard() {
         section={section}
         onSectionChange={showSection}
         operator={overview ? { ...overview.operator, role: overview.internalRole } : undefined}
-        onSignOut={handleSignOut}
+        onSignOut={requestSignOut}
       />
       <SidebarInset className="internal-content flex min-h-svh flex-col">
         <InternalPageHeader
@@ -307,7 +327,7 @@ export function InternalDashboard() {
                 <LockKeyhole size={26} aria-hidden />
                 <h1>Internal access unavailable</h1>
                 <p>{error}</p>
-                <a href="/internal/sign-in/">Operator sign in</a>
+                <a href="/sign-in/?next=%2Finternal%2F">Sign in</a>
               </div>
             ) : overview ? (
               <InternalPageShell key={section}>
@@ -433,7 +453,7 @@ export function InternalDashboard() {
                     myActivity={myActivity}
                     onViewAllActivity={() => showSection("activity")}
                     onOpenPlatformSettings={isSuperAdmin ? openPlatformSettings : undefined}
-                    onSignOut={handleSignOut}
+                    onSignOut={requestSignOut}
                   />
                 )}
 
@@ -445,7 +465,6 @@ export function InternalDashboard() {
                     colorScheme={colorScheme}
                     onColorSchemeChange={onThemeChange}
                     onOpenProfile={() => showSection("profile")}
-                    onOpenAdmin={isSuperAdmin ? () => showSection("admin") : undefined}
                     isSuperAdmin={Boolean(isSuperAdmin)}
                     initialSection={settingsInitialSection}
                     onViewAllActivity={() => showSection("activity")}
@@ -512,6 +531,12 @@ export function InternalDashboard() {
           ) : null}
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
+      <SignOutConfirmDialog
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        onConfirm={handleSignOut}
+        pending={signOutPending}
+      />
     </SidebarProvider>
   );
 }

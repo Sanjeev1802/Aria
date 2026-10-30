@@ -20,3 +20,8 @@ export const DEFAULT_SIGNUP_ROLE: GlobalUserRole = "member";
 export function canInviteTeamMembers(role: GlobalUserRole | undefined) {
   return role === "team_admin" || role === "super_admin" || role === "admin";
 }
+
+/** Platform operators who use `/internal/` instead of the customer workspace. */
+export function isPlatformOperatorRole(role: GlobalUserRole | undefined) {
+  return role === "super_admin" || role === "admin";
+}

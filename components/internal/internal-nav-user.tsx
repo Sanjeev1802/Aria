@@ -73,7 +73,7 @@ export function InternalNavUser({
               onClick={() => void onSignOut()}
             >
               <LogOut className="size-4" aria-hidden />
-              Log out
+              Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

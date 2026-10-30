@@ -11,14 +11,14 @@ import type { AriaWorkspacePath } from "@/lib/aria-workspace-paths";
 import { openAriaOpenUISidebar } from "@/lib/aria-openui-sidebar-open";
 import {
   ChevronRight,
-  LayoutDashboard,
   LifeBuoy,
   LogOut,
   Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ariaSignOut, useAriaSession } from "@/lib/aria-session";
+import { SignOutConfirmDialog } from "@/components/auth/sign-out-confirm-dialog";
+import { ariaSignOut } from "@/lib/aria-session";
 
 export type AriaOpenUISidebarUserProps = {
   name: string;
@@ -106,12 +106,24 @@ export function AriaOpenUISidebarUser({
   };
   const collapsed = useSidebarCollapsed();
   const [open, setOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signOutPending, setSignOutPending] = useState(false);
   const router = useRouter();
   const isHeader = placement === "header";
-  // The server only sends `operator` to internal operators, so customers never see the entry.
-  const isOperator = Boolean(useAriaSession().operator);
+
+  const handleSignOut = async () => {
+    setSignOutPending(true);
+    try {
+      await ariaSignOut();
+      router.push("/sign-in/");
+    } finally {
+      setSignOutPending(false);
+      setSignOutOpen(false);
+    }
+  };
 
   return (
+    <>
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <div
         className={isHeader ? "aria-openui-account" : "aria-openui-sidebar-user"}
@@ -158,7 +170,10 @@ export function AriaOpenUISidebarUser({
 
           <DropdownMenuItem
             className="aria-openui-sidebar-user-menu__item"
-            onSelect={() => go("pricing")}
+            onSelect={() => {
+              setOpen(false);
+              router.push("/pricing/");
+            }}
           >
             <Sparkles size={18} strokeWidth={1.75} aria-hidden />
             Upgrade plan
@@ -166,33 +181,32 @@ export function AriaOpenUISidebarUser({
 
           <DropdownMenuSeparator className="aria-openui-sidebar-user-menu__sep" />
 
-          {isOperator ? (
-            <DropdownMenuItem
-              className="aria-openui-sidebar-user-menu__item"
-              onSelect={() => router.push("/internal/")}
-            >
-              <LayoutDashboard size={18} strokeWidth={1.75} aria-hidden />
-              Internal dashboard
-            </DropdownMenuItem>
-          ) : null}
           <DropdownMenuItem
             className="aria-openui-sidebar-user-menu__item"
-            onSelect={() => go("help")}
+            onSelect={() => {
+              setOpen(false);
+              router.push("/help/");
+            }}
           >
             <LifeBuoy size={18} strokeWidth={1.75} aria-hidden />
             Help
           </DropdownMenuItem>
           <DropdownMenuItem
             className="aria-openui-sidebar-user-menu__item"
-            onSelect={() => {
-              void ariaSignOut().finally(() => router.push("/sign-in/"));
-            }}
+            onSelect={() => setSignOutOpen(true)}
           >
             <LogOut size={18} strokeWidth={1.75} aria-hidden />
-            Log out everywhere
+            Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>
       </div>
     </DropdownMenu>
+    <SignOutConfirmDialog
+      open={signOutOpen}
+      onOpenChange={setSignOutOpen}
+      onConfirm={handleSignOut}
+      pending={signOutPending}
+    />
+    </>
   );
 }

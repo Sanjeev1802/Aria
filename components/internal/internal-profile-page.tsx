@@ -102,14 +102,14 @@ export function InternalProfilePage({
   const staffNav: { id: StaffProfileSection | "logout"; label: string; icon: typeof UserRound }[] = [
     { id: "personal", label: "Personal information", icon: UserRound },
     { id: "login", label: "Login & password", icon: KeyRound },
-    { id: "logout", label: "Log out", icon: LogOutIcon },
+    { id: "logout", label: "Sign out", icon: LogOutIcon },
   ];
 
   const superNav: { id: SuperAdminProfileSection | "logout"; label: string; icon: typeof UserRound }[] = [
     { id: "overview", label: "Overview", icon: UserRound },
     { id: "personal", label: "Personal information", icon: Sparkles },
     { id: "login", label: "Login & password", icon: KeyRound },
-    { id: "logout", label: "Log out", icon: LogOutIcon },
+    { id: "logout", label: "Sign out", icon: LogOutIcon },
   ];
 
   function onStaffNav(id: StaffProfileSection | "logout") {

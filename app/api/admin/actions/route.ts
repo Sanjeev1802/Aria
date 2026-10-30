@@ -1,11 +1,11 @@
-import { assertAdminActionAllowed, executeAdminAction, parseAdminAction, requireInternalAdmin } from "@/lib/server/admin";
+import { assertAdminActionAllowed, executeAdminAction, parseAdminAction, requireInternalConsoleAdmin } from "@/lib/server/admin";
 import { readJson, run } from "@/lib/server/handlers";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   return run(request, async (req, services) => {
-    const { user, internalRole, internalCanEdit } = await requireInternalAdmin(req, services);
+    const { user, internalRole, internalCanEdit } = await requireInternalConsoleAdmin(req, services);
     const action = parseAdminAction(await readJson(req, 2_000));
     assertAdminActionAllowed(internalRole, action.type, internalCanEdit);
     return Response.json(await executeAdminAction(services, user.id, action),

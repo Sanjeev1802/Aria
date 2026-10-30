@@ -20,7 +20,6 @@ export function InternalSettingsPage({
   colorScheme,
   onColorSchemeChange,
   onOpenProfile,
-  onOpenAdmin,
   isSuperAdmin,
   initialSection,
   onViewAllActivity,
@@ -32,7 +31,6 @@ export function InternalSettingsPage({
   colorScheme: InternalColorScheme;
   onColorSchemeChange: (scheme: InternalColorScheme) => void;
   onOpenProfile: () => void;
-  onOpenAdmin?: () => void;
   isSuperAdmin?: boolean;
   initialSection?: InternalSettingsSectionId;
   onViewAllActivity?: () => void;
@@ -124,7 +122,6 @@ export function InternalSettingsPage({
               onColorSchemeChange={onColorSchemeChange}
               isSuperAdmin={superAdmin}
               onOpenProfile={onOpenProfile}
-              onOpenAdmin={onOpenAdmin}
               onViewAllActivity={onViewAllActivity}
               onNavigatePlatform={onNavigatePlatform}
             />

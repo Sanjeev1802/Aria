@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, ExternalLink, LayoutDashboard, ShieldCheck, Users, Wallet } from "lucide-react";
+import { Activity, LayoutDashboard, ShieldCheck, Users, Wallet } from "lucide-react";
 import { AriaMark } from "@/components/aria-mark";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader,
@@ -65,9 +65,6 @@ export function InternalSidebar({ section, onSectionChange, operator }: {
           <small title={operator?.email || ""}>{operator?.email || "Loading account…"}</small>
         </div>
       </div>
-      <SidebarMenu><SidebarMenuItem><SidebarMenuButton asChild tooltip="Return to ARIA">
-        <a href="/chat/"><ExternalLink /><span>Return to ARIA</span></a>
-      </SidebarMenuButton></SidebarMenuItem></SidebarMenu>
     </SidebarFooter>
   </Sidebar>;
 }

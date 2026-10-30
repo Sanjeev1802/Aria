@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ARIA_IS_PREVIEW, refreshAriaSession } from "@/lib/aria-session";
+import { resolvePostSignInPath } from "@/lib/auth/post-sign-in-destination";
 
 const STEPS = ["Verifying your session", "Loading your workspace", "Opening ARIA"] as const;
 
@@ -19,6 +20,7 @@ const SESSION_KEY = "aria-preview-session";
 
 type Props = {
   intent: "sign-in" | "sign-up";
+  /** Hint from `?next=`; final path depends on operator vs customer session. */
   destination?: string;
   onFinished?: () => void;
 };
@@ -51,6 +53,8 @@ export function WorkspaceBootstrapOverlay({ intent, destination = "/chat/", onFi
   const [done, setDone] = useState(0);
   const [exiting, setExiting] = useState(false);
   const isSignIn = intent === "sign-in";
+  const destinationRef = useRef(destination);
+  destinationRef.current = destination;
   // Callers pass inline callbacks; keep the sequence from restarting on every render.
   const onFinishedRef = useRef(onFinished);
   useEffect(() => { onFinishedRef.current = onFinished; });
@@ -58,9 +62,15 @@ export function WorkspaceBootstrapOverlay({ intent, destination = "/chat/", onFi
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      router.prefetch(destination);
       if (ARIA_IS_PREVIEW) markPreviewSession();
-      await Promise.all([ARIA_IS_PREVIEW ? undefined : refreshAriaSession({ force: true }), wait(STEP_MS)]);
+      const session = ARIA_IS_PREVIEW
+        ? undefined
+        : await refreshAriaSession({ force: true });
+      const target = session
+        ? resolvePostSignInPath(session, destinationRef.current)
+        : destinationRef.current;
+      router.prefetch(target);
+      await wait(STEP_MS);
       if (cancelled) return;
       setDone(1);
       await wait(STEP_MS);
@@ -73,10 +83,10 @@ export function WorkspaceBootstrapOverlay({ intent, destination = "/chat/", onFi
       await wait(EXIT_MS);
       if (cancelled) return;
       onFinishedRef.current?.();
-      router.push(destination);
+      router.push(target);
     })();
     return () => { cancelled = true; };
-  }, [destination, router]);
+  }, [router]);
 
   return (
     <div

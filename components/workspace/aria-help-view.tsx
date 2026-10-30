@@ -3,7 +3,10 @@
 import { AriaWorkspaceOverlay } from "@/components/workspace/aria-workspace-overlay";
 import { cn } from "@/lib/utils";
 import { useNav } from "@openuidev/react-ui";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
+  ArrowLeft,
   CreditCard,
   Keyboard,
   LifeBuoy,
@@ -78,7 +81,7 @@ const TOPICS: HelpTopic[] = [
     sections: [
       {
         heading: "The three plans",
-        body: "Upgrade plan, in the account menu, compares Free, Pro, and Max. Max is the Team workspace plan, with a shared credit pool and seats.",
+        body: "Upgrade plan in the account menu opens the full pricing page at /pricing/, where you can compare Free, Pro, and Max. Max is the Team workspace plan, with a shared credit pool and seats.",
       },
       {
         heading: "Your current plan",
@@ -150,12 +153,107 @@ function topicMatches(topic: HelpTopic, query: string) {
   return haystack.includes(query);
 }
 
+function HelpContent({
+  query,
+  setQuery,
+  visible,
+  active,
+  activeId,
+  setActiveId,
+}: {
+  query: string;
+  setQuery: (value: string) => void;
+  visible: HelpTopic[];
+  active: HelpTopic | undefined;
+  activeId: string;
+  setActiveId: (id: string) => void;
+}) {
+  return (
+    <div className="aria-help">
+      <header className="aria-help__header">
+        <div className="aria-help__intro">
+          <LifeBuoy className="aria-help__mark" size={22} strokeWidth={1.75} aria-hidden />
+          <div>
+            <h1 className="aria-help__title">Help</h1>
+            <p className="aria-help__lede">Guides for chat, credits, plans, and the workspace.</p>
+          </div>
+        </div>
+        <label className="aria-help__search">
+          <Search className="aria-help__search-icon" size={16} strokeWidth={1.75} aria-hidden />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search help"
+            aria-label="Search help"
+          />
+        </label>
+      </header>
+
+      {visible.length === 0 || !active ? (
+        <p className="aria-help__empty">No topics match that search.</p>
+      ) : (
+        <div className="aria-help__body">
+          <nav className="aria-help__nav" aria-label="Help topics">
+            {visible.map((topic) => {
+              const Icon = topic.icon;
+              const selected = topic.id === active.id;
+              return (
+                <button
+                  key={topic.id}
+                  type="button"
+                  className={cn("aria-help__topic", selected && "aria-help__topic--active")}
+                  aria-current={selected ? "page" : undefined}
+                  onClick={() => setActiveId(topic.id)}
+                >
+                  <Icon size={16} strokeWidth={1.75} aria-hidden />
+                  <span>
+                    <span className="aria-help__topic-label">{topic.label}</span>
+                    <span className="aria-help__topic-summary">{topic.summary}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+
+          <article className="aria-help__article" aria-labelledby="aria-help-article-title">
+            <h2 id="aria-help-article-title">{active.label}</h2>
+            <p className="aria-help__article-summary">{active.summary}</p>
+            {active.sections.map((section) => (
+              <section key={section.heading}>
+                <h3>{section.heading}</h3>
+                <p>{section.body}</p>
+              </section>
+            ))}
+            {active.shortcuts ? (
+              <ul className="aria-help__shortcuts">
+                {active.shortcuts.map((shortcut) => (
+                  <li key={shortcut.label}>
+                    <span>{shortcut.label}</span>
+                    <span className="aria-help__keys">
+                      {shortcut.keys.map((key) => (
+                        <kbd key={key}>{key}</kbd>
+                      ))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </article>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AriaHelpView() {
+  const pathname = usePathname();
+  const isDedicatedPage = pathname.startsWith("/help");
   const { navigate } = useNav();
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState(TOPICS[0].id);
   const normalized = query.trim().toLowerCase();
-  const close = useCallback(() => navigate(undefined), [navigate]);
+  const closeOverlay = useCallback(() => navigate(undefined), [navigate]);
 
   const visible = useMemo(
     () => TOPICS.filter((topic) => topicMatches(topic, normalized)),
@@ -164,82 +262,36 @@ export function AriaHelpView() {
 
   const active = visible.find((topic) => topic.id === activeId) ?? visible[0];
 
-  return (
-    <AriaWorkspaceOverlay label="Help" onClose={close} className="aria-overlay-dialog">
-        <div className="aria-help">
-        <header className="aria-help__header">
-          <div className="aria-help__intro">
-            <LifeBuoy className="aria-help__mark" size={22} strokeWidth={1.75} aria-hidden />
-            <div>
-              <h1 className="aria-help__title">Help</h1>
-              <p className="aria-help__lede">Guides for chat, credits, plans, and the workspace.</p>
-            </div>
-          </div>
-          <label className="aria-help__search">
-            <Search className="aria-help__search-icon" size={16} strokeWidth={1.75} aria-hidden />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search help"
-              aria-label="Search help"
-            />
-          </label>
-        </header>
+  const content = (
+    <HelpContent
+      query={query}
+      setQuery={setQuery}
+      visible={visible}
+      active={active}
+      activeId={activeId}
+      setActiveId={setActiveId}
+    />
+  );
 
-        {visible.length === 0 || !active ? (
-          <p className="aria-help__empty">No topics match that search.</p>
-        ) : (
-          <div className="aria-help__body">
-            <nav className="aria-help__nav" aria-label="Help topics">
-              {visible.map((topic) => {
-                const Icon = topic.icon;
-                const selected = topic.id === active.id;
-                return (
-                  <button
-                    key={topic.id}
-                    type="button"
-                    className={cn("aria-help__topic", selected && "aria-help__topic--active")}
-                    aria-current={selected ? "page" : undefined}
-                    onClick={() => setActiveId(topic.id)}
-                  >
-                    <Icon size={16} strokeWidth={1.75} aria-hidden />
-                    <span>
-                      <span className="aria-help__topic-label">{topic.label}</span>
-                      <span className="aria-help__topic-summary">{topic.summary}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </nav>
-
-            <article className="aria-help__article" aria-labelledby="aria-help-article-title">
-              <h2 id="aria-help-article-title">{active.label}</h2>
-              <p className="aria-help__article-summary">{active.summary}</p>
-              {active.sections.map((section) => (
-                <section key={section.heading}>
-                  <h3>{section.heading}</h3>
-                  <p>{section.body}</p>
-                </section>
-              ))}
-              {active.shortcuts ? (
-                <ul className="aria-help__shortcuts">
-                  {active.shortcuts.map((shortcut) => (
-                    <li key={shortcut.label}>
-                      <span>{shortcut.label}</span>
-                      <span className="aria-help__keys">
-                        {shortcut.keys.map((key) => (
-                          <kbd key={key}>{key}</kbd>
-                        ))}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </article>
-          </div>
-        )}
+  if (isDedicatedPage) {
+    return (
+      <div className="aria-workspace-panel aria-workspace-panel--help" role="main" aria-label="Help">
+        <div className="aria-help-page__toolbar">
+          <Link href="/chat/" className="aria-help-page__back">
+            <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
+            Back to chat
+          </Link>
         </div>
+        <div className="aria-workspace-panel__scroll aria-help__scroll">
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AriaWorkspaceOverlay label="Help" onClose={closeOverlay} className="aria-overlay-dialog">
+      {content}
     </AriaWorkspaceOverlay>
   );
 }

@@ -1,3 +1,52 @@
+/* Help workspace panel (full page at /help/) */
+.aria-openui-chat .openui-agent-thread-container:has(.aria-workspace-panel--help) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: oklch(0.1 0 0);
+}
+
+.aria-openui-chat .openui-agent-thread-container:has(.aria-workspace-panel--help) > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.aria-workspace-panel--help .aria-help__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.aria-help-page__toolbar {
+  flex-shrink: 0;
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 16px 24px 0;
+}
+
+.aria-help-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: oklch(0.72 0.02 260);
+  text-decoration: none;
+}
+
+.aria-help-page__back:hover {
+  color: oklch(0.92 0.01 260);
+}
+
+.aria-workspace-panel--help .aria-help__header {
+  padding-top: 8px;
+}
+
 .aria-help {
   display: flex;
   flex-direction: column;

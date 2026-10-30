@@ -1,11 +1,6 @@
-import type { Metadata } from "next";
-import { InternalSignIn } from "@/components/internal/internal-sign-in";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Operator sign in — ARIA Internal",
-  description: "Restricted sign in for authorized ARIA operators.",
-};
-
+/** Single customer sign-in; operators are routed to `/internal/` after auth. */
 export default function InternalSignInPage() {
-  return <InternalSignIn />;
+  redirect("/sign-in/?next=%2Finternal%2F");
 }

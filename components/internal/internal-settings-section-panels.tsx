@@ -42,7 +42,6 @@ export type InternalSettingsPanelProps = {
   onColorSchemeChange: (scheme: InternalColorScheme) => void;
   isSuperAdmin: boolean;
   onOpenProfile: () => void;
-  onOpenAdmin?: () => void;
   onViewAllActivity?: () => void;
   onNavigatePlatform?: (section: InternalSection) => void;
 };
@@ -189,11 +188,6 @@ export function InternalSettingsSectionPanel(props: InternalSettingsPanelProps) 
             <RoleMatrixRow key={row.label} label={row.label} allowed={row.roles[teamRoleOf(props.operatorRole)] === true} />
           ))}
         </div>
-        {props.isSuperAdmin && props.onOpenAdmin ? (
-          <InternalSettingsGroup title="Super admin">
-            <InternalSettingsRow label="Admin hub" hint="Operational shortcuts" onClick={props.onOpenAdmin} />
-          </InternalSettingsGroup>
-        ) : null}
       </div>
     );
   }

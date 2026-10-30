@@ -8,6 +8,7 @@ import { claudeConfigured, DEFAULT_CLAUDE_MODEL } from "./claude-config";
 import { readModelUsage, type ModelProvider } from "./model-usage";
 import { internalAuditReasonForSource, INTERNAL_AUDIT_SOURCE_AI_ACCESS } from "@/lib/internal-audit-copy";
 import { isLocalDevFixtureUserId } from "@/lib/local-user-shared";
+import { isPlatformOperatorRole, type GlobalUserRole } from "./users/types";
 
 const auditKey = (id: string) => ({ pk: "ADMIN#AUDIT", sk: `ACTION#${id}` });
 const validId = (value: unknown) => typeof value === "string" && /^[\w:.-]{1,128}$/.test(value);
@@ -42,6 +43,12 @@ export type InternalAccess = { role: InternalRole; canEdit: boolean };
 /** Full edit access: super admins always, admins only when a super admin turned it on. */
 export const hasFullAccess = (role: InternalRole, canEdit: boolean) => role === "super_admin" || (role === "admin" && canEdit);
 
+/** Internal console UI and overview API: super admins and admins only (not billing/support/member operators). */
+export function mayUseInternalConsole(internalRole: InternalRole | undefined, globalRole?: GlobalUserRole) {
+  if (internalRole === "super_admin" || internalRole === "admin") return true;
+  return globalRole === "super_admin" || globalRole === "admin";
+}
+
 /**
  * The operator role and edit access for an authenticated user, or undefined for customers.
  * Order: configured super admins and scoped roles, development-only allowlists,
@@ -51,6 +58,11 @@ export async function resolveInternalAccess(services: Services, auth: Authentica
   const localPreview = services.config.environment === "development" && services.config.localIdentity &&
     services.config.adminLocalDev && auth.user.id === "local-alex";
   let role: InternalRole | undefined = localPreview ? "super_admin" : subjectRole(services, auth.user.id);
+  if (!role) {
+    const globalRole = await services.directory.globalRole(auth.user.id);
+    if (globalRole === "super_admin") role = "super_admin";
+    else if (isPlatformOperatorRole(globalRole)) role = "admin";
+  }
   if (!role && services.config.environment === "development" && services.config.adminLocalDev &&
     auth.identity.emailVerified) {
     const email = auth.user.email.trim().toLowerCase();
@@ -71,7 +83,12 @@ export async function resolveInternalAccess(services: Services, auth: Authentica
       }
     }
   }
-  if (role) return { role, canEdit: role === "super_admin" };
+  if (role) {
+    if (role === "super_admin") return { role, canEdit: true };
+    const globalRole = await services.directory.globalRole(auth.user.id);
+    if (role === "admin" && globalRole === "admin") return { role, canEdit: true };
+    return { role, canEdit: false };
+  }
   if (auth.identity.emailVerified) {
     const grant = await services.store.get(operatorKey(auth.user.email.trim().toLowerCase()));
     if (grant && (GRANTABLE_ROLES as readonly string[]).includes(String(grant.role))) {
@@ -97,6 +114,15 @@ export async function requireInternalAdmin(request: Request, services: Services)
     throw new ServiceError("admin_access_denied", 403);
   }
   return { ...auth, internalRole: access.role, internalCanEdit: access.canEdit };
+}
+
+export async function requireInternalConsoleAdmin(request: Request, services: Services) {
+  const auth = await requireInternalAdmin(request, services);
+  const globalRole = await services.directory.globalRole(auth.user.id);
+  if (!mayUseInternalConsole(auth.internalRole, globalRole)) {
+    throw new ServiceError("admin_access_denied", 403);
+  }
+  return auth;
 }
 
 export function assertAdminActionAllowed(role: InternalRole, type: AdminAction["type"], canEdit = false) {

@@ -94,8 +94,16 @@ function AriaOpenUIChatContent({ initialPath }: AriaOpenUIChatProps) {
   }
 
   const onNavigate = useCallback((next: string | undefined) => {
+    if (next === "pricing") {
+      router.push("/pricing/");
+      return;
+    }
+    if (next === "help") {
+      router.push("/help/");
+      return;
+    }
     setNavPath(next);
-  }, []);
+  }, [router]);
 
   useEffect(() => watchAndRemoveOpenUIDevtools(), []);
 

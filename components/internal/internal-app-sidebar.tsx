@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   Activity,
-  ExternalLink,
   LayoutDashboard,
   Settings,
   ShieldCheck,
@@ -111,16 +110,6 @@ export function InternalAppSidebar({
       </SidebarContent>
       <SidebarFooter className="p-3">
         <InternalNavUser operator={operator} onSectionChange={go} onSignOut={onSignOut} />
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Return to ARIA">
-              <a href="/chat/">
-                <ExternalLink aria-hidden />
-                <span>Return to ARIA</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

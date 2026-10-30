@@ -13,7 +13,7 @@ import { LOCAL_DEV_USER_LABELS, LOCAL_USER_COOKIE, resolveLocalUser } from "./lo
 import type { Rates } from "./metering";
 import { prepareThreadRun } from "./threads";
 import type { WebSearchProvider } from "./web-search";
-import { resolveInternalAccess } from "./admin";
+import { mayUseInternalConsole, resolveInternalAccess } from "./admin";
 
 export type ChatDeps = {
   provider: StreamProvider;
@@ -104,8 +104,12 @@ export async function sessionHandler(request: Request, s: Services) {
   const workspaces = await s.directory.listWorkspaces(ctx.user.id);
   const local = s.config.localIdentity ? resolveLocalUser(request) : undefined;
   const operatorAccess = await resolveInternalAccess(s, ctx);
+  const globalRole = await s.directory.globalRole(ctx.user.id);
+  const operator = operatorAccess && mayUseInternalConsole(operatorAccess.role, globalRole)
+    ? { role: operatorAccess.role, canEdit: operatorAccess.canEdit }
+    : undefined;
   return json({
-    operator: operatorAccess ? { role: operatorAccess.role, canEdit: operatorAccess.canEdit } : undefined,
+    operator,
     environment: s.config.environment,
     liveChat: s.config.liveChat || s.config.localIdentity,
     localDev: Boolean(s.config.localIdentity),
@@ -114,7 +118,7 @@ export async function sessionHandler(request: Request, s: Services) {
     localUsers: s.config.localIdentity ? LOCAL_DEV_USER_LABELS : undefined,
     user: { id: ctx.user.id, email: ctx.user.email, name: ctx.user.name, avatar: await s.directory.getAvatar(ctx.user.id),
       aiAccessSuspended: ctx.user.aiAccessSuspended,
-      globalRole: await s.directory.globalRole(ctx.user.id) },
+      globalRole },
     workspace: { id: ctx.workspace.id, name: ctx.workspace.name, plan: ctx.plan.id, planLabel: ctx.plan.label,
       role: ctx.membership.role, seatLimit: ctx.workspace.seatLimit, seatsUsed: ctx.workspace.seatsUsed },
     entitlements: { models: ctx.plan.models, apiAccess: ctx.plan.apiAccess, teamManagement: ctx.plan.teamManagement,

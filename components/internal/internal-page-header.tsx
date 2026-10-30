@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -60,12 +59,6 @@ export function InternalPageHeader({
             {internalRoleLabel(role)}
           </Badge>
         ) : null}
-        <Button variant="ghost" size="sm" className="h-8 gap-1.5" asChild>
-          <Link href="/chat/">
-            Return to ARIA
-            <ExternalLink className="size-3.5" aria-hidden />
-          </Link>
-        </Button>
       </div>
     </header>
   );

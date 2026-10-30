@@ -39,6 +39,28 @@
   width: 100%;
 }
 
+.aria-pricing-page__toolbar {
+  flex-shrink: 0;
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 16px 24px 0;
+}
+
+.aria-pricing-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: oklch(0.72 0.02 260);
+  text-decoration: none;
+}
+
+.aria-pricing-page__back:hover {
+  color: oklch(0.92 0.01 260);
+}
+
 .aria-pricing-dialog .aria-pricing__page-head {
   margin-bottom: 20px;
   padding-right: 36px;
