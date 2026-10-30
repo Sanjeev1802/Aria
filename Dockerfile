@@ -10,6 +10,9 @@ RUN npm ci
 FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+# Baked into the client bundle for encrypted sign-in POST bodies (must match ARIA_AUTH_PAYLOAD_KEY at runtime).
+ARG NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY
+ENV NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY=$NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

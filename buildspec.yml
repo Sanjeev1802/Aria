@@ -1,12 +1,14 @@
 version: 0.2
 
 # Used by the aria-dev CodePipeline (CodeBuild project aria-build-dev).
-# Runtime configuration comes from the ECS task definition, not from the build.
+# Runtime: ECS task sets ARIA_AUTH_PAYLOAD_KEY (same value as the build arg below).
 env:
   variables:
     AWS_DEFAULT_REGION: ap-southeast-1
     IMAGE_REPO_NAME: aria
     CONTAINER_NAME: aria
+  secrets-manager:
+    NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY: aria/dev/auth-payload:NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY::
 
 phases:
   pre_build:
@@ -15,9 +17,13 @@ phases:
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:-latest}
       - REPO_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+      - |
+        if ! grep -q 'NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY' Dockerfile; then
+          sed -i '/ENV NEXT_TELEMETRY_DISABLED=1/a ARG NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY\nENV NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY=$NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY' Dockerfile
+        fi
   build:
     commands:
-      - docker build -t $REPO_URI:$IMAGE_TAG -t $REPO_URI:latest .
+      - docker build --build-arg NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY="$NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY" -t $REPO_URI:$IMAGE_TAG -t $REPO_URI:latest .
   post_build:
     commands:
       - docker push $REPO_URI:$IMAGE_TAG

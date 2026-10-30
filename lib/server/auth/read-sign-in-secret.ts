@@ -19,7 +19,8 @@ export function requireLocalCredential(body: Record<string, unknown>, email: str
 }
 
 export function requireCognitoPassword(body: Record<string, unknown>, email: string) {
-  const { password } = readSignInSecrets(body, email);
+  const { credential, password } = readSignInSecrets(body, email);
   if (password) return password;
+  if (credential) throw new ServiceError("auth_payload_not_configured", 503);
   throw new ServiceError("invalid_credentials", 401);
 }
