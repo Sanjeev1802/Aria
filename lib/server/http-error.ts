@@ -83,7 +83,13 @@ const messages: Record<string,string> = {
 export function errorResponse(error: unknown, extraHeaders: Record<string, string> = {}) {
   const code = error instanceof ServiceError ? error.code : "service_unavailable";
   if (!(error instanceof ServiceError)) {
-    console.error(JSON.stringify({ level: "error", event: "unhandled_error", name: (error as Error)?.name }));
+    const err = error as Error;
+    console.error(JSON.stringify({
+      level: "error",
+      event: "unhandled_error",
+      name: err?.name,
+      message: err?.message?.slice(0, 500),
+    }));
   }
   return Response.json({ code, message: messages[code] ?? "The request could not be processed." },
     { status: error instanceof ServiceError ? error.status : 503, headers: { "Cache-Control": "no-store", ...extraHeaders } });

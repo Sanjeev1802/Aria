@@ -1,3 +1,4 @@
+import { ServiceError } from "../errors";
 import type { IndexName, Item, Key, Store, Write } from "./types";
 import { PgStore } from "./pg-store";
 import { SqliteStore } from "./sqlite-store";
@@ -18,11 +19,11 @@ export class LazyPgStore implements Store {
           return pg;
         } catch {
           if (sqliteFallbackPath) return new SqliteStore(sqliteFallbackPath);
-          throw new Error("ARIA database is unreachable and no local SQLite fallback is configured");
+          throw new ServiceError("service_unavailable", 503);
         }
       }
       if (sqliteFallbackPath) return new SqliteStore(sqliteFallbackPath);
-      throw new Error("Set ARIA_DATABASE_URL or ARIA_DATABASE_SECRET_ARN for the ledger store");
+      throw new ServiceError("live_service_not_configured", 503);
     });
   }
 
