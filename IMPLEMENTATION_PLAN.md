@@ -6,7 +6,7 @@ Updated: 2026-10-20. This document describes the actual repository and takes pre
 
 Build a Next.js chat application using Amazon Nova through Amazon Bedrock, with server-authoritative usage accounting, Free/Pro/Team subscriptions, authorized business intelligence, and paid developer API access.
 
-**The application is not production complete.** Identity (Cognito), workspace authorization, server-owned entitlements, and a shared DynamoDB ledger are implemented and locally tested, but have not run against real AWS. Production chat returns 503 unless Cognito, the DynamoDB table, `ARIA_APP_ORIGIN`, and the operator switch `ARIA_LIVE_CHAT=enabled` are all configured. Enable the switch only after the staging gate in `CODE_FIRST_PLAN.md` passes.
+**The application is not production complete.** Identity (Cognito), workspace authorization, server-owned entitlements, and a shared Aurora PostgreSQL ledger are implemented and locally tested, but have not run against real AWS. Production chat returns 503 unless Cognito, Aurora (`ARIA_DATABASE_URL` or `ARIA_DATABASE_SECRET_ARN`), `ARIA_APP_ORIGIN`, and the operator switch `ARIA_LIVE_CHAT=enabled` are all configured. Enable the switch only after the staging gate in `CODE_FIRST_PLAN.md` passes.
 
 ### What Cursor already built
 

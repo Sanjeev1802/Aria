@@ -1,9 +1,12 @@
-/* Matches ARIA Internal `.internal-confirm` (console.css + style.css). */
+/* Sign-out confirm — opaque modal (portaled to body; do not use .internal-confirm). */
+
 .aria-sign-out-overlay {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgb(0 0 0 / 0.68);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .aria-sign-out-confirm {
@@ -11,25 +14,35 @@
   left: 50%;
   top: 50%;
   z-index: 61;
-  width: min(420px, calc(100vw - 32px));
+  width: min(400px, calc(100vw - 32px));
   transform: translate(-50%, -50%);
   padding: 24px;
   border-radius: 14px;
-  border: 1px solid var(--sso-line, #e8e8ec);
-  background: var(--sso-surface, #ffffff);
-  box-shadow: 0 10px 28px -10px rgba(16, 24, 40, 0.16), 0 3px 8px rgba(16, 24, 40, 0.06);
-  color: var(--sso-ink-0, #0b0b0f);
+  border: 1px solid #e8e8ec;
+  background: #ffffff;
+  box-shadow:
+    0 24px 48px rgb(0 0 0 / 0.18),
+    0 0 0 1px rgb(0 0 0 / 0.04);
+  color: #0b0b0f;
+  opacity: 1;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  outline: none;
+}
+
+.aria-sign-out-confirm:focus {
+  outline: none;
 }
 
 .aria-sign-out-confirm__icon {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   border-radius: 10px;
-  margin-bottom: 14px;
-  background: var(--sso-accent-soft, #eef0ff);
-  color: var(--sso-accent-ink, #3730a3);
+  margin-bottom: 16px;
+  background: #f4f4f6;
+  color: #52525b;
 }
 
 .aria-sign-out-confirm__title {
@@ -38,13 +51,14 @@
   letter-spacing: -0.02em;
   margin: 0 0 8px;
   line-height: 1.25;
+  color: inherit;
 }
 
 .aria-sign-out-confirm__description {
   font-size: 13px;
   line-height: 1.55;
-  color: var(--sso-ink-3, #71717a);
-  margin: 0 0 20px;
+  color: #71717a;
+  margin: 0 0 22px;
 }
 
 .aria-sign-out-confirm__actions {
@@ -52,63 +66,100 @@
   justify-content: flex-end;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
 }
 
-.aria-sign-out-confirm__actions button {
-  border: 1px solid var(--sso-line-strong, #d6d6dc);
-  background: var(--sso-surface-2, #f4f4f6);
-  color: var(--sso-ink-1, #26262c);
-  border-radius: 8px;
-  padding: 9px 14px;
+.aria-sign-out-confirm__cancel,
+.aria-sign-out-confirm__submit {
+  border: 1px solid #d6d6dc;
+  background: #f4f4f6;
+  color: #26262c;
+  border-radius: 9px;
+  padding: 9px 16px;
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
 }
 
-.aria-sign-out-confirm__actions button:last-child {
-  background: var(--sso-accent, #4f46e5);
-  color: #fff;
-  border-color: var(--sso-accent, #4f46e5);
+.aria-sign-out-confirm__submit {
+  background: #0b0b0f;
+  color: #ffffff;
+  border-color: #0b0b0f;
   font-weight: 600;
 }
 
-.aria-sign-out-confirm__actions button:disabled {
+.aria-sign-out-confirm__cancel:disabled,
+.aria-sign-out-confirm__submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-html[data-internal-theme="dark"] .aria-sign-out-confirm,
-.dark .aria-sign-out-confirm {
-  --sso-surface: #16171b;
-  --sso-surface-2: #1c1d22;
-  --sso-line: #26282e;
-  --sso-line-strong: #343741;
-  --sso-ink-0: #f6f6f8;
-  --sso-ink-1: #e4e4e8;
-  --sso-ink-3: #8b8b96;
-  --sso-accent: #8b93ff;
-  --sso-accent-soft: #23253f;
-  --sso-accent-ink: #c4c8ff;
+.aria-sign-out-confirm__cancel:hover:not(:disabled) {
+  background: #ebebed;
 }
 
-html[data-internal-theme="dark"] .aria-sign-out-confirm__actions button:last-child,
-.dark .aria-sign-out-confirm__actions button:last-child {
+.aria-sign-out-confirm__submit:hover:not(:disabled) {
+  background: #26262c;
+  border-color: #26262c;
+}
+
+/* Internal console (theme on html; dialog is portaled outside .internal-dashboard). */
+html[data-internal-theme] .aria-sign-out-overlay {
+  background: rgb(0 0 0 / 0.75);
+}
+
+html[data-internal-theme] .aria-sign-out-confirm {
+  background: #16171b;
+  border-color: #26282e;
+  color: #f6f6f8;
+  box-shadow:
+    0 28px 64px rgb(0 0 0 / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+html[data-internal-theme] .aria-sign-out-confirm__icon {
+  background: #1c1d22;
+  color: #b4b4bd;
+}
+
+html[data-internal-theme] .aria-sign-out-confirm__description {
+  color: #8b8b96;
+}
+
+html[data-internal-theme] .aria-sign-out-confirm__cancel {
+  background: #1c1d22;
+  color: #e4e4e8;
+  border-color: #343741;
+}
+
+html[data-internal-theme] .aria-sign-out-confirm__cancel:hover:not(:disabled) {
+  background: #222328;
+}
+
+html[data-internal-theme] .aria-sign-out-confirm__submit {
   background: #fafafa;
   color: #09090b;
   border-color: #fafafa;
 }
 
-.internal-dashboard .aria-sign-out-confirm {
-  --sso-surface: var(--c-surface);
-  --sso-surface-2: var(--c-surface-2);
-  --sso-line: var(--c-line);
-  --sso-line-strong: var(--c-line-strong);
-  --sso-ink-0: var(--c-ink-0);
-  --sso-ink-1: var(--c-ink-1);
-  --sso-ink-3: var(--c-ink-3);
-  --sso-accent: var(--c-accent);
-  --sso-accent-soft: var(--c-accent-soft);
-  --sso-accent-ink: var(--c-accent-ink);
+html[data-internal-theme] .aria-sign-out-confirm__submit:hover:not(:disabled) {
+  background: #e4e4e7;
+  border-color: #e4e4e7;
+}
+
+html[data-internal-theme="dark"] .aria-sign-out-confirm__submit {
+  background: #fafafa;
+  color: #09090b;
+}
+
+html[data-internal-theme="light"] .aria-sign-out-confirm {
+  background: #ffffff;
+  border-color: #e8e8ec;
+  color: #0b0b0f;
+}
+
+html[data-internal-theme="light"] .aria-sign-out-confirm__submit {
+  background: #09090b;
+  color: #fafafa;
+  border-color: #09090b;
 }

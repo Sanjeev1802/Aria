@@ -1,7 +1,7 @@
 /**
- * Minimal transactional key-value contract shared by the DynamoDB driver and the
+ * Minimal transactional key-value contract shared by the PostgreSQL/SQLite drivers and the
  * in-memory test driver. Conditions and updates are structured (not expression
- * strings) so both drivers enforce identical semantics.
+ * strings) so all drivers enforce identical semantics.
  */
 export type Scalar = string | number | boolean | null;
 export type Key = { pk: string; sk: string };

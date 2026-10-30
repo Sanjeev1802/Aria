@@ -107,7 +107,7 @@ export default function PrivacyPage() {
         <ul>
           <li>Amazon Cognito for sign-up, sign-in, confirmation, and password reset.</li>
           <li>Amazon Bedrock for model inference.</li>
-          <li>Amazon DynamoDB in production (or a local store in development) for accounts, chats, and the credit ledger.</li>
+          <li>Amazon Aurora PostgreSQL in production (or a local SQLite store in development) for accounts, roles, and the credit ledger.</li>
           <li>Transactional email (OneWave when configured) for Team invitation messages.</li>
         </ul>
         <p>

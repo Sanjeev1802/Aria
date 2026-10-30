@@ -1,7 +1,7 @@
 /**
- * Operator commands against the shared DynamoDB table. Uses the AWS SDK default
- * credential chain (e.g. `aws sso login`). Run with:
- *   ARIA_DYNAMODB_TABLE=aria-staging AWS_REGION=us-east-1 npx tsx scripts/aria-admin.ts <command> ...
+ * Operator commands against Aurora (store_items + users). Uses the AWS SDK default
+ * credential chain when loading ARIA_DATABASE_SECRET_ARN. Run with:
+ *   ARIA_DATABASE_URL='postgresql://...' npx tsx scripts/aria-admin.ts <command> ...
  *
  *   set-plan <workspaceId> <free|pro|team> <eventId>   Apply an entitlement (idempotent per eventId)
  *   reconcile [olderThanMinutes]                       Release holds left by crashed workers
@@ -12,12 +12,13 @@
 import { AccountDirectory } from "../lib/server/accounts/directory";
 import { isPlanId } from "../lib/server/accounts/entitlements";
 import { CreditLedger } from "../lib/server/accounting/credit-ledger";
-import { DynamoStore } from "../lib/server/store/dynamo-store";
+import { resolveDatabaseUrl } from "../lib/server/secrets/database-url";
+import { PgStore } from "../lib/server/store/pg-store";
 
 async function main() {
-  const table = process.env.ARIA_DYNAMODB_TABLE;
-  if (!table) throw new Error("Set ARIA_DYNAMODB_TABLE");
-  const store = new DynamoStore(table, { region: process.env.AWS_REGION, endpoint: process.env.ARIA_DYNAMODB_ENDPOINT });
+  const url = await resolveDatabaseUrl(process.env);
+  if (!url) throw new Error("Set ARIA_DATABASE_URL or ARIA_DATABASE_SECRET_ARN");
+  const store = new PgStore(url);
   const directory = new AccountDirectory(store);
   const ledger = new CreditLedger(store);
   const [command, ...args] = process.argv.slice(2);

@@ -5,7 +5,8 @@ import { cognitoVerifier, type IdentityVerifier } from "./auth/verifier";
 import { CognitoIdentityProvider, type IdentityProvider } from "./auth/cognito";
 import { LocalIdentityProvider } from "./auth/local-identity-provider";
 import { join } from "node:path";
-import { DynamoStore } from "./store/dynamo-store";
+import { LazyPgStore } from "./store/lazy-pg-store";
+import { PgStore } from "./store/pg-store";
 import { SqliteStore } from "./store/sqlite-store";
 import type { Store } from "./store/types";
 import { createOneWaveInviteSender, type TeamInviteSender } from "./email/onewave";
@@ -17,13 +18,11 @@ export type ServerConfig = {
   environment: "development" | "production";
   region: string;
   cognito?: { userPoolId: string; clientId: string; clientSecret?: string };
-  table?: string;
-  dynamoEndpoint?: string;
   /** Canonical public origin for CSRF checks; required in production. */
   appOrigin?: string;
   /** Development-only loopback identity. Never honored in production. */
   localIdentity: boolean;
-  /** SQLite path for development when no DynamoDB table is configured. */
+  /** SQLite path for development when Aurora is unreachable or unset. */
   localStorePath?: string;
   /**
    * Development-stage switch (ARIA_PLAN_SWITCHING=enabled): workspace owners may change
@@ -55,7 +54,7 @@ export type ServerConfig = {
   adminEmails?: string[];
   /** Base64 32-byte AES key for decrypting browser auth envelopes (server + NEXT_PUBLIC pair). */
   authPayloadKey?: string;
-  /** Aurora PostgreSQL connection string for global user roles. */
+  /** Aurora PostgreSQL connection string (ledger + global user roles). */
   databaseUrl?: string;
   /** Secrets Manager ARN holding `{ url }` or `{ username, password, host, port, dbname }`. */
   databaseSecretArn?: string;
@@ -72,6 +71,10 @@ export type Services = {
   inviteEmail?: TeamInviteSender;
 };
 
+function hasDatabaseConfig(config: ServerConfig) {
+  return Boolean(config.databaseUrl?.trim() || config.databaseSecretArn?.trim());
+}
+
 export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const environment = env.NODE_ENV === "development" ? "development" : "production";
   const pool = env.ARIA_COGNITO_USER_POOL_ID?.trim();
@@ -82,8 +85,6 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     environment,
     region: env.AWS_REGION || "us-east-1",
     cognito: pool && client ? { userPoolId: pool, clientId: client, clientSecret: env.ARIA_COGNITO_CLIENT_SECRET || undefined } : undefined,
-    table: env.ARIA_DYNAMODB_TABLE?.trim() || undefined,
-    dynamoEndpoint: environment === "development" ? env.ARIA_DYNAMODB_ENDPOINT || undefined : undefined,
     appOrigin: env.ARIA_APP_ORIGIN?.replace(/\/$/, "") || undefined,
     localIdentity,
     claudeWebSearchMaxUses: localIdentity || !env.ANTHROPIC_API_KEY?.trim() ? 0
@@ -127,10 +128,30 @@ function buildUserStore(config: ServerConfig, overrides?: UserStore): UserStore 
   });
 }
 
-/** Throws unless identity and a shared ledger are both configured for this environment. */
+let developmentStore: Store | undefined;
+
+function buildStore(config: ServerConfig, overrides?: Store): Store {
+  if (overrides) return overrides;
+  const sqliteFallback = config.environment === "development" ? config.localStorePath : undefined;
+  if (config.databaseUrl) return new PgStore(config.databaseUrl);
+  if (config.databaseSecretArn) {
+    return new LazyPgStore(
+      () => resolveDatabaseUrl({ ...process.env, ARIA_DATABASE_SECRET_ARN: config.databaseSecretArn }),
+      sqliteFallback,
+    );
+  }
+  if (config.environment === "development" && sqliteFallback) {
+    return developmentStore ??= new SqliteStore(sqliteFallback);
+  }
+  throw new ServiceError("live_service_not_configured", 503);
+}
+
+/** Throws unless identity and Aurora (or local SQLite in development) are configured. */
 export function assertAccountsConfigured(config: ServerConfig) {
   if (config.environment === "production") {
-    if (!config.cognito || !config.table || !config.appOrigin) throw new ServiceError("live_service_not_configured", 503);
+    if (!config.cognito || !hasDatabaseConfig(config) || !config.appOrigin) {
+      throw new ServiceError("live_service_not_configured", 503);
+    }
     return;
   }
   if (!config.cognito && !config.localIdentity) throw new ServiceError("live_service_not_configured", 503);
@@ -143,14 +164,8 @@ export function assertChatEnabled(config: ServerConfig) {
 }
 
 let cached: { key: string; services: Services } | undefined;
-let developmentStore: Store | undefined;
 export function buildServices(config: ServerConfig, overrides: Partial<Services> = {}): Services {
-  let store = overrides.store;
-  if (!store) {
-    if (config.table) store = new DynamoStore(config.table, { region: config.region, endpoint: config.dynamoEndpoint });
-    else if (config.environment === "development") store = developmentStore ??= new SqliteStore(config.localStorePath!);
-    else throw new ServiceError("live_service_not_configured", 503);
-  }
+  const store = overrides.store ?? buildStore(config);
   const userStore = buildUserStore(config, overrides.userStore);
   return {
     config, store, userStore,

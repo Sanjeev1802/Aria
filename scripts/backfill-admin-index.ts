@@ -1,45 +1,61 @@
-/** Add the internal-console GSI keys to accounts created before the console existed.
- * Dry run by default. Use `npm run admin:backfill -- --apply` after reviewing the count.
+/**
+ * Backfill missing gsi2 admin discovery keys on PROFILE and workspace META rows in Aurora.
+ *
+ *   ARIA_DATABASE_URL='...' npm run admin:backfill
+ *   ARIA_DATABASE_URL='...' npm run admin:backfill -- --apply
  */
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import pg from "pg";
+import { resolveDatabaseUrl } from "../lib/server/secrets/database-url";
 
 async function main() {
-  const table = process.env.ARIA_DYNAMODB_TABLE;
-  if (!table) throw new Error("Set ARIA_DYNAMODB_TABLE");
+  const url = await resolveDatabaseUrl(process.env);
+  if (!url) throw new Error("Set ARIA_DATABASE_URL or ARIA_DATABASE_SECRET_ARN");
   const apply = process.argv.includes("--apply");
-  const doc = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION }));
-  let cursor: Record<string, unknown> | undefined;
-  let found = 0;
-  let updated = 0;
-  do {
-    const page = await doc.send(new ScanCommand({ TableName: table, ExclusiveStartKey: cursor,
-      ProjectionExpression: "pk, sk, createdAt, gsi2pk",
-      FilterExpression: "(begins_with(pk, :user) AND sk = :profile) OR (begins_with(pk, :workspace) AND sk = :meta)",
-      ExpressionAttributeValues: { ":user": "USER#", ":profile": "PROFILE", ":workspace": "WS#", ":meta": "META" } }));
-    for (const row of page.Items ?? []) {
-      if (typeof row.pk !== "string" || typeof row.sk !== "string" || row.gsi2pk) continue;
-      const user = row.pk.startsWith("USER#") && row.sk === "PROFILE";
-      const workspace = row.pk.startsWith("WS#") && row.sk === "META";
-      if (!user && !workspace) continue;
-      found++;
-      if (!apply) continue;
-      const createdAt = Number.isSafeInteger(row.createdAt) ? row.createdAt : 0;
-      const pk = user ? "ADMIN#USERS" : "ADMIN#WORKSPACES";
-      const sk = `${String(createdAt).padStart(13, "0")}#${row.pk.slice(user ? 5 : 3)}`;
-      try {
-        await doc.send(new UpdateCommand({ TableName: table, Key: { pk: row.pk, sk: row.sk },
-          UpdateExpression: "SET gsi2pk = :indexPk, gsi2sk = :indexSk",
-          ConditionExpression: "attribute_exists(pk) AND attribute_not_exists(gsi2pk)",
-          ExpressionAttributeValues: { ":indexPk": pk, ":indexSk": sk } }));
-        updated++;
-      } catch (error) {
-        if ((error as Error).name !== "ConditionalCheckFailedException") throw error;
+  const pool = new pg.Pool({ connectionString: url });
+  try {
+    const profiles = await pool.query<{ pk: string; sk: string; data: Record<string, unknown> }>(
+      `SELECT pk, sk, data FROM store_items WHERE sk = 'PROFILE'`,
+    );
+    const workspaces = await pool.query<{ pk: string; sk: string; data: Record<string, unknown> }>(
+      `SELECT pk, sk, data FROM store_items WHERE sk = 'META' AND pk LIKE 'WS#%'`,
+    );
+    let profileUpdates = 0;
+    let workspaceUpdates = 0;
+    for (const row of profiles.rows) {
+      if (row.data.gsi2pk === "ADMIN#USERS") continue;
+      profileUpdates++;
+      if (apply) {
+        const createdAt = Number(row.data.createdAt ?? Date.now());
+        const sub = row.pk.replace(/^USER#/, "");
+        const gsi2sk = `${String(createdAt).padStart(13, "0")}#${sub}`;
+        const next = { ...row.data, gsi2pk: "ADMIN#USERS", gsi2sk };
+        await pool.query(
+          `UPDATE store_items SET data = $3::jsonb, gsi2pk = $4, gsi2sk = $5 WHERE pk = $1 AND sk = $2`,
+          [row.pk, row.sk, JSON.stringify(next), "ADMIN#USERS", gsi2sk],
+        );
       }
     }
-    cursor = page.LastEvaluatedKey;
-  } while (cursor);
-  console.log(JSON.stringify({ mode: apply ? "applied" : "dry-run", eligible: found, updated }));
+    for (const row of workspaces.rows) {
+      if (row.data.gsi2pk === "ADMIN#WORKSPACES") continue;
+      workspaceUpdates++;
+      if (apply) {
+        const createdAt = Number(row.data.createdAt ?? Date.now());
+        const workspaceId = String(row.data.workspaceId ?? row.pk.replace(/^WS#/, ""));
+        const gsi2sk = `${String(createdAt).padStart(13, "0")}#${workspaceId}`;
+        const next = { ...row.data, gsi2pk: "ADMIN#WORKSPACES", gsi2sk };
+        await pool.query(
+          `UPDATE store_items SET data = $3::jsonb, gsi2pk = $4, gsi2sk = $5 WHERE pk = $1 AND sk = $2`,
+          [row.pk, row.sk, JSON.stringify(next), "ADMIN#WORKSPACES", gsi2sk],
+        );
+      }
+    }
+    console.log({ apply, profileUpdates, workspaceUpdates });
+  } finally {
+    await pool.end();
+  }
 }
 
-main().catch(error => { console.error(error instanceof Error ? error.message : error); process.exit(1); });
+main().catch(error => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+});

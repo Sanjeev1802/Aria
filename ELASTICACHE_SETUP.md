@@ -5,7 +5,7 @@ ARIA can use ElastiCache Serverless for Valkey or Redis OSS in two ways:
 1. **Public SearXNG search** — results cached for **120 seconds** under `aria:public-search:v1:*`.
 2. **Repeat chat questions** — first-turn answers cached for **30 days** under `aria:chat-response:v1:*` (SHA-256 key; no raw prompt stored). Greetings such as hi, hello, and how are you are also pre-warmed at startup. Time-sensitive questions stay on built-in replies, not the cache.
 
-Sessions, workspace membership, credit balances, and rate-limit counters remain in DynamoDB. Only shareable FAQ-style answers are cached; multi-turn threads and web-search turns always call the model (or search) live.
+Sessions, workspace membership, credit balances, and rate-limit counters remain in Aurora PostgreSQL (`store_items`). Only shareable FAQ-style answers are cached; multi-turn threads and web-search turns always call the model (or search) live.
 
 This integration is optional. Leave `ARIA_ELASTICACHE_URL` unset until search traffic justifies a cache. ElastiCache Serverless charges for stored data and processing, with a minimum of 1 GB of metered storage per cache; compare its actual cost with the latency and load of running SearXNG directly before enabling it for a small deployment. See [AWS's ElastiCache pricing dimensions](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.corecomponents.html).
 
@@ -33,7 +33,7 @@ The stack incurs AWS charges while it exists, even with little traffic. Inspect 
 
 1. In the ARIA runtime network, verify TLS connectivity and that the RBAC user can `GET` and `SETEX` disposable keys under `aria:public-search:v1:*` and `aria:chat-response:v1:*`.
 2. With Web search enabled, ask the same public question twice within 120 seconds; the second request should avoid a SearXNG fetch. Check the cache hit/miss metrics and SearXNG access log.
-3. Temporarily deny cache access, then retry a public search. It should still return a live SearXNG result; credits and account rules remain in DynamoDB.
+3. Temporarily deny cache access, then retry a public search. It should still return a live SearXNG result; credits and account rules remain in Aurora.
 4. Unset `ARIA_ELASTICACHE_URL` to roll back without losing authoritative data.
 
 ### Manual alternative

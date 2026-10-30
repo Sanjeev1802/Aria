@@ -23,15 +23,15 @@ Plan downgrades are rejected while occupied seats exceed the destination plan. T
 
 ## Existing-account index
 
-New accounts and personal workspaces receive `gsi2` discovery keys automatically. The DynamoDB table definition already includes this index. Before using the dashboard with a pre-existing table, backfill older records:
+New accounts and personal workspaces receive `gsi2` discovery keys automatically in Aurora `store_items`. Before using the dashboard with pre-existing rows, backfill older records:
 
 ```sh
-ARIA_DYNAMODB_TABLE=your-table AWS_REGION=your-region npm run admin:backfill
-ARIA_DYNAMODB_TABLE=your-table AWS_REGION=your-region npm run admin:backfill -- --apply
+ARIA_DATABASE_URL='postgresql://...' npm run admin:backfill
+ARIA_DATABASE_URL='postgresql://...' npm run admin:backfill -- --apply
 ```
 
-The first command is a dry run and prints counts only. The second scans existing PROFILE and workspace META records and adds missing index keys conditionally. Run it with least-privilege `dynamodb:Scan` and `dynamodb:UpdateItem` permissions; the ARIA app runtime does not need Scan. No customer text, prompts, or secrets are printed.
+The first command is a dry run and prints counts only. The second updates missing `gsi2` keys on PROFILE and workspace META rows in Aurora `store_items`. Run it from a host that can reach the database. No customer text, prompts, or secrets are printed.
 
 ## Verification
 
-Run `npm test`, `npm run typecheck`, and `npm run build`. In local preview, confirm Alex can open `/internal/`, Blair receives an access error, search finds both users after each has signed in, plan changes update the ledger, duplicate submissions do not charge twice, and the activity list shows the actor and reason. Check the customer table at phone and desktop widths. Before production use, verify the allowlist, account-revocation runbook, DynamoDB backfill, and a real Cognito session in staging.
+Run `npm test`, `npm run typecheck`, and `npm run build`. In local preview, confirm Alex can open `/internal/`, Blair receives an access error, search finds both users after each has signed in, plan changes update the ledger, duplicate submissions do not charge twice, and the activity list shows the actor and reason. Check the customer table at phone and desktop widths. Before production use, verify the allowlist, account-revocation runbook, Aurora migrations/backfill, and a real Cognito session in staging.

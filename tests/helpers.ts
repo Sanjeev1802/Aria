@@ -1,5 +1,6 @@
 import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import { MemoryStore } from "../lib/server/store/memory-store";
+import { NoopUserStore } from "../lib/server/users/user-store";
 import { AccountDirectory, type Identity } from "../lib/server/accounts/directory";
 import { CreditLedger } from "../lib/server/accounting/credit-ledger";
 import { buildServices, type ServerConfig, type Services } from "../lib/server/services";
@@ -77,14 +78,20 @@ export class FakeIdp implements IdentityProvider {
 
 export const productionConfig: ServerConfig = {
   environment: "production", region: "us-east-1", cognito: { userPoolId: POOL, clientId: CLIENT },
-  table: "aria-test", appOrigin: ORIGIN, localIdentity: false, liveChat: true, secureCookies: true,
+  databaseUrl: "postgresql://aria:aria@127.0.0.1:5432/aria_test",
+  appOrigin: ORIGIN, localIdentity: false, liveChat: true, secureCookies: true,
 };
 
 export function testServices(config: Partial<ServerConfig> = {}): Services & { store: MemoryStore; idp: FakeIdp } {
   const store = new MemoryStore();
   const idp = new FakeIdp();
   const merged = { ...productionConfig, ...config };
-  return buildServices(merged, { store, idp, verifier: cognitoVerifier({ userPoolId: POOL, clientId: CLIENT, jwks: JWKS }) }) as never;
+  return buildServices(merged, {
+    store,
+    idp,
+    userStore: new NoopUserStore(),
+    verifier: cognitoVerifier({ userPoolId: POOL, clientId: CLIENT, jwks: JWKS }),
+  }) as never;
 }
 
 export function cookieHeader(tokens: Partial<AuthTokens>, secure = true) {

@@ -23,7 +23,8 @@ export function InternalNavUser({
   onSectionChange: (section: InternalSection) => void;
   onSignOut: () => void | Promise<void>;
 }) {
-  const { isMobile } = useSidebar();
+  const { isMobile, state: sidebarState } = useSidebar();
+  const collapsed = sidebarState === "collapsed";
   const name = operator?.name || "Operator";
   const email = operator?.email || "";
   const initials = name.slice(0, 1).toUpperCase();
@@ -46,10 +47,11 @@ export function InternalNavUser({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
+            className="internal-operator-menu w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg ring-0"
+            side={isMobile ? "bottom" : collapsed ? "right" : "top"}
+            align={collapsed ? "end" : "start"}
+            sideOffset={collapsed ? 10 : 8}
+            collisionPadding={16}
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">

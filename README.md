@@ -56,7 +56,7 @@ flowchart LR
   Chat --> Ledger["Credit ledger"]
   Chat --> Claude["Claude (primary, live web search)"]
   Chat -. "fallback if Claude fails before streaming" .-> Nova["Amazon Bedrock: Nova"]
-  Access --> Store[("DynamoDB / SQLite")]
+  Access --> Store[("Aurora / SQLite")]
   Ledger --> Store
   Console["Internal dashboard"] --> Admin["Admin API"]
   Admin --> Store
@@ -68,7 +68,7 @@ Before any model call the server checks the signed-in user, workspace membership
 
 The [system prompt](lib/server/system-prompt.ts) asks for direct answers and honest handling of uncertainty and sources. It tells the model not to claim access to company data or live information the application has not supplied. Prompt quality should be re-checked for each model you configure; see [response quality checks](PROMPT_EVALUATION.md).
 
-**Stack:** Next.js 16 App Router, React 19, TypeScript, OpenUI Agent Interface, Tailwind CSS 4, Radix UI, Amazon Cognito, DynamoDB (production) and SQLite via `node:sqlite` (local), the Anthropic SDK and Amazon Bedrock, and the Node test runner with `tsx`.
+**Stack:** Next.js 16 App Router, React 19, TypeScript, OpenUI Agent Interface, Tailwind CSS 4, Radix UI, Amazon Cognito, Aurora PostgreSQL (production) and SQLite via `node:sqlite` (local), the Anthropic SDK and Amazon Bedrock, and the Node test runner with `tsx`.
 
 ## Quick start
 
@@ -112,7 +112,7 @@ Copy [`.env.example`](.env.example) to `.env.local`. It documents every variable
 | Group | Variables | Notes |
 | --- | --- | --- |
 | **Identity** | `ARIA_COGNITO_USER_POOL_ID`, `ARIA_COGNITO_CLIENT_ID`, `ARIA_COGNITO_CLIENT_SECRET`, `ARIA_APP_ORIGIN` | Required in production. `ARIA_APP_ORIGIN` is the canonical HTTPS origin used for cross-site request checks and invite links. |
-| **Data** | `ARIA_DYNAMODB_TABLE`, `ARIA_DYNAMODB_ENDPOINT` | The table is required in production; omit it locally to use SQLite. The endpoint is for DynamoDB Local in development only. |
+| **Data** | `ARIA_DATABASE_URL`, `ARIA_DATABASE_SECRET_ARN` | Aurora PostgreSQL is required in production (`users` + `store_items`). Omit locally to use `.aria/local-dev.sqlite`, or set the secret and rely on SQLite fallback when the VPC cluster is unreachable. Run `npm run db:migrate` after provisioning. |
 | **Claude** | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL_ID`, `ANTHROPIC_WEB_SEARCH_MAX_USES`, `ANTHROPIC_INPUT_USD_PER_MILLION`, `ANTHROPIC_OUTPUT_USD_PER_MILLION` | The key enables Claude. The model defaults to `claude-opus-5-5`; `claude-haiku-5-5` is a low-cost choice for development. Search runs 0–5 times per message and defaults to 2. |
 | **Bedrock (Nova)** | `AWS_REGION`, `AWS_BEARER_TOKEN_BEDROCK`, `ARIA_NOVA_MODEL_ID`, `ARIA_NOVA_INPUT_USD_PER_MILLION`, `ARIA_NOVA_OUTPUT_USD_PER_MILLION`, `ARIA_RATE_VERSION` | Fallback model, or the primary one when Claude is not configured. Rates must match the model you choose. |
 | **Switches** | `ARIA_LIVE_CHAT`, `ARIA_PLAN_SWITCHING`, `NEXT_PUBLIC_ARIA_PREVIEW` | `ARIA_LIVE_CHAT=enabled` is the operator switch for production model calls. |
@@ -166,15 +166,16 @@ Pro and Team carry an API-access entitlement, but ARIA does not issue API keys o
 | `npm run build` | Build the standalone production bundle |
 | `npm start` | Run the built application |
 | `npm run admin` | Operator commands such as plan changes and reconciliation |
-| `npm run admin:backfill` | Add dashboard index keys to a pre-existing DynamoDB table |
+| `npm run db:migrate` | Apply Aurora migrations (`users`, `store_items`) |
+| `npm run admin:backfill` | Add dashboard index keys to legacy `store_items` rows |
 
-The tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, Team invitations and limits, profile editing, operator delegation and usage analytics. Real Cognito, DynamoDB, Bedrock, Anthropic and OneWave behavior still needs staging verification. ESLint currently reports some findings in the internal dashboard code that are being cleaned up.
+The tests cover authorization boundaries, concurrent credit spending, retries, crash reconciliation, persistence, project assignment, Team invitations and limits, profile editing, operator delegation and usage analytics. Real Cognito, Aurora, Bedrock, Anthropic and OneWave behavior still needs staging verification. ESLint currently reports some findings in the internal dashboard code that are being cleaned up.
 
 ## Deployment
 
 The repository includes a multi-stage [`Dockerfile`](Dockerfile) (Node 24, standalone Next.js output, non-root user) and a [`buildspec.yml`](buildspec.yml) that builds the image, pushes it to Amazon ECR and writes an `imagedefinitions.json` for ECS. Runtime configuration comes from the ECS task definition, not from the build.
 
-Production needs a Cognito user pool and app client, a DynamoDB table ([definition](infra/dynamodb-table.json)), a canonical application origin and the `ARIA_LIVE_CHAT=enabled` switch, plus an Anthropic key or Bedrock model IDs with verified token rates. The [staging checklist](CODE_FIRST_PLAN.md#real-service-staging-checklist) lists the exact steps. ElastiCache is optional and only caches public search results; a private Valkey stack is in [`infra/elasticache-search.yaml`](infra/elasticache-search.yaml).
+Production needs a Cognito user pool and app client, Aurora PostgreSQL ([`infra/aurora-users.yaml`](infra/aurora-users.yaml) plus `npm run db:migrate`), a canonical application origin and the `ARIA_LIVE_CHAT=enabled` switch, plus an Anthropic key or Bedrock model IDs with verified token rates. The [staging checklist](CODE_FIRST_PLAN.md#real-service-staging-checklist) lists the exact steps. ElastiCache is optional and only caches public search results; a private Valkey stack is in [`infra/elasticache-search.yaml`](infra/elasticache-search.yaml).
 
 ## Project structure
 
@@ -186,7 +187,7 @@ Production needs a Cognito user pool and app client, a DynamoDB table ([definiti
 | `lib/server/` | Identity, workspaces, credit ledger, model providers, admin and handlers |
 | `lib/` | Client session, OpenUI integration and shared helpers |
 | `hooks/` | Reusable React hooks |
-| `infra/` | DynamoDB and ElastiCache definitions |
+| `infra/` | Aurora and ElastiCache CloudFormation |
 | `scripts/` | Build and operator tooling |
 | `tests/` | Automated tests |
 | `docs/` | Internal product requirements and prompt proposals |

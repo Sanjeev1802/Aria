@@ -219,9 +219,9 @@ test("production cannot activate the local shared identity or run without identi
   assert.throws(() => assertChatEnabled(config), { code: "live_service_not_configured" });
   // Identity without a shared ledger, and ledger without identity, both stay closed.
   assert.throws(() => assertChatEnabled(readConfig({ ...env, ARIA_COGNITO_USER_POOL_ID: "p", ARIA_COGNITO_CLIENT_ID: "c", ARIA_APP_ORIGIN: "https://a" })));
-  assert.throws(() => assertChatEnabled(readConfig({ ...env, ARIA_DYNAMODB_TABLE: "t", ARIA_APP_ORIGIN: "https://a" })));
+  assert.throws(() => assertChatEnabled(readConfig({ ...env, ARIA_DATABASE_URL: "postgresql://u:p@127.0.0.1:5432/aria", ARIA_APP_ORIGIN: "https://a" })));
   // Fully configured but without the operator switch: still closed.
-  const full = { ...env, ARIA_COGNITO_USER_POOL_ID: "p", ARIA_COGNITO_CLIENT_ID: "c", ARIA_DYNAMODB_TABLE: "t", ARIA_APP_ORIGIN: "https://a" };
+  const full = { ...env, ARIA_COGNITO_USER_POOL_ID: "p", ARIA_COGNITO_CLIENT_ID: "c", ARIA_DATABASE_URL: "postgresql://u:p@127.0.0.1:5432/aria", ARIA_APP_ORIGIN: "https://a" };
   assert.throws(() => assertChatEnabled(readConfig({ ...full, ARIA_LIVE_CHAT: "" })));
   assert.doesNotThrow(() => assertChatEnabled(readConfig(full)));
   const prior = { ...process.env };

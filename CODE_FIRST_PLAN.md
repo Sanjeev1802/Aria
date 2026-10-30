@@ -9,7 +9,7 @@ Deliver a working local application with real server-owned data and a complete F
 ## Milestone 0 — reliable local end-to-end environment
 
 - Save a reviewed baseline commit; the current worktree is largely untracked.
-- Add a persistent development store implementing the existing `Store` contract (SQLite is available in the chosen Node runtime). MemoryStore remains the fast unit-test driver; DynamoStore remains the AWS driver. Do not change credit invariants.
+- Add a persistent development store implementing the existing `Store` contract (SQLite is available in the chosen Node runtime). MemoryStore remains the fast unit-test driver; PgStore (Aurora) is the production driver. Do not change credit invariants.
 - Provide a development-only local identity switcher with two named users in separate workspaces. Restrict it to `NODE_ENV=development` and loopback; never trust it in production. Provide a deterministic fake model that streams text and token usage through the same chat service. Show an unmistakable local-demo label.
 - Acceptance: restart the dev server and retain accounts, workspaces, membership, and the credit ledger; two browser contexts cannot access each other's server data; local chat works without AWS and charges reported test tokens; production routes remain closed. Conversations, projects, sources, and keys gain persistence in later milestones.
 
@@ -63,7 +63,7 @@ Provision staging Cognito, DynamoDB, Bedrock, object storage, queues, email, pay
 ### Real-service staging checklist
 
 - Create a Cognito user pool and app client with email verification, the required password and auth-flow settings, and verified token handling. Exercise sign-up, confirmation, sign-in, refresh, reset, and sign-out.
-- Create the DynamoDB table from `infra/dynamodb-table.json`, enable TTL on `ttl` and point-in-time recovery, and scope the app IAM role to the table and required Bedrock model or inference profile.
+- Deploy Aurora from `infra/aurora-users.yaml`, run `npm run db:migrate`, and scope the app IAM role to Secrets Manager (database URL) and required Bedrock model or inference profile.
 - Configure the canonical `ARIA_APP_ORIGIN`, AWS Region, model IDs, token rates, and rate version from `.env.example`. Keep `ARIA_LIVE_CHAT` disabled until the checks pass.
 - Verify two users in separate workspaces, a Team invite and removal, concurrent sends against one credit pool, server interruption during streaming followed by reconciliation, and a complete Nova response with token usage matching ledger events.
 - Schedule `npm run admin -- reconcile` every 5–10 minutes and alert on deferred settlement, deferred release, and provider-cost review. Verify real email delivery, Bedrock quota, backup/restore, and payment events before public launch.

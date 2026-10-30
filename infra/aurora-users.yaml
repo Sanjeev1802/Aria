@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Aurora PostgreSQL for ARIA global user roles (users table).
+Description: Aurora PostgreSQL for ARIA — global user roles (users) and ledger/directory (store_items). Apply db/migrations with npm run db:migrate.
 
 Parameters:
   VpcId:
