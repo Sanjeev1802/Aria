@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import pg from "pg";
+import { createPgPool } from "../store/pg-pool";
 import {
   DEFAULT_SIGNUP_ROLE,
   isGlobalUserRole,
@@ -117,11 +117,11 @@ export class SqliteUserStore implements UserStore {
 
 export class PgUserStore implements UserStore {
   readonly enforcesRoles = true;
-  private pool: pg.Pool;
+  private pool: ReturnType<typeof createPgPool>;
   private ready: Promise<void>;
 
   constructor(connectionString: string) {
-    this.pool = new pg.Pool({ connectionString, max: 10 });
+    this.pool = createPgPool(connectionString);
     this.ready = this.pool.query(POSTGRES_MIGRATION_SQL).then(() => undefined);
   }
 
