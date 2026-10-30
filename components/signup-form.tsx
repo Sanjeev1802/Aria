@@ -2,11 +2,9 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react"
-import { AuthBrandPanel } from "@/components/auth/auth-brand-panel"
+import { AuthFormShell, AuthLegalFooter } from "@/components/auth/auth-form-shell"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
-import { AriaMark } from "@/components/aria-mark"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Field,
   FieldDescription,
@@ -40,14 +38,13 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [bootstrap, setBootstrap] = useState(false)
   const [pending, setPending] = useState(false)
-  const [errorText, setErrorText] = useState(DEFAULT_ERROR)
+  const [errorText, setErrorText] = useState("")
   const [awaitingCode, setAwaitingCode] = useState(false)
   const [code, setCode] = useState("")
   const [notice, setNotice] = useState<string | null>(null)
   const nextPath = useClientValue(destinationFromQuery, "/chat/")
 
   useEffect(() => {
-    // One-time prefill from ?email=, applied after hydration so the input stays controlled.
     const preset = new URLSearchParams(window.location.search).get("email")
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (preset) setEmail(preset)
@@ -111,113 +108,108 @@ export function SignupForm({ className, ...props }: ComponentProps<"div">) {
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden border-border/50 bg-transparent p-0 shadow-2xl">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <AuthBrandPanel />
-          <form className="bg-card p-6 md:p-8" onSubmit={onSubmit} noValidate>
-            <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Link href="/" className="mb-1 flex items-center gap-2 font-semibold md:hidden" aria-label="ARIA home">
-                  <AriaMark className="aria-auth-mobile-mark" />
-                  ARIA
-                </Link>
-                <h1 className="text-2xl font-bold">Create your account</h1>
-                <p className="text-sm text-balance text-muted-foreground">
-                  Enter your email below to create your account
+    <div className={cn(className)} {...props}>
+      <AuthFormShell
+        variant="sign-up"
+        title="Create your account"
+        subtitle={
+          awaitingCode
+            ? "Enter the confirmation code we emailed you."
+            : "Set up your workspace with a work email and a secure password."
+        }
+        footer={<AuthLegalFooter />}
+      >
+        <form onSubmit={onSubmit} noValidate>
+          <FieldGroup className="gap-4">
+            <Field className="gap-1.5">
+              <div ref={emailWrapRef} className="t-input-wrap aria-auth-field-stack">
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  className="t-input"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    clearInputError(emailWrapRef.current)
+                    if (errorText) setErrorText("")
+                  }}
+                  required
+                  readOnly={awaitingCode}
+                />
+                <p className="t-error-msg aria-auth-field-error text-destructive" role="alert">
+                  {errorText}
                 </p>
               </div>
+              <FieldDescription className="text-sm">
+                {notice ?? "We\u2019ll use this to contact you. We will not share your email with anyone else."}
+              </FieldDescription>
+            </Field>
+            {awaitingCode ? (
               <Field>
-                <div ref={emailWrapRef} className="t-input-wrap space-y-2">
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    className="t-input"
-                    placeholder="m@example.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value)
-                      clearInputError(emailWrapRef.current)
-                    }}
-                    required
-                  />
-                  <p className="t-error-msg text-destructive text-sm" role="alert">
-                    {errorText}
-                  </p>
-                </div>
+                <FieldLabel htmlFor="confirmation-code">Confirmation code</FieldLabel>
+                <Input
+                  id="confirmation-code"
+                  className="t-input"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(e) => {
+                    setCode(e.target.value)
+                    clearInputError(emailWrapRef.current)
+                  }}
+                  required
+                />
                 <FieldDescription>
-                  {notice ?? "We\u2019ll use this to contact you. We will not share your email with anyone else."}
+                  Didn&apos;t get it?{" "}
+                  <button type="button" className="underline underline-offset-4" disabled={pending} onClick={() => void onResend()}>
+                    {pending ? "Sending…" : "Resend code"}
+                  </button>
                 </FieldDescription>
               </Field>
-              {awaitingCode ? (
-                <Field>
-                  <FieldLabel htmlFor="confirmation-code">Confirmation code</FieldLabel>
-                  <Input
-                    id="confirmation-code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    value={code}
-                    onChange={(e) => {
-                      setCode(e.target.value)
-                      clearInputError(emailWrapRef.current)
-                    }}
-                    required
-                  />
-                  <FieldDescription>
-                    Didn&apos;t get it?{" "}
-                    <button type="button" className="underline underline-offset-4" disabled={pending} onClick={() => void onResend()}>
-                      {pending ? "Sending…" : "Resend code"}
-                    </button>
-                  </FieldDescription>
-                </Field>
-              ) : (
-              <Field>
-                <Field className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field>
+            ) : (
+              <Field className="gap-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="aria-auth-field-stack">
                     <FieldLabel htmlFor="password">Password</FieldLabel>
                     <PasswordInput
                       id="password"
+                      className="t-input"
                       autoComplete="new-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
+                  </div>
+                  <div className="aria-auth-field-stack">
+                    <FieldLabel htmlFor="confirm-password">Confirm password</FieldLabel>
                     <PasswordInput
                       id="confirm-password"
+                      className="t-input"
                       autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                     />
-                  </Field>
-                </Field>
-                <FieldDescription>{PASSWORD_HINT}</FieldDescription>
+                  </div>
+                </div>
+                <FieldDescription className="text-sm">{PASSWORD_HINT}</FieldDescription>
               </Field>
-              )}
-              <Field>
-                <Button type="submit" disabled={pending}>
-                  {pending ? "Please wait…" : awaitingCode ? "Confirm and continue" : "Create Account"}
-                </Button>
-              </Field>
-              <FieldDescription className="text-center">
-                Already have an account?{" "}
-                <Link href={`/sign-in/?next=${encodeURIComponent(nextPath)}`}>Sign in</Link>
-              </FieldDescription>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
-      <FieldDescription className="px-6 text-center text-white/80">
-        {ARIA_IS_PREVIEW ? "Preview only — no account is stored. " : ""}By continuing, you agree to our{" "}
-        <Link href="/terms/" className="underline underline-offset-4 hover:text-white">Terms of Service</Link>
-        {" "}and{" "}
-        <Link href="/privacy/" className="underline underline-offset-4 hover:text-white">Privacy Policy</Link>.
-      </FieldDescription>
+            )}
+            <Field>
+              <Button type="submit" className="w-full" disabled={pending}>
+                {pending ? "Please wait…" : awaitingCode ? "Confirm and continue" : "Create account"}
+              </Button>
+            </Field>
+            <FieldDescription className="text-center text-sm">
+              Already have an account?{" "}
+              <Link href={`/sign-in/?next=${encodeURIComponent(nextPath)}`}>Sign in</Link>
+            </FieldDescription>
+          </FieldGroup>
+        </form>
+      </AuthFormShell>
     </div>
   )
 }

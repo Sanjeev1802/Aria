@@ -15,13 +15,17 @@ export type Entitlement = {
   teamManagement: boolean;
   /** Longest single answer; Free stays lower so one reservation never blocks a small balance. */
   maxOutputTokens: number;
+  /** Burst limit: new chat requests per member per rolling minute. */
+  requestsPerMinute: number;
+  /** Calendar-day cap (UTC) on completed chat requests per member. */
+  messagesPerDay: number;
 };
 
 /** Server-owned plan rules. Browser plan labels are display only. */
 export const PLANS: Record<PlanId, Entitlement> = {
-  free: { id: "free", label: "Free", monthlyUnits: 200_000, seats: 1, models: ["nova"], apiAccess: false, teamManagement: false, maxOutputTokens: 2048 },
-  pro: { id: "pro", label: "Pro", monthlyUnits: 6_000_000, seats: 1, models: ["nova"], apiAccess: true, teamManagement: false, maxOutputTokens: 4096 },
-  team: { id: "team", label: "Team", monthlyUnits: 20_000_000, seats: 5, models: ["nova"], apiAccess: true, teamManagement: true, maxOutputTokens: 4096 },
+  free: { id: "free", label: "Free", monthlyUnits: 200_000, seats: 1, models: ["nova"], apiAccess: false, teamManagement: false, maxOutputTokens: 2048, requestsPerMinute: 5, messagesPerDay: 50 },
+  pro: { id: "pro", label: "Pro", monthlyUnits: 6_000_000, seats: 1, models: ["nova"], apiAccess: true, teamManagement: false, maxOutputTokens: 4096, requestsPerMinute: 20, messagesPerDay: 1_000 },
+  team: { id: "team", label: "Team", monthlyUnits: 20_000_000, seats: 5, models: ["nova"], apiAccess: true, teamManagement: true, maxOutputTokens: 4096, requestsPerMinute: 30, messagesPerDay: 5_000 },
 };
 
 export function isPlanId(value: unknown): value is PlanId {

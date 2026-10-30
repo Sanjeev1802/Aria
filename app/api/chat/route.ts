@@ -6,7 +6,8 @@ import { chatHandler, run } from "@/lib/server/handlers";
 import { readConfig } from "@/lib/server/services";
 import { createSearxngSearch } from "@/lib/server/web-search";
 import { cachePublicSearch } from "@/lib/server/cache/search-cache";
-import { getElastiCacheSearchCache } from "@/lib/server/cache/elasticache";
+import { getElastiCache } from "@/lib/server/cache/elasticache";
+import { resolveMessageCache } from "@/lib/server/cache/resolve-message-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,12 +25,17 @@ export function POST(request: Request) {
       : { provider: streamBedrock, modelConfig, maxOutputTokens: configuredMaxOutputTokens() };
   const publicSearch = config.searxngUrl ? createSearxngSearch(config.searxngUrl) : undefined;
   let searchWeb = publicSearch;
-  if (publicSearch && config.elasticacheUrl) {
-    try { searchWeb = cachePublicSearch(publicSearch, getElastiCacheSearchCache(config.elasticacheUrl)); }
-    catch { console.warn("ARIA public-search cache configuration is invalid; using live search"); }
+  const messageCache = resolveMessageCache(config);
+  if (config.elasticacheUrl) {
+    try {
+      const cache = getElastiCache(config.elasticacheUrl);
+      if (publicSearch) searchWeb = cachePublicSearch(publicSearch, cache);
+    } catch {
+      console.warn("ARIA ElastiCache configuration is invalid; public search cache disabled");
+    }
   }
   // Claude searches the web itself, at most maxUses times, only when a question needs current facts.
   const nativeSearch = !config.localIdentity && claudeConfigured() && (config.claudeWebSearchMaxUses ?? 0) > 0
     ? { maxUses: config.claudeWebSearchMaxUses as number } : undefined;
-  return run(request, chatHandler({ ...deps, searchWeb, nativeSearch }));
+  return run(request, chatHandler({ ...deps, searchWeb, nativeSearch, messageCache }));
 }

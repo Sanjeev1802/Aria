@@ -40,7 +40,7 @@ export type ServerConfig = {
    * Only active when ANTHROPIC_API_KEY is set. Each search costs about $0.01.
    */
   claudeWebSearchMaxUses?: number;
-  /** Optional TLS ElastiCache endpoint for short-lived public search results. */
+  /** Optional TLS ElastiCache endpoint for public search (120s) and shared chat FAQ cache (30 days). */
   elasticacheUrl?: string;
   /** OneWave transactional email, configured only on the server. */
   emailService?: { url: string; apiKey: string };
@@ -53,6 +53,8 @@ export type ServerConfig = {
   adminLocalDev?: boolean;
   /** Development-only operator emails; super admin with adminLocalDev. */
   adminEmails?: string[];
+  /** Base64 32-byte AES key for decrypting browser auth envelopes (server + NEXT_PUBLIC pair). */
+  authPayloadKey?: string;
   /** Aurora PostgreSQL connection string for global user roles. */
   databaseUrl?: string;
   /** Secrets Manager ARN holding `{ url }` or `{ username, password, host, port, dbname }`. */
@@ -106,6 +108,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       : undefined,
     databaseUrl: env.ARIA_DATABASE_URL?.trim() || undefined,
     databaseSecretArn: env.ARIA_DATABASE_SECRET_ARN?.trim() || undefined,
+    authPayloadKey: env.ARIA_AUTH_PAYLOAD_KEY?.trim() || undefined,
   };
 }
 

@@ -8,11 +8,15 @@ import { assertSameOrigin, authenticate, requireWorkspace } from "./request-cont
 import { clearSessionCookies, readSessionTokens, sessionCookies, withCookies } from "./auth/cookies";
 import { unverifiedSubject } from "./auth/verifier";
 import { LOCAL_ACCOUNT_COOKIE } from "@/lib/local-user-shared";
+import { requireCognitoPassword, requireLocalCredential } from "./auth/read-sign-in-secret";
+import { parseAuthPayloadKey } from "./auth/auth-payload-crypto";
+import { unwrapAuthBody } from "./auth/unwrap-auth-body";
 import { LocalIdentityProvider } from "./auth/local-identity-provider";
 import { LOCAL_DEV_USER_LABELS, LOCAL_USER_COOKIE, resolveLocalUser } from "./local-dev";
 import type { Rates } from "./metering";
 import { prepareThreadRun } from "./threads";
 import type { WebSearchProvider } from "./web-search";
+import type { SearchCache } from "./cache/search-cache";
 import { mayUseInternalConsole, resolveInternalAccess } from "./admin";
 
 export type ChatDeps = {
@@ -22,6 +26,7 @@ export type ChatDeps = {
   searchWeb?: WebSearchProvider;
   /** The model provider can search the web itself (Claude's web search tool), when a question needs it, up to `maxUses` times per message. */
   nativeSearch?: { maxUses: number };
+  messageCache?: SearchCache;
 };
 
 const noStore = { "Cache-Control": "no-store" };
@@ -38,6 +43,12 @@ export async function run(request: Request, handler: (request: Request, services
     }
     return response;
   }
+}
+
+async function readAuthJson(request: Request, s: Services, limit = 16_000): Promise<Record<string, unknown>> {
+  const body = await readJson(request, limit);
+  const key = parseAuthPayloadKey(s.config.authPayloadKey);
+  return unwrapAuthBody(body, key);
 }
 
 export async function readJson(request: Request, limit = 16_000): Promise<Record<string, unknown>> {
@@ -85,6 +96,7 @@ export function chatHandler(deps: ChatDeps) {
       maxOutputTokens: Math.min(deps.maxOutputTokens, ctx.plan.maxOutputTokens),
       webSearch: body.webSearch && !nativeSearch ? deps.searchWeb : undefined,
       nativeSearch,
+      messageCache: deps.messageCache,
       session: { userName: ctx.user.name, workspaceName: ctx.workspace.name, planLabel: ctx.plan.label, role: ctx.membership.role },
       onComplete,
     });
@@ -122,7 +134,8 @@ export async function sessionHandler(request: Request, s: Services) {
     workspace: { id: ctx.workspace.id, name: ctx.workspace.name, plan: ctx.plan.id, planLabel: ctx.plan.label,
       role: ctx.membership.role, seatLimit: ctx.workspace.seatLimit, seatsUsed: ctx.workspace.seatsUsed },
     entitlements: { models: ctx.plan.models, apiAccess: ctx.plan.apiAccess, teamManagement: ctx.plan.teamManagement,
-      monthlyCredits: ctx.plan.monthlyUnits / 1000 },
+      monthlyCredits: ctx.plan.monthlyUnits / 1000, requestsPerMinute: ctx.plan.requestsPerMinute,
+      messagesPerDay: ctx.plan.messagesPerDay },
     workspaces: workspaces.map(w => ({ id: w.id, name: w.name, plan: w.plan, planLabel: PLANS[w.plan].label, role: w.role })),
   });
 }
@@ -236,15 +249,16 @@ async function startSession(s: Services, tokens: { accessToken: string; idToken:
 export async function signInHandler(request: Request, s: Services) {
   assertAccountsConfigured(s.config);
   assertSameOrigin(request, s);
-  const body = await readJson(request);
-  const email = str(body.email), password = str(body.password, 256);
-  if (!email || !password) throw new ServiceError("invalid_credentials", 401);
+  const body = await readAuthJson(request, s);
+  const email = str(body.email);
+  if (!email) throw new ServiceError("invalid_credentials", 401);
   if (s.config.localIdentity && s.idp instanceof LocalIdentityProvider) {
+    const credential = requireLocalCredential(body, email);
     const normalized = email.trim().toLowerCase();
     if (s.config.adminEmails?.includes(normalized)) {
-      await s.idp.ensureDevOperatorAccount(normalized, password);
+      await s.idp.ensureDevOperatorAccount(normalized, credential);
     }
-    await s.idp.signIn(email, password);
+    await s.idp.signIn(email, credential);
     const response = json({ ok: true, mode: "local" });
     return withCookies(response, [
       localAccountCookie(email),
@@ -252,20 +266,25 @@ export async function signInHandler(request: Request, s: Services) {
     ]);
   }
   const { idp } = requireIdp(s);
+  const password = requireCognitoPassword(body, email);
   return startSession(s, await idp.signIn(email, password));
 }
 
 export async function signUpHandler(request: Request, s: Services) {
   assertAccountsConfigured(s.config);
   assertSameOrigin(request, s);
-  const body = await readJson(request);
-  const email = str(body.email), password = str(body.password, 256);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) throw new ServiceError("invalid_auth_request", 400);
+  const body = await readAuthJson(request, s);
+  const email = str(body.email);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ServiceError("invalid_auth_request", 400);
   const idp = requireAnyIdp(s);
   try {
     if (s.config.localIdentity && idp instanceof LocalIdentityProvider) {
-      return json(await idp.signUp(email, password, str(body.name, 100)));
+      const credential = requireLocalCredential(body, email);
+      if (credential.length !== 64) throw new ServiceError("invalid_auth_request", 400);
+      return json(await idp.signUp(email, credential, str(body.name, 100)));
     }
+    const password = requireCognitoPassword(body, email);
+    if (password.length < 8) throw new ServiceError("invalid_auth_request", 400);
     const { idp: cognitoIdp } = requireIdp(s);
     return json(await cognitoIdp.signUp(email, password, str(body.name, 100)));
   } catch (error) {
@@ -315,12 +334,16 @@ export async function resetPasswordHandler(request: Request, s: Services) {
   assertAccountsConfigured(s.config);
   assertSameOrigin(request, s);
   const idp = requireAnyIdp(s);
-  const body = await readJson(request);
-  const email = str(body.email), code = str(body.code, 10), password = str(body.password, 256);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{4,10}$/.test(code) || password.length < 8) {
+  const body = await readAuthJson(request, s);
+  const email = str(body.email), code = str(body.code, 10);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{4,10}$/.test(code)) {
     throw new ServiceError("invalid_auth_request", 400);
   }
-  await idp.confirmForgotPassword(email, code, password);
+  const secret = s.config.localIdentity && idp instanceof LocalIdentityProvider
+    ? requireLocalCredential(body, email)
+    : requireCognitoPassword(body, email);
+  if (secret.length < 8) throw new ServiceError("invalid_auth_request", 400);
+  await idp.confirmForgotPassword(email, code, secret);
   return json({ ok: true });
 }
 

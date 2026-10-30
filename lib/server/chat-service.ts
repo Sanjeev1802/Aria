@@ -6,6 +6,8 @@ import { ServiceError } from "./errors";
 import type { Account, CreditLedger } from "./accounting/credit-ledger";
 import { MAX_WEB_CONTEXT_BYTES, WebSearchError, boundedWebContext, searchQuery, webSourceLinks, type WebSearchProvider, type WebSource } from "./web-search";
 import { builtinReply } from "./builtin-replies";
+import { messageCacheEligible, readMessageCache, writeMessageCache } from "./cache/message-cache";
+import type { SearchCache } from "./cache/search-cache";
 
 /** What the server adds to a model call beyond the conversation itself. */
 export type ProviderRequest = {
@@ -41,10 +43,19 @@ export async function createChatResponse(input: ChatInput, options: {
   nativeSearch?: { maxUses: number };
   session?: PromptSession;
   onComplete?: (text: string) => Promise<void>;
+  /** Optional ElastiCache layer for repeat first-turn questions (30-day TTL). */
+  messageCache?: SearchCache;
 }): Promise<Response> {
   const canned = builtinReply(input);
   if (canned) return streamBuiltinReply(input, canned, options.signal, options.onComplete);
   const { ledger, account, modelId, rates } = options;
+  const cacheContext = { webSearch: Boolean(options.webSearch), nativeSearch: Boolean(options.nativeSearch) };
+  if (options.messageCache && messageCacheEligible(input, cacheContext)) {
+    const cached = await readMessageCache(options.messageCache, input, modelId);
+    if (cached) {
+      return streamBuiltinReply(input, cached, options.signal, options.onComplete, { cacheStatus: "hit" });
+    }
+  }
   const workspaceId = account.workspaceId;
   const hash = createHash("sha256").update(JSON.stringify({ input, modelId, rates, prompt: PROMPT_VERSION, webSearch: Boolean(options.webSearch), nativeSearch: options.nativeSearch?.maxUses ?? 0 })).digest("hex");
   const runtime = runtimeContext({ now: new Date(), session: options.session, webSearch: Boolean(options.webSearch), webSearchTool: Boolean(options.nativeSearch),
@@ -89,6 +100,7 @@ export async function createChatResponse(input: ChatInput, options: {
       let servedBy: ServedBy | undefined;
       let extraUnits = 0;
       let providerSources: WebSource[] = [];
+      let answerSources: WebSource[] = [];
       try {
         const results = options.webSearch ? await options.webSearch(searchQuery(input.messages.at(-1)!.content[0].text), signal) : [];
         const { context, sources } = boundedWebContext(results);
@@ -113,9 +125,9 @@ export async function createChatResponse(input: ChatInput, options: {
           text += notice;
           content(JSON.stringify(notice).slice(1, -1));
         }
-        const shown = sources.length ? sources : providerSources;
-        if (shown.length) {
-          const links = webSourceLinks(shown);
+        answerSources = sources.length ? sources : providerSources;
+        if (answerSources.length) {
+          const links = webSourceLinks(answerSources);
           text += links;
           content(JSON.stringify(links).slice(1, -1));
         }
@@ -135,17 +147,26 @@ export async function createChatResponse(input: ChatInput, options: {
         logLedgerIssue("settlement_deferred", account, input.id);
       }
       await options.onComplete?.(text).catch(() => logLedgerIssue("thread_save_deferred", account, input.id));
+      const usedWeb = answerSources.length > 0 || extraUnits > 0;
+      if (options.messageCache && messageCacheEligible(input, cacheContext) && !usedWeb) {
+        await writeMessageCache(options.messageCache, input, modelId, text);
+      }
       await ledger.recordModelUse({ modelId: servedBy?.modelId ?? modelId, fallback: Boolean(servedBy), ok: true });
       finish();
       if (!cancelled) controller.close();
     },
     cancel() { cancelled = true; abort.abort(); },
   });
+  return chatStreamResponse(body, input.id, "miss");
+}
+
+function chatStreamResponse(body: ReadableStream<Uint8Array>, requestId: string, cacheStatus: "hit" | "miss") {
   return new Response(body, { headers: {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-store, no-transform",
     "X-Accel-Buffering": "no",
-    "X-Request-Id": input.id,
+    "X-Request-Id": requestId,
+    "X-Aria-Response-Cache": cacheStatus,
   } });
 }
 
@@ -154,6 +175,7 @@ function streamBuiltinReply(
   text: string,
   signal: AbortSignal,
   onComplete?: (text: string) => Promise<void>,
+  meta?: { cacheStatus?: "hit" | "builtin" },
 ) {
   const messageId = randomUUID();
   const encoder = new TextEncoder();
@@ -180,12 +202,7 @@ function streamBuiltinReply(
     },
     cancel() { cancelled = true; },
   });
-  return new Response(body, { headers: {
-    "Content-Type": "text/event-stream; charset=utf-8",
-    "Cache-Control": "no-store, no-transform",
-    "X-Accel-Buffering": "no",
-    "X-Request-Id": input.id,
-  } });
+  return chatStreamResponse(body, input.id, meta?.cacheStatus === "hit" ? "hit" : "miss");
 }
 
 function chatFailure(error: unknown) {

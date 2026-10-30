@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Private Valkey Serverless cache for ARIA public web-search results only.
+Description: Private Valkey Serverless cache for ARIA public search and shared chat response caching.
 
 Parameters:
   VpcId:
@@ -33,7 +33,7 @@ Resources:
       UserId: !Sub '${CacheName}-user'
       UserName: aria-search
       Engine: valkey
-      AccessString: 'on ~aria:public-search:v1:* -@all +get +setex +cluster|slots +cluster|shards +cluster|nodes'
+      AccessString: 'on ~aria:public-search:v1:* ~aria:chat-response:v1:* -@all +get +setex +cluster|slots +cluster|shards +cluster|nodes'
       AuthenticationMode:
         Type: password
         Passwords:
@@ -67,7 +67,7 @@ Resources:
     Type: AWS::ElastiCache::ServerlessCache
     Properties:
       ServerlessCacheName: !Ref CacheName
-      Description: Short-lived public search results; no private ARIA data
+      Description: Public search snippets and shared FAQ chat responses (30-day TTL); no sessions or credits
       Engine: valkey
       ConnectionType: vpc
       SubnetIds: !Ref PrivateSubnetIds

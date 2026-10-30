@@ -1,5 +1,6 @@
 import { createCluster } from "redis";
 import type { SearchCache } from "./search-cache";
+import { warmMessageCache } from "./warm-message-cache";
 
 const RETRY_AFTER_FAILURE_MS = 15_000;
 type ClusterClient = ReturnType<typeof createCluster>;
@@ -57,8 +58,21 @@ export function createElastiCacheSearchCache(connectionUrl: string): SearchCache
 }
 
 let shared: { url: string; cache: SearchCache } | undefined;
+let warmStarted = false;
+
+/** Shared Valkey client for public search and chat response caching. */
+export function getElastiCache(connectionUrl: string): SearchCache {
+  if (!shared || shared.url !== connectionUrl) {
+    shared = { url: connectionUrl, cache: createElastiCacheSearchCache(connectionUrl) };
+    warmStarted = false;
+  }
+  if (!warmStarted) {
+    warmStarted = true;
+    warmMessageCache(shared.cache).catch(() => undefined);
+  }
+  return shared.cache;
+}
 
 export function getElastiCacheSearchCache(connectionUrl: string): SearchCache {
-  if (!shared || shared.url !== connectionUrl) shared = { url: connectionUrl, cache: createElastiCacheSearchCache(connectionUrl) };
-  return shared.cache;
+  return getElastiCache(connectionUrl);
 }

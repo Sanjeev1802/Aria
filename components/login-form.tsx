@@ -2,11 +2,9 @@
 
 import Link from "next/link"
 import { useRef, useState, type ComponentProps, type FormEvent } from "react"
-import { AriaMark } from "@/components/aria-mark"
-import { AuthBrandPanel } from "@/components/auth/auth-brand-panel"
+import { AuthFormShell, AuthLegalFooter } from "@/components/auth/auth-form-shell"
 import { WorkspaceBootstrapOverlay } from "@/components/auth/workspace-bootstrap-overlay"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Field,
   FieldDescription,
@@ -38,7 +36,7 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
   const [password, setPassword] = useState("")
   const [bootstrap, setBootstrap] = useState(false)
   const [pending, setPending] = useState(false)
-  const [errorText, setErrorText] = useState(DEFAULT_ERROR)
+  const [errorText, setErrorText] = useState("")
   const nextPath = useClientValue(destinationFromQuery, "/chat/")
 
   async function onSubmit(e: FormEvent) {
@@ -69,44 +67,39 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden border-border/50 bg-transparent p-0 shadow-2xl">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <AuthBrandPanel />
-          <form className="bg-card p-6 md:p-8" onSubmit={onSubmit} noValidate>
-            <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Link href="/" className="mb-1 flex items-center gap-2 font-semibold md:hidden" aria-label="ARIA home">
-                  <AriaMark className="aria-auth-mobile-mark" />
-                  ARIA
-                </Link>
-                <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-balance text-muted-foreground">
-                  Sign in to your ARIA workspace
-                </p>
+    <div className={cn(className)} {...props}>
+      <AuthFormShell
+        variant="sign-in"
+        title="Welcome back"
+        subtitle="Sign in to your ARIA workspace."
+        footer={<AuthLegalFooter />}
+      >
+        <form onSubmit={onSubmit} noValidate>
+          <FieldGroup className="gap-4">
+            <Field className="gap-1.5">
+              <div ref={emailWrapRef} className="t-input-wrap aria-auth-field-stack">
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  className="t-input"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    clearInputError(emailWrapRef.current)
+                    if (errorText) setErrorText("")
+                  }}
+                  required
+                />
+                <p className="t-error-msg aria-auth-field-error text-destructive" role="alert">{errorText}</p>
               </div>
-              <Field>
-                <div ref={emailWrapRef} className="t-input-wrap space-y-2">
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    className="t-input"
-                    placeholder="m@example.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value)
-                      clearInputError(emailWrapRef.current)
-                    }}
-                    required
-                  />
-                  <p className="t-error-msg text-destructive text-sm" role="alert">{errorText}</p>
-                </div>
-              </Field>
-              <Field>
-                <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
+            </Field>
+            <Field className="gap-1.5">
+              <div className="aria-auth-field-stack">
+                <div className="flex items-center gap-2">
+                  <FieldLabel htmlFor="password" className="mb-0">Password</FieldLabel>
                   {ARIA_IS_PREVIEW ? (
                     <span className="ml-auto text-sm text-muted-foreground">Preview only</span>
                   ) : (
@@ -117,29 +110,26 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
                 </div>
                 <PasswordInput
                   id="password"
+                  className="t-input"
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-              </Field>
-              <Field>
-                <Button type="submit" disabled={pending}>{pending ? "Signing in…" : "Login"}</Button>
-              </Field>
-              <FieldDescription className="text-center">
-                Don&apos;t have an account?{" "}
-                <Link href={`/sign-up/?next=${encodeURIComponent(nextPath)}`}>Sign up</Link>
-              </FieldDescription>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
-      <FieldDescription className="px-6 text-center text-white/80">
-        {ARIA_IS_PREVIEW ? "Preview only — no account is stored. " : ""}By continuing, you agree to our{" "}
-        <Link href="/terms/" className="underline underline-offset-4 hover:text-white">Terms of Service</Link>
-        {" "}and{" "}
-        <Link href="/privacy/" className="underline underline-offset-4 hover:text-white">Privacy Policy</Link>.
-      </FieldDescription>
+              </div>
+            </Field>
+            <Field>
+              <Button type="submit" className="w-full" disabled={pending}>
+                {pending ? "Signing in…" : "Sign in"}
+              </Button>
+            </Field>
+            <FieldDescription className="text-center text-sm">
+              Don&apos;t have an account?{" "}
+              <Link href={`/sign-up/?next=${encodeURIComponent(nextPath)}`}>Sign up</Link>
+            </FieldDescription>
+          </FieldGroup>
+        </form>
+      </AuthFormShell>
     </div>
   )
 }

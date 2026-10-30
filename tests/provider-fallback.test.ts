@@ -11,7 +11,7 @@ import { identity, ledgerEnv } from "./helpers";
 const claudeRates = { input: 4, output: 20, version: "claude" };
 const novaRates = { input: 0.035, output: 0.14, version: "nova" };
 const request: ProviderRequest = { runtimeContext: "# Session context", maxOutputTokens: 256 };
-const input = (id = "run_fb_1") => parseChatInput({ runId: id, messages: [{ role: "user", content: "Hello" }] });
+const input = (id = "run_fb_1") => parseChatInput({ runId: id, messages: [{ role: "user", content: "Summarize REST idempotency in one sentence" }] });
 
 const nova: StreamProvider = async function* () {
   yield { text: "from nova" };

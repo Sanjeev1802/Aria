@@ -3,6 +3,8 @@ import { ARIA_PREVIEW_PROFILE } from "@/lib/aria-profile-user";
 import type { AriaPlanId } from "@/lib/aria-current-plan";
 import { LOCAL_USER_HEADER, type LocalUserSlot } from "@/lib/local-user-shared";
 import { readLocalUserSlot } from "@/lib/aria-local-dev";
+import { computeAuthCredentialWeb } from "@/lib/auth/auth-credential";
+import { encryptAuthPayload } from "@/lib/auth/auth-payload-crypto.client";
 
 export type AriaRole = "owner" | "admin" | "member";
 export type AriaGlobalRole = "super_admin" | "admin" | "member" | "team_admin" | "team_member";
@@ -151,13 +153,26 @@ async function authPost(path: string, body: unknown): Promise<AriaAuthResult> {
   }
 }
 
-export const ariaSignIn = (email: string, password: string) => authPost("/api/auth/sign-in/", { email, password });
-export const ariaSignUp = (email: string, password: string, name = "") => authPost("/api/auth/sign-up/", { email, password, name });
+const AUTH_PAYLOAD_KEY = process.env.NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY?.trim();
+
+async function authSecretBody(email: string, password: string, extra: Record<string, unknown> = {}) {
+  if (AUTH_PAYLOAD_KEY) {
+    const payload = await encryptAuthPayload(AUTH_PAYLOAD_KEY, { email, password, ...extra });
+    return { v: 1 as const, payload };
+  }
+  const credential = await computeAuthCredentialWeb(email, password);
+  return { email, credential, ...extra };
+}
+
+export const ariaSignIn = (email: string, password: string) =>
+  authSecretBody(email, password).then(body => authPost("/api/auth/sign-in/", body));
+export const ariaSignUp = (email: string, password: string, name = "") =>
+  authSecretBody(email, password, { name }).then(body => authPost("/api/auth/sign-up/", body));
 export const ariaConfirmSignUp = (email: string, code: string) => authPost("/api/auth/confirm/", { email, code });
 export const ariaResendCode = (email: string) => authPost("/api/auth/confirm/", { email, resend: true });
 export const ariaForgotPassword = (email: string) => authPost("/api/auth/forgot-password/", { email });
 export const ariaResetPassword = (email: string, code: string, password: string) =>
-  authPost("/api/auth/reset-password/", { email, code, password });
+  authSecretBody(email, password, { code }).then(body => authPost("/api/auth/reset-password/", body));
 
 export async function ariaSignOut() {
   if (!ARIA_IS_PREVIEW) await authPost("/api/auth/sign-out/", {});

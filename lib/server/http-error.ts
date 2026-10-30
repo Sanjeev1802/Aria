@@ -20,6 +20,7 @@ const messages: Record<string,string> = {
   member_limit_conflict: "The team or member changed while saving the limit. Refresh and try again.",
   request_in_progress: "A response is already running. Wait for it to finish before sending another message.",
   rate_limited: "You have reached the request limit. Please wait a minute and try again.",
+  daily_message_limit: "You have reached today's message limit for your plan. It resets at midnight UTC, or upgrade for a higher allowance.",
   request_already_processed_or_pending: "This request is already pending or failed. Check its status before starting a new request.",
   idempotency_conflict: "This request ID was already used for different content. Start a new request.",
   not_signed_in: "Sign in to continue.",

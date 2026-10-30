@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { keys, ACTIVE_LOCK_MS, STALE_RESERVATION_MS, type Account } from "../lib/server/accounting/credit-ledger";
+import { PLANS } from "../lib/server/accounts/entitlements";
 import { createChatResponse, type StreamProvider } from "../lib/server/chat-service";
 import { parseChatInput } from "../lib/server/chat-input";
 import { ConditionFailed } from "../lib/server/store/types";
@@ -62,13 +63,31 @@ test("a member cannot run two requests at once even from separate workers", asyn
 
 test("per-member rate limit is enforced across workers", async () => {
   const env = await team(1);
-  for (let i = 0; i < 5; i++) {
+  const burst = PLANS.team.requestsPerMinute;
+  for (let i = 0; i < burst; i++) {
     await env.ledger.reserve(env.account("m0"), req(`q${i}`));
     await env.ledger.settle(env.ws, `q${i}`, settlement(500));
   }
-  await assert.rejects(env.ledger.reserve(env.account("m0"), req("q5")), { code: "rate_limited" });
+  await assert.rejects(env.ledger.reserve(env.account("m0"), req("q_burst")), { code: "rate_limited" });
   env.time.advance(60_000);
-  await env.ledger.reserve(env.account("m0"), req("q5"));
+  await env.ledger.reserve(env.account("m0"), req("q_burst"));
+});
+
+test("daily message limit follows the workspace plan", async () => {
+  const env = ledgerEnv();
+  const owner = await env.directory.ensureAccount(identity("daily_cap"));
+  const ws = owner.personalWorkspaceId;
+  await env.ledger.ensurePeriodGrant(ws, "free");
+  const account: Account = { workspaceId: ws, memberId: "daily_cap", plan: "free" };
+  const cap = PLANS.free.messagesPerDay;
+  const burst = PLANS.free.requestsPerMinute;
+  for (let i = 0; i < cap; i++) {
+    if (i > 0 && i % burst === 0) env.time.advance(60_000);
+    await env.ledger.reserve(account, req(`day${i}`));
+    await env.ledger.settle(ws, `day${i}`, settlement(100));
+  }
+  env.time.advance(60_000);
+  await assert.rejects(env.ledger.reserve(account, req("day_over")), { code: "daily_message_limit" });
 });
 
 test("retried request IDs reserve once, settle once, and replay the stored result", async () => {
@@ -93,7 +112,7 @@ test("full chat retry with the same request ID calls the model once and charges 
   const env = await team(1);
   let calls = 0;
   const provider: StreamProvider = async function* () { calls++; yield { text: "answer" }; yield { usage: { inputTokens: 50, outputTokens: 10 } }; };
-  const input = parseChatInput({ runId: "client_retry_1", messages: [{ role: "user", content: "Hi" }] });
+  const input = parseChatInput({ runId: "client_retry_1", messages: [{ role: "user", content: "Explain idempotent APIs briefly" }] });
   const opts = { ledger: env.ledger, account: env.account("m0"), modelId: "m", rates: { input: 0.06, output: 0.24, version: "v" },
     provider, signal: new AbortController().signal, maxOutputTokens: 256 };
   const before = (await env.ledger.balance(env.ws)).used;
@@ -149,7 +168,7 @@ test("a crash mid-transaction applies nothing; settlement can then complete exac
 
 test("settlement failure after delivery leaves the hold for reconciliation instead of refunding", async () => {
   const env = await team(1);
-  const input = parseChatInput({ runId: "deferred_settle", messages: [{ role: "user", content: "Hi" }] });
+  const input = parseChatInput({ runId: "deferred_settle", messages: [{ role: "user", content: "Explain idempotent APIs briefly" }] });
   const provider: StreamProvider = async function* () { yield { text: "delivered" }; yield { usage: { inputTokens: 5, outputTokens: 5 } }; };
   const original = console.error; console.error = () => {};
   env.store.beforeCommit = writes => {

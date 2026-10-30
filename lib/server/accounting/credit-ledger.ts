@@ -1,5 +1,5 @@
 import { ServiceError } from "../errors";
-import { periodFor, type PlanId } from "../accounts/entitlements";
+import { entitlementFor, periodFor, type PlanId } from "../accounts/entitlements";
 import { monthlyUnitsForPlan } from "../subscription-catalog";
 import { ConditionFailed, notExists, type Item, type Key, type Store, type Write } from "../store/types";
 import { recordModelUse, type ModelUseEntry } from "../model-usage";
@@ -16,7 +16,8 @@ export type RequestRecord = {
 };
 
 export const MAX_ACTIVE_PER_MEMBER = 1;
-export const REQUESTS_PER_MINUTE = 5;
+/** Free-tier burst limit; tests and docs reference the strictest plan. */
+export const REQUESTS_PER_MINUTE = entitlementFor("free").requestsPerMinute;
 /** Longer than the 90 s provider deadline, so a live request never loses its lock. */
 export const ACTIVE_LOCK_MS = 120_000;
 /** Reservations older than this are presumed crashed and reconciled. */
@@ -30,6 +31,7 @@ export const keys = {
   active: (w: string, member: string): Key => ({ pk: ws(w), sk: `ACTIVE#${member}` }),
   rate: (w: string, member: string, minute: number): Key => ({ pk: ws(w), sk: `RATE#${member}#${minute}` }),
   activity: (w: string, member: string, day: string): Key => ({ pk: ws(w), sk: `ACT#${member}#${day}` }),
+  dailyMessages: (w: string, member: string, day: string): Key => ({ pk: ws(w), sk: `DAYMSG#${member}#${day}` }),
   memberBudget: (w: string, member: string, period: string): Key => ({ pk: ws(w), sk: `BUDGET#${period}#${member}` }),
   member: (w: string, member: string): Key => ({ pk: ws(w), sk: `MEMBER#${member}` }),
   workspace: (w: string): Key => ({ pk: ws(w), sk: "META" }),
@@ -144,8 +146,10 @@ export class CreditLedger {
     const period = periodFor(now);
     const { workspaceId: w, memberId: m } = account;
     const metered = account.plan === "team";
+    const planLimits = entitlementFor(account.plan);
     const budget = metered ? await this.ensureMemberBudget(w, m, period) : undefined;
     const limit = typeof budget?.limit === "number" ? budget.limit : null;
+    const day = new Date(now).toISOString().slice(0, 10);
     const writes: Write[] = [
       { kind: "put", when: [notExists], item: { ...keys.request(w, request.id),
         workspaceId: w, memberId: m, requestId: request.id, hash: request.hash,
@@ -157,7 +161,9 @@ export class CreditLedger {
       { kind: "put", when: [{ any: [{ field: "pk", op: "notExists" }, { field: "expiresAt", op: "<", value: now }] }],
         item: { ...keys.active(w, m), requestId: request.id, expiresAt: now + ACTIVE_LOCK_MS, ttl: ttlAfter(now, ACTIVE_LOCK_MS * 10) } },
       { kind: "update", key: keys.rate(w, m, Math.floor(now / 60_000)), add: { count: 1 }, set: { ttl: ttlAfter(now, 3_600_000) },
-        when: [{ any: [{ field: "count", op: "notExists" }, { field: "count", op: "<", value: REQUESTS_PER_MINUTE }] }] },
+        when: [{ any: [{ field: "count", op: "notExists" }, { field: "count", op: "<", value: planLimits.requestsPerMinute }] }] },
+      { kind: "update", key: keys.dailyMessages(w, m, day), add: { count: 1 }, set: { ttl: ttlAfter(now, 35 * 24 * 3_600_000) },
+        when: [{ any: [{ field: "count", op: "notExists" }, { field: "count", op: "<", value: planLimits.messagesPerDay }] }] },
       { kind: "check", key: keys.member(w, m), when: [{ field: "status", op: "=", value: "active" }] },
       { kind: "check", key: keys.workspace(w), when: [{ field: "plan", op: "=", value: account.plan }] },
       ...(metered ? [{ kind: "update" as const, key: keys.memberBudget(w, m, period),
@@ -177,12 +183,13 @@ export class CreditLedger {
         const raced = await this.find(w, request.id, request.hash);
         if (raced) return raced;
       }
-      if (failed.has(4)) throw new ServiceError("access_revoked", 403);
-      if (failed.has(5)) throw new ServiceError("entitlement_changed", 409);
+      if (failed.has(5)) throw new ServiceError("access_revoked", 403);
+      if (failed.has(6)) throw new ServiceError("entitlement_changed", 409);
       if (failed.has(2)) throw new ServiceError("request_in_progress", 429);
       if (failed.has(3)) throw new ServiceError("rate_limited", 429);
+      if (failed.has(4)) throw new ServiceError("daily_message_limit", 429);
       if (failed.has(1)) throw new ServiceError("insufficient_credits", 402);
-      if (metered && failed.has(6)) throw new ServiceError("member_limit_exceeded", 402);
+      if (metered && failed.has(7)) throw new ServiceError("member_limit_exceeded", 402);
       throw error;
     }
   }

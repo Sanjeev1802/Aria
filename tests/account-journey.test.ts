@@ -6,6 +6,7 @@ import {
   forgotPasswordHandler, resetPasswordHandler, signInHandler, signUpHandler, confirmHandler,
 } from "../lib/server/handlers";
 import { buildServices } from "../lib/server/services";
+import { computeAuthCredential } from "../lib/auth/auth-credential";
 
 const dev = {
   environment: "development" as const,
@@ -30,18 +31,19 @@ test("local identity supports sign-up, confirmation, password reset, and sign-in
   const password = "correct horse battery";
   const next = "new horse battery";
 
-  await signUpHandler(post("/api/auth/sign-up/", { email, password, name: "Journey" }), services);
+  const cred = (value: string) => computeAuthCredential(email, value);
+  await signUpHandler(post("/api/auth/sign-up/", { email, credential: cred(password), name: "Journey" }), services);
   await confirmHandler(post("/api/auth/confirm/", { email, code: "424242" }), services);
-  const signIn = await signInHandler(post("/api/auth/sign-in/", { email, password }), services);
+  const signIn = await signInHandler(post("/api/auth/sign-in/", { email, credential: cred(password) }), services);
   assert.equal(signIn.status, 200);
 
   await forgotPasswordHandler(post("/api/auth/forgot-password/", { email }), services);
-  await resetPasswordHandler(post("/api/auth/reset-password/", { email, code: "424242", password: next }), services);
+  await resetPasswordHandler(post("/api/auth/reset-password/", { email, code: "424242", credential: cred(next) }), services);
   await assert.rejects(
-    () => signInHandler(post("/api/auth/sign-in/", { email, password }), services),
+    () => signInHandler(post("/api/auth/sign-in/", { email, credential: cred(password) }), services),
     { code: "invalid_credentials" },
   );
-  const again = await signInHandler(post("/api/auth/sign-in/", { email, password: next }), services);
+  const again = await signInHandler(post("/api/auth/sign-in/", { email, credential: cred(next) }), services);
   assert.equal(again.status, 200);
 });
 
