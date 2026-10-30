@@ -146,10 +146,21 @@ function buildStore(config: ServerConfig, overrides?: Store): Store {
   throw new ServiceError("live_service_not_configured", 503);
 }
 
+function logProductionAccountsGap(config: ServerConfig) {
+  console.error(JSON.stringify({
+    level: "error",
+    event: "accounts_not_configured",
+    cognito: Boolean(config.cognito),
+    database: hasDatabaseConfig(config),
+    appOrigin: Boolean(config.appOrigin),
+  }));
+}
+
 /** Throws unless identity and Aurora (or local SQLite in development) are configured. */
 export function assertAccountsConfigured(config: ServerConfig) {
   if (config.environment === "production") {
     if (!config.cognito || !hasDatabaseConfig(config) || !config.appOrigin) {
+      logProductionAccountsGap(config);
       throw new ServiceError("live_service_not_configured", 503);
     }
     return;

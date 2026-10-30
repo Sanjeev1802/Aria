@@ -5,7 +5,7 @@ export function parseAuthPayloadKey(value: string | undefined): Buffer | undefin
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
   const key = Buffer.from(trimmed, "base64");
-  if (key.length !== 32) throw new ServiceError("live_service_not_configured", 503);
+  if (key.length !== 32) throw new ServiceError("auth_payload_not_configured", 503);
   return key;
 }
 
