@@ -8,7 +8,7 @@ env:
     IMAGE_REPO_NAME: aria
     CONTAINER_NAME: aria
   secrets-manager:
-    NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY: aria/dev/auth-payload:NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY::
+    NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY: "aria/dev/auth-payload:NEXT_PUBLIC_ARIA_AUTH_PAYLOAD_KEY::"
 
 phases:
   pre_build:
